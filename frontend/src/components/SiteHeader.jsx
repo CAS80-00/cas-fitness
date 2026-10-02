@@ -7,9 +7,8 @@ import styles from "../styles/SiteHeader.module.css";
  * user to, based on their role.
  */
 function getProfileRoute(currentUser) {
-  if (currentUser?.roleId === 1) return "superuser";
-  if (currentUser?.roleId === 2 || currentUser?.roleId === 3) return "employee";
-  return "student";
+  // Return generic "profile" route - App.jsx will handle role-based rendering
+  return "profile";
 }
 
 /**
