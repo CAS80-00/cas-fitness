@@ -256,6 +256,7 @@ export default function AuthCard({ onAuthenticated }) {
               maxLength={6}
               value={otpCode}
               onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+              placeholder="000000"
               required
               className={styles.inputOtp}
             />
@@ -264,7 +265,10 @@ export default function AuthCard({ onAuthenticated }) {
                 <p className={styles.devCodeNote}>{devNote}</p>
                 <button
                   type="button"
-                  onClick={() => setOtpCode(devCode)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setOtpCode(devCode.toString());
+                  }}
                   className={styles.devCodeButton}
                 >
                   Dev mode — use code {devCode}
