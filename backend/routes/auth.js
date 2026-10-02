@@ -430,7 +430,7 @@ router.post("/verify-otp", async (req, res) => {
       UPDATE users
       SET status = CASE WHEN status IN ('PENDING', 'PENDING_VERIFICATION') THEN 'ACTIVE' ELSE status END
       WHERE id = $1
-      RETURNING id, email, first_name, role_id, session_version
+      RETURNING id, email, first_name, last_name, role_id, session_version
     `,
       [userId],
     );
@@ -464,6 +464,7 @@ router.post("/verify-otp", async (req, res) => {
         id: user.id,
         email: user.email,
         firstName: user.first_name,
+        lastName: user.last_name,
         roleId: user.role_id,
       },
     });
