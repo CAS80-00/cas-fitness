@@ -1,0 +1,220 @@
+@reference "./global.css";
+/* ==========================================================================
+   SuperuserEmployeeView Module
+   Comprehensive employee management view for superusers.
+   ========================================================================== */
+
+.container {
+  @apply space-y-4;
+}
+
+.backButton {
+  @apply rounded px-4 py-2 text-xs font-semibold text-white transition;
+  background-color: #404040;
+}
+.backButton:hover {
+  background-color: #505050;
+}
+
+.card {
+  @apply space-y-4 rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.header {
+  @apply flex items-center justify-between border-b pb-4;
+  border-color: #262626;
+}
+
+.title {
+  @apply text-2xl font-bold text-white;
+}
+
+.subtitle {
+  @apply text-xs text-neutral-400;
+  margin-top: 0.25rem;
+}
+
+.idValue {
+  @apply font-mono text-xs;
+  color: var(--color-electric-blue);
+}
+
+.editButton {
+  @apply rounded px-4 py-2 text-xs font-semibold text-white transition;
+  background-color: var(--color-electric-blue);
+}
+.editButton:hover {
+  background-color: var(--color-electric-blue-hover);
+}
+
+.loadingText {
+  @apply text-center text-xs text-neutral-400;
+  padding: 2rem;
+}
+
+.errorText {
+  @apply rounded border border-red-600 px-4 py-3 text-sm text-red-400;
+  background-color: rgba(127, 29, 29, 0.2);
+}
+
+.successText {
+  @apply rounded border border-green-600 px-4 py-3 text-sm text-green-400;
+  background-color: rgba(5, 46, 22, 0.2);
+}
+
+/* View Mode */
+.viewMode {
+  @apply space-y-4;
+}
+
+.infoGrid {
+  @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3;
+}
+
+.infoField {
+  @apply rounded-lg border p-4;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+
+.fieldLabel {
+  @apply block text-xs font-semibold uppercase text-neutral-500;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.fieldValue {
+  @apply text-sm text-white;
+  margin: 0;
+}
+
+.roleBadge {
+  @apply inline-block rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white;
+}
+
+.statusBadge {
+  @apply inline-block rounded-full px-3 py-1 text-xs font-semibold;
+  background-color: #404040;
+  color: #9ca3af;
+}
+
+.statusBadge.status-active {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.statusBadge.status-pending {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.statusBadge.status-pending_verification {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.statusBadge.status-suspended {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.statusBadge.status-cancelled {
+  background-color: rgba(107, 114, 128, 0.2);
+  color: #9ca3af;
+}
+
+.statusBadge.status-inactive {
+  background-color: rgba(107, 114, 128, 0.2);
+  color: #9ca3af;
+}
+
+/* Edit Mode */
+.editMode {
+  @apply space-y-4;
+}
+
+.formGrid {
+  @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3;
+}
+
+.formField {
+  @apply flex flex-col gap-2;
+}
+
+.formLabel {
+  @apply block text-xs font-semibold uppercase text-neutral-400;
+  letter-spacing: 0.05em;
+}
+
+.input {
+  @apply rounded border px-3 py-2 text-sm text-white transition;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--color-electric-blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.select {
+  @apply rounded border px-3 py-2 text-sm text-white transition;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+.select:focus {
+  outline: none;
+  border-color: var(--color-electric-blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.formActions {
+  @apply flex justify-end gap-3 border-t pt-4;
+  border-color: #262626;
+}
+
+.cancelButton {
+  @apply rounded px-4 py-2 text-sm font-semibold text-white transition;
+  background-color: #262626;
+}
+.cancelButton:hover {
+  background-color: #404040;
+}
+
+.saveButton {
+  @apply rounded px-4 py-2 text-sm font-semibold text-white transition;
+  background-color: var(--color-electric-blue);
+}
+.saveButton:hover {
+  background-color: var(--color-electric-blue-hover);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .header {
+    @apply flex-col items-start gap-4;
+  }
+
+  .editButton {
+    @apply w-full;
+  }
+
+  .infoGrid {
+    @apply grid-cols-1;
+  }
+
+  .formGrid {
+    @apply grid-cols-1;
+  }
+
+  .formActions {
+    @apply flex-col gap-2;
+  }
+
+  .cancelButton,
+  .saveButton {
+    @apply w-full;
+  }
+}
