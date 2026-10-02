@@ -250,6 +250,17 @@ router.post("/register", async (req, res) => {
     );
 
     const user = userRes.rows[0];
+    
+    // Create a default subscription for the new user
+    await db.query(
+      `
+      INSERT INTO user_subscriptions (user_id, plan_id, status, start_date, auto_renew)
+      VALUES ($1, 1, 'ACTIVE', NOW(), TRUE)
+      ON CONFLICT DO NOTHING
+    `,
+      [user.id],
+    );
+
     const code = generateOtpCode();
     await createOtp({ userId: user.id, purpose: "2FA", code });
     const deliveryResult = await deliverOtpCode({ user, code, deliveryMethod });
@@ -429,6 +440,22 @@ router.post("/verify-otp", async (req, res) => {
     }
 
     const user = userRes.rows[0];
+    
+    // Ensure user has an active subscription
+    await db.query(
+      `
+      INSERT INTO user_subscriptions (user_id, plan_id, status, start_date, auto_renew)
+      SELECT $1, COALESCE(p.id, 1), 'ACTIVE', NOW(), TRUE
+      FROM (SELECT 1) dummy
+      LEFT JOIN plans p ON TRUE
+      WHERE NOT EXISTS (
+        SELECT 1 FROM user_subscriptions WHERE user_id = $1 AND status = 'ACTIVE'
+      )
+      LIMIT 1
+    `,
+      [userId],
+    );
+
     const token = issueJwt(user);
 
     res.json({

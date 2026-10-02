@@ -36,6 +36,8 @@ export default function AccessQRCode({ userId, activeSubscription }) {
       if (data.token) {
         setQrToken(data.token);
         setCountdown(30);
+      } else {
+        console.error("Generate pass error:", data.error || "Unknown error");
       }
     } catch (error) {
       console.error("Error fetching member pass:", error);
