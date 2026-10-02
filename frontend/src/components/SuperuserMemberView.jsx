@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import PhoneInputWithCountryCode from "./PhoneInputWithCountryCode";
-import AccessQRCode from "./AccessQRCode";
 import styles from "../styles/SuperuserMemberView.module.css";
 
 /**
@@ -20,7 +19,7 @@ export default function SuperuserMemberView({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  const [subscription, setSubscription] = useState(null);
+  const [subscription, setSubscription] = useState({ status: "ACTIVE" });
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -84,22 +83,10 @@ export default function SuperuserMemberView({
           status: m.status || "ACTIVE",
         });
 
-        // Load member subscription status
-        try {
-          const subRes = await fetch(`${apiBaseUrl}/members/${memberId}/subscription`, {
-            headers: authHeaders(),
-          });
-          const subData = await subRes.json();
-          if (subRes.ok && subData.subscription) {
-            setSubscription(subData.subscription);
-          } else {
-            // Default: show QR code if member is ACTIVE status
-            setSubscription({ status: m.status === "ACTIVE" ? "ACTIVE" : "INACTIVE" });
-          }
-        } catch {
-          // Fallback: show QR code if member is ACTIVE status
-          setSubscription({ status: m.status === "ACTIVE" ? "ACTIVE" : "INACTIVE" });
-        }
+        // Set subscription based on member status
+        setSubscription({ 
+          status: m.status === "ACTIVE" ? "ACTIVE" : "INACTIVE"
+        });
       } catch (err) {
         setError(err.message || "Failed to load member");
       } finally {
@@ -230,7 +217,28 @@ export default function SuperuserMemberView({
         {!isEditing ? (
           <div className={styles.viewMode}>
             <div className={styles.qrSection}>
-              <AccessQRCode userId={member.id} activeSubscription={subscription} />
+              <div className={styles.qrCard}>
+                <h3 className={styles.qrTitle}>Gym Entry QR Code</h3>
+                <div className={styles.qrInfo}>
+                  {subscription?.status === "ACTIVE" ? (
+                    <>
+                      <p className={styles.qrText}>
+                        Member ID: <span className={styles.memberId}>{member.id}</span>
+                      </p>
+                      <p className={styles.qrNote}>
+                        Live QR code generates when member logs into their profile with active subscription.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className={styles.qrLocked}>🔒 Access Denied</p>
+                      <p className={styles.qrNote}>
+                        No active membership. QR code will be generated once subscription is ACTIVE.
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className={styles.infoGrid}>
