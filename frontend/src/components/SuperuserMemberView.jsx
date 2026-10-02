@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import PhoneInputWithCountryCode from "./PhoneInputWithCountryCode";
+import AccessQRCode from "./AccessQRCode";
 import styles from "../styles/SuperuserMemberView.module.css";
 
 /**
@@ -19,6 +20,7 @@ export default function SuperuserMemberView({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [subscription, setSubscription] = useState(null);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -81,6 +83,23 @@ export default function SuperuserMemberView({
           countryCode: parsedCountryCode,
           status: m.status || "ACTIVE",
         });
+
+        // Load member subscription status
+        try {
+          const subRes = await fetch(`${apiBaseUrl}/members/${memberId}/subscription`, {
+            headers: authHeaders(),
+          });
+          const subData = await subRes.json();
+          if (subRes.ok && subData.subscription) {
+            setSubscription(subData.subscription);
+          } else {
+            // Default: show QR code if member is ACTIVE status
+            setSubscription({ status: m.status === "ACTIVE" ? "ACTIVE" : "INACTIVE" });
+          }
+        } catch {
+          // Fallback: show QR code if member is ACTIVE status
+          setSubscription({ status: m.status === "ACTIVE" ? "ACTIVE" : "INACTIVE" });
+        }
       } catch (err) {
         setError(err.message || "Failed to load member");
       } finally {
@@ -210,6 +229,10 @@ export default function SuperuserMemberView({
 
         {!isEditing ? (
           <div className={styles.viewMode}>
+            <div className={styles.qrSection}>
+              <AccessQRCode userId={member.id} activeSubscription={subscription} />
+            </div>
+
             <div className={styles.infoGrid}>
               <div className={styles.infoField}>
                 <label className={styles.fieldLabel}>First Name</label>
