@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import PhoneInputWithCountryCode from "./PhoneInputWithCountryCode";
 import styles from "../styles/SuperuserMemberView.module.css";
 
@@ -217,28 +218,22 @@ export default function SuperuserMemberView({
         {!isEditing ? (
           <div className={styles.viewMode}>
             <div className={styles.qrSection}>
-              <div className={styles.qrCard}>
-                <h3 className={styles.qrTitle}>Gym Entry QR Code</h3>
-                <div className={styles.qrInfo}>
-                  {subscription?.status === "ACTIVE" ? (
-                    <>
-                      <p className={styles.qrText}>
-                        Member ID: <span className={styles.memberId}>{member.id}</span>
-                      </p>
-                      <p className={styles.qrNote}>
-                        Live QR code generates when member logs into their profile with active subscription.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className={styles.qrLocked}>🔒 Access Denied</p>
-                      <p className={styles.qrNote}>
-                        No active membership. QR code will be generated once subscription is ACTIVE.
-                      </p>
-                    </>
-                  )}
-                </div>
+              <h3 className={styles.qrTitle}>Gym Entry Pass</h3>
+              <div className={styles.qrFrame}>
+                {member?.id && (
+                  <QRCodeSVG 
+                    value={member.id} 
+                    size={220} 
+                    level="H" 
+                    includeMargin
+                  />
+                )}
               </div>
+              <p className={styles.qrHint}>
+                {subscription?.status === "ACTIVE" 
+                  ? "Member can scan this at gym entry" 
+                  : "Access disabled - subscription not active"}
+              </p>
             </div>
 
             <div className={styles.infoGrid}>
