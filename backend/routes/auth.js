@@ -440,8 +440,6 @@ router.post("/verify-otp", async (req, res) => {
     }
 
     const user = userRes.rows[0];
-    
-    // Ensure user has an active subscription
     await db.query(
       `
       INSERT INTO user_subscriptions (user_id, plan_id, status, start_date, auto_renew)
