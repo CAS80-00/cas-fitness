@@ -86,42 +86,28 @@ export default function AuthCard({ onAuthenticated }) {
   }, [resendSeconds]);
 
   const performOtpLogin = async () => {
-    console.log("🔍 performOtpLogin called with userId:", userId, "otpCode:", otpCode);
-    
     if (!userId) {
-      console.log("❌ No userId");
       setServerError("Session lost. Please log in again.");
       return;
     }
     if (otpCode.length !== 6) {
-      console.log("❌ OTP code length invalid:", otpCode.length);
       setServerError("Please enter a 6-digit code.");
       return;
     }
 
-    console.log("✅ Validation passed, sending OTP verification request...");
     try {
-      const payload = { userId, code: otpCode, purpose: "2FA" };
-      console.log("📤 Request payload:", payload);
-      
       const res = await fetch(`${apiBaseUrl}/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ userId, code: otpCode, purpose: "2FA" }),
       });
-      
-      console.log("📥 Response status:", res.status);
       const data = await res.json();
-      console.log("📥 Response data:", data);
-      
       if (!res.ok) throw new Error(data.error || "OTP verification failed.");
 
       localStorage.setItem("cas_jwt", data.token);
       localStorage.setItem("cas_user", JSON.stringify(data.user));
-      console.log("✅ OTP verified successfully");
       if (onAuthenticated) onAuthenticated(data.user);
     } catch (err) {
-      console.log("❌ Error:", err.message);
       setServerError(err.message);
     }
   };
@@ -163,11 +149,9 @@ export default function AuthCard({ onAuthenticated }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("📋 Form submitted, authStep:", authStep);
     setServerError("");
 
     if (authStep === "otp") {
-      console.log("🔐 OTP step detected, calling performOtpLogin");
       await performOtpLogin();
       return;
     }

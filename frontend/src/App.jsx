@@ -29,10 +29,6 @@ function App() {
   const isSuperuser = currentUser?.roleId === 1;
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 
-  useEffect(() => {
-    console.log("🔄 currentUser state updated:", currentUser);
-  }, [currentUser]);
-
   const logout = useCallback(async () => {
     const token = localStorage.getItem("cas_jwt");
     if (token) {
@@ -126,12 +122,9 @@ function App() {
 
   const handleAuthenticated = useCallback(
     (user) => {
-      console.log("✨ handleAuthenticated called in App.jsx with user:", user);
       setCurrentUser(user);
       localStorage.setItem("cas_user", JSON.stringify(user));
-      console.log("✨ Setting route to 'home'");
       setRoute("home");
-      console.log("✨ currentUser state and route updated");
     },
     [],
   );
