@@ -57,14 +57,23 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
           <h2 className={styles.infoTitle}>Profile Info</h2>
           <div className={styles.infoGrid}>
             <p>
-              Name: {currentUser?.firstName} {currentUser?.lastName}
+              <strong>First Name:</strong> {currentUser?.firstName || "—"}
             </p>
-            <p>Email: {currentUser?.email}</p>
             <p>
-              Status: <span className={styles.statusActive}>{subscription.status}</span>
+              <strong>Last Name:</strong> {currentUser?.lastName || "—"}
             </p>
-            <p>Plan: {subscription.title}</p>
-            <p>Renewal Date: 2026-12-31</p>
+            <p>
+              <strong>Email:</strong> {currentUser?.email || "—"}
+            </p>
+            <p>
+              <strong>Status:</strong> <span className={styles.statusActive}>{subscription.status}</span>
+            </p>
+            <p>
+              <strong>Plan:</strong> {subscription.title}
+            </p>
+            <p>
+              <strong>Renewal Date:</strong> 2026-12-31
+            </p>
             <label className={styles.autoRenewLabel}>
               <input
                 type="checkbox"
