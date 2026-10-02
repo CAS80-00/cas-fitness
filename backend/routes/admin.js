@@ -570,4 +570,177 @@ router.delete("/plans/:id", async (req, res) => {
   }
 });
 
+/* ============================ SUBSCRIPTIONS ============================ */
+
+// GET subscriptions for a specific user
+router.get("/subscriptions/user/:userId", async (req, res) => {
+  try {
+    const result = await db.query(
+      `
+      SELECT us.id, us.user_id, us.plan_id, us.status, us.start_date, us.end_date, us.auto_renew,
+             p.title as plan_title, p.price as plan_price, p.billing_cycle
+      FROM user_subscriptions us
+      LEFT JOIN plans p ON p.id = us.plan_id
+      WHERE us.user_id = $1
+      ORDER BY us.start_date DESC
+    `,
+      [req.params.userId],
+    );
+
+    res.json({
+      subscriptions: result.rows.map((row) => ({
+        id: row.id,
+        userId: row.user_id,
+        planId: row.plan_id,
+        planTitle: row.plan_title,
+        planPrice: row.plan_price,
+        billingCycle: row.billing_cycle,
+        status: row.status,
+        startDate: row.start_date,
+        endDate: row.end_date,
+        autoRenew: row.auto_renew,
+      })),
+    });
+  } catch (err) {
+    console.error("Error fetching subscriptions:", err.message);
+    res.status(500).json({ error: "Failed to fetch subscriptions." });
+  }
+});
+
+// POST: Create a new subscription for a user
+router.post("/subscriptions", async (req, res) => {
+  const userId = String(req.body.userId || "").trim();
+  const planId = Number(req.body.planId);
+  const status = String(req.body.status || "ACTIVE").toUpperCase();
+  const startDate = req.body.startDate || new Date().toISOString();
+  const endDate = req.body.endDate || null;
+  const autoRenew = Boolean(req.body.autoRenew);
+
+  if (!userId || Number.isNaN(planId)) {
+    return res.status(400).json({ error: "User ID and Plan ID are required." });
+  }
+
+  if (!["ACTIVE", "INACTIVE", "CANCELLED", "EXPIRED"].includes(status)) {
+    return res.status(400).json({ error: "Invalid subscription status." });
+  }
+
+  try {
+    // Verify user exists
+    const userRes = await db.query("SELECT id FROM users WHERE id = $1", [userId]);
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    // Verify plan exists
+    const planRes = await db.query("SELECT id FROM plans WHERE id = $1", [planId]);
+    if (planRes.rows.length === 0) {
+      return res.status(404).json({ error: "Plan not found." });
+    }
+
+    const result = await db.query(
+      `
+      INSERT INTO user_subscriptions (user_id, plan_id, status, start_date, end_date, auto_renew)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, user_id, plan_id, status, start_date, end_date, auto_renew
+    `,
+      [userId, planId, status, startDate, endDate, autoRenew],
+    );
+
+    const subscription = result.rows[0];
+    res.status(201).json({
+      subscription: {
+        id: subscription.id,
+        userId: subscription.user_id,
+        planId: subscription.plan_id,
+        status: subscription.status,
+        startDate: subscription.start_date,
+        endDate: subscription.end_date,
+        autoRenew: subscription.auto_renew,
+      },
+    });
+  } catch (err) {
+    console.error("Error creating subscription:", err.message);
+    res.status(500).json({ error: "Failed to create subscription." });
+  }
+});
+
+// PUT: Update a subscription
+router.put("/subscriptions/:id", async (req, res) => {
+  const subscriptionId = Number(req.params.id);
+  const status = req.body.status ? String(req.body.status).toUpperCase() : null;
+  const endDate = req.body.endDate || null;
+  const autoRenew = req.body.autoRenew !== undefined ? Boolean(req.body.autoRenew) : null;
+
+  if (status && !["ACTIVE", "INACTIVE", "CANCELLED", "EXPIRED"].includes(status)) {
+    return res.status(400).json({ error: "Invalid subscription status." });
+  }
+
+  try {
+    let updateQuery = "UPDATE user_subscriptions SET";
+    const params = [];
+    const updates = [];
+
+    if (status !== null) {
+      updates.push(` status = $${params.length + 1}`);
+      params.push(status);
+    }
+    if (endDate !== null) {
+      updates.push(` end_date = $${params.length + 1}`);
+      params.push(endDate);
+    }
+    if (autoRenew !== null) {
+      updates.push(` auto_renew = $${params.length + 1}`);
+      params.push(autoRenew);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: "No fields to update." });
+    }
+
+    updateQuery += updates.join(",");
+    params.push(subscriptionId);
+    updateQuery += ` WHERE id = $${params.length} RETURNING id, user_id, plan_id, status, start_date, end_date, auto_renew`;
+
+    const result = await db.query(updateQuery, params);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Subscription not found." });
+    }
+
+    const subscription = result.rows[0];
+    res.json({
+      subscription: {
+        id: subscription.id,
+        userId: subscription.user_id,
+        planId: subscription.plan_id,
+        status: subscription.status,
+        startDate: subscription.start_date,
+        endDate: subscription.end_date,
+        autoRenew: subscription.auto_renew,
+      },
+    });
+  } catch (err) {
+    console.error("Error updating subscription:", err.message);
+    res.status(500).json({ error: "Failed to update subscription." });
+  }
+});
+
+// DELETE: Remove a subscription
+router.delete("/subscriptions/:id", async (req, res) => {
+  try {
+    const result = await db.query("DELETE FROM user_subscriptions WHERE id = $1 RETURNING id", [
+      req.params.id,
+    ]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Subscription not found." });
+    }
+
+    res.json({ success: true, message: "Subscription deleted." });
+  } catch (err) {
+    console.error("Error deleting subscription:", err.message);
+    res.status(500).json({ error: "Failed to delete subscription." });
+  }
+});
+
 module.exports = router;

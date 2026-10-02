@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import PhoneInputWithCountryCode from "./PhoneInputWithCountryCode";
+import MemberSubscriptionManager from "./MemberSubscriptionManager";
 import styles from "../styles/SuperuserMemberView.module.css";
 
 /**
@@ -347,6 +348,16 @@ export default function SuperuserMemberView({
               </button>
             </div>
           </div>
+        )}
+
+        {/* Subscription Manager */}
+        {member && (
+          <MemberSubscriptionManager 
+            memberId={memberId} 
+            onSubscriptionUpdate={() => {
+              // Optionally refresh member data or other state
+            }}
+          />
         )}
       </div>
     </div>
