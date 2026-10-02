@@ -77,8 +77,8 @@ export default function SuperuserMemberView({
         }
 
         setFormData({
-          firstName: m.first_name || "",
-          lastName: m.last_name || "",
+          firstName: m.firstName || "",
+          lastName: m.lastName || "",
           email: m.email || "",
           phone: parsedPhone,
           countryCode: parsedCountryCode,
@@ -155,8 +155,8 @@ export default function SuperuserMemberView({
     }
 
     setFormData({
-      firstName: member.first_name || "",
-      lastName: member.last_name || "",
+      firstName: member.firstName || "",
+      lastName: member.lastName || "",
       email: member.email || "",
       phone: parsedPhone,
       countryCode: parsedCountryCode,
@@ -201,7 +201,7 @@ export default function SuperuserMemberView({
       <div className={styles.card}>
         <div className={styles.header}>
           <div>
-            <h2 className={styles.title}>{member.first_name} {member.last_name}</h2>
+            <h2 className={styles.title}>{member.firstName} {member.lastName}</h2>
             <p className={styles.subtitle}>
               ID: <span className={styles.idValue}>{member.id}</span>
             </p>
@@ -247,12 +247,12 @@ export default function SuperuserMemberView({
             <div className={styles.infoGrid}>
               <div className={styles.infoField}>
                 <label className={styles.fieldLabel}>First Name</label>
-                <p className={styles.fieldValue}>{member.first_name || "—"}</p>
+                <p className={styles.fieldValue}>{member.firstName || "—"}</p>
               </div>
 
               <div className={styles.infoField}>
                 <label className={styles.fieldLabel}>Last Name</label>
-                <p className={styles.fieldValue}>{member.last_name || "—"}</p>
+                <p className={styles.fieldValue}>{member.lastName || "—"}</p>
               </div>
 
               <div className={styles.infoField}>
