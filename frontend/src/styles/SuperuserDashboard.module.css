@@ -1,0 +1,31 @@
+@reference "./global.css";
+/* ==========================================================================
+   SuperuserDashboard Module
+   Restricted control panel: profile, roles, employees/members management,
+   master calendars, and promocodes/campaigns — all stacked full-width
+   sections.
+   ========================================================================== */
+
+.page {
+  @apply min-h-screen space-y-10 p-8;
+  background-color: var(--color-matte-black);
+  color: #ffffff;
+}
+
+.contentWrap {
+  @apply mx-auto max-w-7xl space-y-8;
+}
+
+.header {
+  @apply border-b pb-4;
+  border-color: #262626;
+}
+
+.title {
+  @apply text-3xl font-black;
+  color: var(--color-crimson-red);
+}
+
+.subtitle {
+  @apply text-xs text-neutral-400;
+}

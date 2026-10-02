@@ -1,0 +1,152 @@
+@reference "./global.css";
+/* ==========================================================================
+   FOPCard Module
+   Form of Payment card: plan summary, promo code, and the card entry form
+   with brand-aware CVC length and MM/YY validation feedback.
+   ========================================================================== */
+
+.card {
+  @apply mx-auto max-w-lg space-y-6 rounded-xl border p-8 text-white;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.header {
+  @apply flex items-center justify-between border-b pb-4;
+  border-color: #262626;
+}
+
+.brand {
+  @apply text-xl font-extrabold;
+  color: var(--color-crimson-red);
+}
+
+.secureLabel {
+  @apply text-xs text-neutral-400;
+}
+
+.motivationalQuote {
+  @apply text-xs italic text-neutral-300;
+}
+
+.planSummary {
+  @apply flex items-center justify-between rounded-lg p-4;
+  background-color: #0a0a0a;
+}
+
+.planTitle {
+  @apply font-bold;
+}
+
+.planCycle {
+  @apply text-xs text-neutral-500;
+}
+
+.priceColumn {
+  @apply text-right;
+}
+
+.originalPrice {
+  @apply mr-2 text-xs text-neutral-500 line-through;
+}
+
+.finalPrice {
+  @apply text-xl font-bold;
+  color: var(--color-crimson-red);
+}
+
+.promoRow {
+  @apply flex gap-2;
+}
+
+.promoInput {
+  @apply flex-1 rounded border px-3 py-2 text-sm uppercase;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+
+.promoButton {
+  @apply rounded px-4 text-xs font-bold transition;
+  background-color: #262626;
+}
+.promoButton:hover {
+  background-color: #404040;
+}
+
+.statusSuccess {
+  @apply rounded border p-3 text-xs;
+  background-color: rgb(5 46 22 / 80%);
+  border-color: #166534;
+  color: #bbf7d0;
+}
+
+.statusError {
+  @apply rounded border p-3 text-xs;
+  background-color: rgb(69 10 10 / 80%);
+  border-color: #991b1b;
+  color: #fecaca;
+}
+
+.form {
+  @apply space-y-4;
+}
+
+.input {
+  @apply w-full rounded border p-3 text-sm outline-none transition;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+.input:focus {
+  border-color: var(--color-crimson-red);
+}
+
+.cardNumberRow {
+  @apply flex items-center gap-2;
+}
+
+.cardNumberInput {
+  @apply w-full flex-1 rounded border p-3 font-mono text-sm outline-none transition;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+.cardNumberInput:focus {
+  border-color: var(--color-crimson-red);
+}
+
+.cardBrandBadge {
+  @apply rounded border px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-neutral-300;
+  border-color: #404040;
+}
+
+.grid2 {
+  @apply grid grid-cols-2 gap-4;
+}
+
+.monoInput {
+  @apply rounded border p-3 font-mono text-sm outline-none transition;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+.monoInput:focus {
+  border-color: var(--color-crimson-red);
+}
+
+.fieldError {
+  @apply text-xs;
+  color: var(--color-crimson-red);
+}
+
+.submitButton {
+  @apply w-full rounded py-3 font-bold text-white transition;
+  background-color: var(--color-crimson-red);
+}
+.submitButton:hover {
+  background-color: var(--color-crimson-red-hover);
+}
+
+/* Mobile portrait: stack expiration/CVC fields */
+@media (max-width: 480px) {
+  .grid2 {
+    @apply grid-cols-1;
+  }
+}

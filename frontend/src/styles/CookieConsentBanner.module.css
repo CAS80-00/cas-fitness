@@ -1,0 +1,161 @@
+@reference "./global.css";
+/* ==========================================================================
+   CookieConsentBanner Module
+   GDPR/CCPA/ePrivacy compliant consent UI. "Accept All" and "Reject All"
+   intentionally share the exact same size/typography classes (anti dark
+   pattern requirement: equal visual weight for both choices).
+   ========================================================================== */
+
+.manageButton {
+  @apply fixed bottom-4 right-4 z-50 rounded-md border px-3 py-2 text-xs shadow-lg transition;
+  background-color: var(--color-dark-slate);
+  border-color: #404040;
+  color: #d4d4d4;
+}
+.manageButton:hover {
+  color: #ffffff;
+}
+
+.banner {
+  @apply fixed inset-x-0 bottom-0 z-40 p-6 shadow-2xl;
+  background-color: var(--color-dark-slate);
+  border-top: 1px solid #262626;
+  color: #f1f5f9;
+  animation: slideUp 0.35s ease-out;
+}
+
+.bannerInner {
+  @apply mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 md:flex-row;
+}
+
+.bannerCopy {
+  @apply space-y-1;
+}
+
+.bannerHeadline {
+  @apply text-lg font-bold text-white;
+}
+
+.bannerBody {
+  @apply max-w-3xl text-sm text-neutral-400;
+}
+
+.bannerActions {
+  @apply flex w-full flex-wrap items-center gap-3 md:w-auto;
+}
+
+/* Equal-weight primary/secondary CTAs: identical box size & font treatment */
+.acceptButton,
+.rejectButton {
+  @apply h-11 flex-1 rounded px-6 font-semibold text-white transition md:flex-none;
+}
+
+.acceptButton {
+  background-color: var(--color-crimson-red);
+}
+.acceptButton:hover {
+  background-color: var(--color-crimson-red-hover);
+}
+
+.rejectButton {
+  @apply border;
+  background-color: #262626;
+  border-color: #404040;
+}
+.rejectButton:hover {
+  background-color: #404040;
+}
+
+.customizeLink {
+  @apply w-full text-center text-sm text-neutral-400 underline transition md:w-auto;
+}
+.customizeLink:hover {
+  color: #ffffff;
+}
+
+.modalOverlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+  background-color: rgb(0 0 0 / 80%);
+}
+
+.modalCard {
+  @apply w-full max-w-xl space-y-6 rounded-lg border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.modalTitle {
+  @apply text-xl font-bold text-white;
+}
+
+.categoryList {
+  @apply space-y-4;
+}
+
+.categoryRow {
+  @apply flex items-center justify-between rounded p-3;
+  background-color: rgb(38 38 38 / 50%);
+}
+
+.categoryLabel {
+  @apply font-semibold text-white;
+}
+
+.categoryDescription {
+  @apply text-xs text-neutral-400;
+}
+
+.checkbox {
+  @apply h-5 w-5 cursor-pointer;
+  accent-color: var(--color-crimson-red);
+}
+
+.checkboxLocked {
+  @apply h-5 w-5 cursor-not-allowed;
+  accent-color: var(--color-crimson-red);
+}
+
+.modalFooter {
+  @apply flex justify-end gap-3 border-t pt-4;
+  border-color: #262626;
+}
+
+.cancelButton {
+  @apply px-4 py-2 text-neutral-400 transition;
+}
+.cancelButton:hover {
+  color: #ffffff;
+}
+
+.saveButton {
+  @apply rounded px-6 py-2 font-medium text-white transition;
+  background-color: var(--color-crimson-red);
+}
+.saveButton:hover {
+  background-color: var(--color-crimson-red-hover);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Mobile portrait: stack CTA buttons full-width for easier tapping */
+@media (max-width: 480px) {
+  .bannerActions {
+    @apply flex-col;
+  }
+
+  /* Keep the persistent preference control out of the footer content. */
+  .manageButton {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    @apply bottom-3 right-2 px-2 py-3 text-[11px];
+  }
+}

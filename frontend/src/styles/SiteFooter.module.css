@@ -1,0 +1,47 @@
+@reference "./global.css";
+/* ==========================================================================
+   SiteFooter Module
+   Shared footer used across Landing, Plans, and About Us pages.
+   ========================================================================== */
+
+.footer {
+  @apply flex flex-col items-center justify-between gap-4 border-t px-8 py-6 text-center text-xs text-neutral-400 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center md:gap-6 md:text-left;
+  background-color: var(--color-charcoal);
+  border-color: #262626;
+}
+
+.copyright {
+  @apply md:justify-self-start;
+}
+
+.legalLinks {
+  @apply flex gap-6 md:justify-self-center;
+}
+
+.cookieSpacer {
+  @apply hidden md:block md:justify-self-end;
+  min-width: 14rem;
+}
+
+.legalLink {
+  @apply transition text-neutral-300;
+}
+.legalLink:hover {
+  text-decoration: underline;
+  color: #ffffff;
+}
+
+/* Mobile portrait: keep the copyright above the single legal-links row. */
+@media (max-width: 480px) {
+  .footer {
+    @apply gap-2 px-4 py-5;
+  }
+
+  .copyright {
+    @apply w-full text-center;
+  }
+
+  .legalLinks {
+    @apply w-full justify-center gap-4;
+  }
+}

@@ -1,0 +1,112 @@
+@reference "./global.css";
+/* ==========================================================================
+   StudentProfile Module
+   Member dashboard: profile info panel, door access QR + 30-day scan
+   history modal, and the personal-trainer workout calendar.
+   ========================================================================== */
+
+.page {
+  @apply min-h-screen space-y-8 p-8;
+  background-color: var(--color-matte-black);
+  color: #ffffff;
+}
+
+.contentWrap {
+  @apply mx-auto max-w-7xl space-y-8;
+}
+
+.header {
+  @apply flex items-center justify-between border-b pb-6;
+  border-color: #262626;
+}
+
+.headerTitle {
+  @apply text-2xl font-bold;
+}
+
+.headerSubtitle {
+  @apply text-xs text-neutral-400;
+}
+
+.infoCard {
+  @apply space-y-3 rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.infoTitle {
+  @apply text-lg font-bold;
+}
+
+.infoGrid {
+  @apply grid grid-cols-1 gap-3 text-sm md:grid-cols-2;
+}
+
+.statusActive {
+  color: #4ade80;
+}
+
+.autoRenewLabel {
+  @apply inline-flex items-center gap-2;
+}
+
+.checkbox {
+  accent-color: var(--color-crimson-red);
+}
+
+.dashboardGrid {
+  @apply grid grid-cols-1 gap-8 lg:grid-cols-3;
+}
+
+.historyButton {
+  @apply mt-3 w-full rounded py-2 text-sm transition;
+  background-color: var(--color-dark-slate);
+}
+.historyButton:hover {
+  background-color: #404040;
+}
+
+.calendarColumn {
+  @apply space-y-6 lg:col-span-2;
+}
+
+.statusMessage {
+  @apply text-sm;
+  color: var(--color-neon-orange);
+}
+
+.modalOverlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+  background-color: rgb(0 0 0 / 70%);
+}
+
+.modalCard {
+  @apply w-full max-w-lg rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #404040;
+}
+
+.modalHeader {
+  @apply mb-4 flex items-center justify-between;
+}
+
+.modalTitle {
+  @apply text-lg font-bold;
+}
+
+.modalClose {
+  @apply text-xl;
+}
+
+.historyList {
+  @apply max-h-[50vh] space-y-2 overflow-y-auto text-sm;
+}
+
+.historyEmpty {
+  @apply text-neutral-400;
+}
+
+.historyEntry {
+  @apply rounded border px-3 py-2;
+  border-color: #262626;
+}

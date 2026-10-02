@@ -1,0 +1,111 @@
+@reference "./global.css";
+/* ==========================================================================
+   SuperuserProfilePanel Module
+   Locked Member ID/Role metadata plus editable Name/Last Name/Email/Phone,
+   and a Change Password action that triggers the existing forgot-password
+   reset flow.
+   ========================================================================== */
+
+.card {
+  @apply space-y-4 rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+  overflow: visible;
+}
+
+.header {
+  @apply flex items-center justify-between;
+}
+
+.title {
+  @apply text-lg font-bold;
+}
+
+.editButton {
+  @apply rounded px-4 py-2 text-xs font-bold text-white transition;
+  background-color: var(--color-electric-blue);
+}
+.editButton:hover {
+  background-color: var(--color-electric-blue-hover);
+}
+
+.lockedGrid {
+  @apply grid grid-cols-2 gap-4 rounded-lg border p-3 sm:w-fit sm:grid-cols-2;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+
+.lockedField {
+  @apply flex flex-col;
+}
+
+.lockedLabel {
+  @apply text-[10px] uppercase tracking-wide text-neutral-500;
+}
+
+.lockedValue {
+  @apply text-sm font-semibold text-neutral-300;
+}
+
+.viewGrid {
+  @apply grid grid-cols-1 gap-2 text-sm text-neutral-300 md:grid-cols-2;
+}
+
+.editGrid {
+  @apply grid grid-cols-1 gap-3 md:grid-cols-2;
+  position: relative;
+  overflow: visible;
+}
+
+.fieldLabel {
+  @apply flex flex-col gap-1 text-xs font-semibold text-neutral-400;
+  position: relative;
+}
+
+.phoneFieldLabel {
+  @apply flex flex-col gap-2;
+  position: relative;
+  z-index: 10;
+}
+
+.input {
+  @apply rounded border px-3 py-2 text-sm font-normal text-white;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+
+.errorText {
+  @apply text-xs text-red-400;
+}
+
+.statusText {
+  @apply text-xs text-emerald-400;
+}
+
+.actions {
+  @apply flex justify-end gap-3;
+}
+
+.cancelButton {
+  @apply rounded px-4 py-2 text-sm transition;
+  background-color: #262626;
+}
+.cancelButton:hover {
+  background-color: #404040;
+}
+
+.saveButton {
+  @apply rounded px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50;
+  background-color: var(--color-crimson-red);
+}
+.saveButton:hover:not(:disabled) {
+  background-color: var(--color-crimson-red-hover);
+}
+
+.changePasswordButton {
+  @apply rounded px-4 py-2 text-sm font-semibold transition;
+  background-color: #262626;
+}
+.changePasswordButton:hover {
+  background-color: #404040;
+}

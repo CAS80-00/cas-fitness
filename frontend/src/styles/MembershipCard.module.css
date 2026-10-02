@@ -1,0 +1,150 @@
+@reference "./global.css";
+/* ==========================================================================
+   MembershipCard Module
+   Plan card with photo, promotion details, promo code, and Add to Cart CTA.
+   ========================================================================== */
+
+.card {
+  @apply flex flex-col overflow-hidden rounded-xl border transition;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+.card:hover {
+  border-color: var(--color-electric-blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.photoContainer {
+  @apply relative h-48 overflow-hidden bg-gradient-to-br from-gray-900 to-black;
+}
+
+.photo {
+  @apply h-full w-full object-cover;
+}
+
+.promoBadge {
+  @apply absolute right-0 top-0 flex flex-col items-end gap-1 p-3;
+}
+
+.promoName {
+  @apply block rounded-lg px-2 py-1 text-xs font-semibold text-white;
+  background-color: rgba(16, 185, 129, 0.9);
+}
+
+.hurryUp {
+  @apply block rounded-lg px-2 py-1 text-xs font-bold text-white;
+  background-color: rgba(249, 115, 22, 0.9);
+}
+
+.content {
+  @apply flex flex-col gap-3 p-5;
+}
+
+.headerRow {
+  @apply mb-2 flex items-start justify-between;
+}
+
+.planTitle {
+  @apply text-lg font-bold text-white;
+}
+
+.badge {
+  @apply rounded border px-2 py-0.5 text-xs font-black;
+  color: var(--color-crimson-red);
+  border-color: var(--color-crimson-red);
+}
+
+.seeDetailsLink {
+  @apply text-xs font-semibold transition cursor-pointer;
+  color: var(--color-electric-blue);
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0.5rem 0;
+  text-decoration: underline;
+}
+
+.seeDetailsLink:hover {
+  color: var(--color-electric-blue-hover);
+}
+
+.description {
+  @apply text-xs leading-relaxed text-neutral-400;
+}
+
+.validity {
+  @apply text-xs text-neutral-500;
+  margin-top: 0.25rem;
+}
+
+.promoSection {
+  @apply space-y-2;
+}
+
+.promoRow {
+  @apply flex gap-2;
+}
+
+.promoInput {
+  @apply flex-1 rounded border px-3 py-2 text-xs;
+  background-color: #0a0a0a;
+  border-color: #262626;
+  color: white;
+  font-family: inherit;
+}
+
+.promoInput::placeholder {
+  color: #9ca3af;
+}
+
+.promoInput:focus {
+  @apply outline-none;
+  border-color: var(--color-electric-blue);
+}
+
+.promoButton {
+  @apply rounded px-3 py-2 text-xs font-semibold transition;
+  background-color: var(--color-electric-blue);
+  color: white;
+}
+.promoButton:hover {
+  background-color: var(--color-electric-blue-hover);
+}
+
+.promoMessage {
+  @apply text-[11px] font-semibold text-emerald-400;
+}
+
+.footer {
+  @apply flex flex-col gap-3 border-t pt-3;
+  border-color: #262626;
+}
+
+.priceSection {
+  @apply flex flex-col gap-1;
+}
+
+.originalPrice {
+  @apply text-xs text-neutral-500 line-through;
+}
+
+.currentPrice {
+  @apply flex items-baseline gap-1;
+}
+
+.activePrice {
+  @apply text-2xl font-bold;
+  color: var(--color-crimson-red);
+}
+
+.priceUnit {
+  @apply text-xs text-neutral-500;
+}
+
+.addToCartButton {
+  @apply w-full rounded py-2 text-xs font-bold text-white transition;
+  background-color: var(--color-crimson-red);
+}
+.addToCartButton:hover {
+  background-color: var(--color-crimson-red-hover);
+}

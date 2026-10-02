@@ -1,0 +1,185 @@
+@reference "./global.css";
+
+/* ==========================================================================
+   PlanDetailsModal Module
+   Simple card container for plan details text.
+   ========================================================================== */
+
+.overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  @apply w-full max-w-2xl rounded-xl border flex flex-col;
+  background-color: var(--color-dark-slate);
+  border-color: #404040;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  @apply flex items-center justify-between border-b p-6 flex-shrink-0;
+  border-color: #404040;
+  background-color: rgba(0, 0, 0, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.title {
+  @apply text-xl font-bold;
+  color: #ffffff;
+}
+
+.closeButton {
+  @apply h-8 w-8 rounded-md transition flex items-center justify-center flex-shrink-0;
+  background-color: transparent;
+  color: #999999;
+  font-size: 18px;
+  font-weight: bold;
+  border: 1px solid transparent;
+}
+
+.closeButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.content {
+  @apply p-6 overflow-y-auto flex-1;
+  min-height: 100px;
+}
+
+.viewMode {
+  @apply flex items-center;
+}
+
+.detailsText {
+  @apply text-sm leading-relaxed;
+  color: #ffffff;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.editMode {
+  @apply space-y-4;
+}
+
+.textarea {
+  @apply w-full rounded-md border px-4 py-3 transition;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-color: #404040;
+  color: #ffffff;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.textarea:focus {
+  @apply outline-none;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-color: var(--color-electric-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.textarea::placeholder {
+  color: #666666;
+}
+
+.error {
+  @apply rounded-md p-3 text-sm;
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+}
+
+.footer {
+  @apply flex items-center justify-end gap-2 border-t p-4 flex-shrink-0;
+  border-color: #404040;
+  background-color: rgba(0, 0, 0, 0.2);
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.editButton,
+.saveButton,
+.closeModalButton,
+.cancelButton {
+  @apply rounded-md px-3 py-2 text-xs font-semibold transition;
+}
+
+.editButton {
+  @apply text-white;
+  background-color: var(--color-electric-blue);
+  border: 1px solid var(--color-electric-blue);
+}
+
+.editButton:hover:not(:disabled) {
+  background-color: var(--color-electric-blue-hover);
+}
+
+.saveButton {
+  @apply text-white;
+  background-color: #10b981;
+  border: 1px solid #10b981;
+}
+
+.saveButton:hover:not(:disabled) {
+  background-color: #059669;
+}
+
+.saveButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  @apply text-neutral-300;
+  background-color: transparent;
+  border: 1px solid #404040;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.cancelButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.closeModalButton {
+  @apply text-neutral-300;
+  background-color: transparent;
+  border: 1px solid #404040;
+}
+
+.closeModalButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .modal {
+    @apply mx-2;
+  }
+
+  .header {
+    @apply p-4;
+  }
+
+  .content {
+    @apply p-4;
+  }
+
+  .footer {
+    @apply p-3;
+  }
+}

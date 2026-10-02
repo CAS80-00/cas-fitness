@@ -1,0 +1,66 @@
+@reference "./global.css";
+/* ==========================================================================
+   PictureCard Module
+   A single carousel card slot in the Superuser's ribbon management grid:
+   thumbnail/empty-state, upload/replace, delete-image, and remove-slot
+   controls. Responsive down to narrow mobile-portrait widths.
+   ========================================================================== */
+
+.card {
+  @apply flex flex-col gap-2 rounded-xl border p-3;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.thumbFrame {
+  @apply relative aspect-video w-full overflow-hidden rounded-lg border;
+  border-color: #262626;
+  background-color: #0a0a0a;
+}
+
+.thumbImage {
+  @apply h-full w-full object-cover;
+}
+
+.emptyThumb {
+  @apply flex h-full w-full flex-col items-center justify-center gap-1 text-xs text-neutral-500;
+}
+
+.busyOverlay {
+  @apply absolute inset-0 flex items-center justify-center;
+  background-color: rgb(0 0 0 / 50%);
+}
+
+.spinner {
+  @apply animate-spin text-white;
+}
+
+.fileInput {
+  @apply hidden;
+}
+
+.actions {
+  @apply flex items-center gap-2;
+}
+
+.uploadButton {
+  @apply flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1.5 text-xs font-semibold text-white transition disabled:opacity-50;
+  background-color: var(--color-electric-blue);
+}
+.uploadButton:hover:not(:disabled) {
+  background-color: var(--color-electric-blue-hover);
+}
+
+.deleteImageButton,
+.removeCardButton {
+  @apply flex shrink-0 items-center justify-center rounded p-1.5 text-white transition disabled:opacity-50;
+  background-color: #262626;
+}
+.deleteImageButton:hover:not(:disabled),
+.removeCardButton:hover:not(:disabled) {
+  background-color: var(--color-crimson-red);
+}
+
+.error {
+  @apply text-xs text-red-400;
+}

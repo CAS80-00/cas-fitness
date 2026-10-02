@@ -1,0 +1,97 @@
+@reference "./global.css";
+/* ==========================================================================
+   SubscriptionForm Module
+   Authenticated (read-only, pre-filled) vs. unauthenticated (editable,
+   duplicate-checked) intake form before continuing to FOPCard.
+   ========================================================================== */
+
+.card {
+  @apply mx-auto max-w-md space-y-6 rounded-xl border p-8 text-white;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.header {
+  @apply flex items-center justify-between border-b pb-3;
+  border-color: #262626;
+}
+
+.logo {
+  @apply font-black;
+  color: var(--color-crimson-red);
+}
+
+.headerMeta {
+  @apply text-xs text-neutral-400;
+}
+
+.memberPrompt {
+  @apply space-y-4;
+}
+
+.promptText {
+  @apply text-sm text-neutral-400;
+}
+
+.choiceRow {
+  @apply flex gap-4;
+}
+
+.choiceButton {
+  @apply flex-1 rounded py-2 font-semibold transition;
+  background-color: #262626;
+}
+.choiceButton:hover {
+  background-color: #404040;
+}
+
+.choiceButtonActiveYes {
+  @apply flex-1 rounded py-2 font-semibold text-white transition;
+  background-color: var(--color-electric-blue);
+}
+.choiceButtonActiveYes:hover {
+  background-color: var(--color-electric-blue-hover);
+}
+
+.choiceButtonActiveNo {
+  @apply flex-1 rounded py-2 font-semibold text-white transition;
+  background-color: var(--color-crimson-red);
+}
+.choiceButtonActiveNo:hover {
+  background-color: var(--color-crimson-red-hover);
+}
+
+.form {
+  @apply space-y-4;
+}
+
+.input {
+  @apply w-full rounded border p-3 text-sm;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+
+.errorText {
+  @apply text-xs;
+  color: var(--color-crimson-red);
+}
+
+.actionsGrid {
+  @apply grid grid-cols-2 gap-3;
+}
+
+.backButton {
+  @apply w-full rounded py-3 font-bold transition;
+  background-color: #262626;
+}
+.backButton:hover {
+  background-color: #404040;
+}
+
+.continueButton {
+  @apply w-full rounded py-3 font-bold text-white transition disabled:opacity-60;
+  background-color: var(--color-crimson-red);
+}
+.continueButton:hover:not(:disabled) {
+  background-color: var(--color-crimson-red-hover);
+}

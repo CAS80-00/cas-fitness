@@ -1,0 +1,51 @@
+@reference "./global.css";
+/* ==========================================================================
+   EmployeeProfile Module
+   Staff/trainer dashboard with a suspended-account guard and privilege
+   based views.
+   ========================================================================== */
+
+.guardPage {
+  @apply flex min-h-screen flex-col;
+  background-color: var(--color-matte-black);
+  color: #ffffff;
+}
+
+.guardCardWrap {
+  @apply flex flex-1 items-center justify-center p-8;
+}
+
+.guardCard {
+  @apply w-full max-w-lg rounded-xl border p-6 text-center;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.page {
+  @apply min-h-screen space-y-8 p-8;
+  background-color: var(--color-matte-black);
+  color: #ffffff;
+}
+
+.contentWrap {
+  @apply mx-auto max-w-7xl space-y-8;
+}
+
+.header {
+  @apply flex items-center justify-between border-b pb-6;
+  border-color: #262626;
+}
+
+.headerTitle {
+  @apply text-2xl font-bold;
+}
+
+.headerSubtitle {
+  @apply text-xs text-neutral-400;
+}
+
+.infoCard {
+  @apply grid grid-cols-1 gap-3 rounded-xl border p-6 text-sm md:grid-cols-2;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}

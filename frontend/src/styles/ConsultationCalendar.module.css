@@ -1,0 +1,158 @@
+@reference "./global.css";
+/* ==========================================================================
+   ConsultationCalendar Module
+   FullCalendar wrapper with a 5-minute atomic hold countdown, timezone
+   override selector, and the post-booking confirmation state.
+   ========================================================================== */
+
+.card {
+  @apply rounded-xl border p-6 text-white;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.header {
+  @apply mb-4 flex flex-col justify-between gap-4 lg:flex-row lg:items-center;
+}
+
+.title {
+  @apply text-xl font-bold;
+}
+
+.timezoneRow {
+  @apply flex items-center gap-2 text-sm;
+}
+
+.timezoneLabel {
+  @apply text-neutral-400;
+}
+
+.select {
+  @apply rounded border px-2 py-1;
+  background-color: #0a0a0a;
+  border-color: #404040;
+}
+
+.confirmation {
+  @apply rounded-lg border p-6;
+  background-color: rgb(5 46 22 / 80%);
+  border-color: #166534;
+  color: #bbf7d0;
+}
+
+.grid {
+  @apply grid grid-cols-1 gap-6 lg:grid-cols-3;
+}
+
+.calendarColumn {
+  @apply lg:col-span-2;
+}
+
+.sidebar {
+  @apply space-y-4 rounded-lg border p-4;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+
+.sidebarTitle {
+  @apply border-b pb-2 text-lg font-bold;
+  border-color: #262626;
+}
+
+.statusMessage {
+  @apply rounded border px-3 py-2 text-xs;
+  color: var(--color-neon-orange);
+  border-color: #9a3412;
+}
+
+.holdForm {
+  @apply space-y-3;
+}
+
+.holdTimer {
+  @apply font-mono text-xs;
+  color: var(--color-neon-orange);
+}
+
+.formInput {
+  @apply w-full rounded border p-2 text-sm text-white;
+  background-color: var(--color-charcoal);
+  border-color: #262626;
+}
+
+.consentLabel {
+  @apply flex cursor-pointer items-start gap-2 text-xs text-neutral-400;
+}
+
+.consentCheckbox {
+  @apply mt-1;
+  accent-color: var(--color-crimson-red);
+}
+
+.confirmButton {
+  @apply w-full rounded py-2 font-bold text-white transition;
+  background-color: var(--color-crimson-red);
+}
+.confirmButton:hover {
+  background-color: var(--color-crimson-red-hover);
+}
+
+.helperText {
+  @apply text-xs text-neutral-500;
+}
+
+/* FullCalendar enhancements for better visibility */
+:global(.fc) {
+  font-family: inherit;
+}
+
+:global(.fc .fc-toolbar-title) {
+  font-size: 1.25em;
+  font-weight: 700;
+  color: #e5e7eb;
+  margin-bottom: 0.5rem;
+}
+
+:global(.fc .fc-col-header-cell) {
+  background-color: #0a0a0a;
+  border-color: #262626;
+  color: #e5e7eb;
+  font-weight: 600;
+  font-size: 0.95em;
+  padding: 0.75rem 0;
+}
+
+:global(.fc .fc-daygrid-day) {
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+
+:global(.fc .fc-daygrid-day-number) {
+  padding: 0.5rem;
+  color: #e5e7eb;
+  font-weight: 500;
+  font-size: 1em;
+}
+
+:global(.fc .fc-daygrid-day-frame) {
+  min-height: 100px;
+}
+
+:global(.fc .fc-button-primary) {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+:global(.fc .fc-button-primary:hover) {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+:global(.fc .fc-button-primary.fc-button-active) {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+:global(.fc .fc-today) {
+  background-color: rgba(59, 130, 246, 0.1);
+}

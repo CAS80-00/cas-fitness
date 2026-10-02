@@ -122,9 +122,12 @@ function App() {
 
   const handleAuthenticated = useCallback(
     (user) => {
+      console.log("✨ handleAuthenticated called in App.jsx with user:", user);
       setCurrentUser(user);
       localStorage.setItem("cas_user", JSON.stringify(user));
+      console.log("✨ Setting route to 'home'");
       setRoute("home");
+      console.log("✨ currentUser state and route updated");
     },
     [],
   );

@@ -1,0 +1,88 @@
+/* ==========================================================================
+   Global Stylesheet
+   Loads Tailwind's engine (utilities are still available via @apply inside
+   CSS Modules) and defines the CAS Fitness design tokens as CSS custom
+   properties so every module in /styles can reference a single source of
+   truth for the brand palette.
+   ========================================================================== */
+@import "tailwindcss";
+
+:root {
+  /* Base Canvas */
+  --color-matte-black: #0d0d0d;
+  --color-charcoal: #111827;
+  --color-dark-slate: #1a1a1a;
+  --color-off-white: #f5f5f0;
+
+  /* High-Visibility Accents & CTAs */
+  --color-crimson-red: #dc2626;
+  --color-crimson-red-hover: #b91c1c;
+  --color-electric-blue: #1e40af;
+  --color-electric-blue-hover: #1e3a8a;
+  --color-neon-orange: #f97316;
+  --color-header-glow: #c2410c; /* Tailwind orange-700, stronger visible glow */
+  --color-header-accent: #ea580c; /* Tailwind orange-600, nav hover/active accent */
+
+  /* Responsive breakpoints (mirrors Tailwind defaults, documented here for
+     any component that needs to reference them outside Tailwind classes) */
+  --breakpoint-mobile-portrait: 480px;
+  --breakpoint-mobile-landscape: 768px;
+  --breakpoint-desktop: 1024px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-matte-black);
+  color: var(--color-off-white);
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+/* ==========================================================================
+   FullCalendar (react wrapper) responsive overrides
+   The library's own header toolbar doesn't wrap or shrink by default, which
+   overflows narrow mobile-portrait containers on ConsultationCalendar and
+   WorkoutCalendar (used on the Superuser/Employee/Student dashboards).
+   These rules make the toolbar wrap and its buttons shrink instead of
+   pushing past the card's width.
+   ========================================================================== */
+.fc .fc-toolbar {
+  flex-wrap: wrap;
+  row-gap: 0.5rem;
+}
+
+.fc .fc-toolbar-chunk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  max-width: 100%;
+}
+
+.fc .fc-button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.fc .fc-toolbar-title {
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .fc .fc-toolbar-title {
+    font-size: 0.9rem;
+  }
+  .fc .fc-button {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+}

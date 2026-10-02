@@ -1,0 +1,21 @@
+@reference "./global.css";
+/* ==========================================================================
+   CarouselRibbon Module
+   Public rotating hero ribbon (7s auto-advance, infinite loop).
+   ========================================================================== */
+
+.frame {
+  @apply w-full overflow-hidden rounded-2xl border;
+  border-color: #262626;
+}
+
+.image {
+  @apply h-[280px] w-full object-cover;
+}
+
+/* Mobile landscape/portrait: tighten hero image height */
+@media (max-width: 768px) {
+  .image {
+    height: 200px;
+  }
+}

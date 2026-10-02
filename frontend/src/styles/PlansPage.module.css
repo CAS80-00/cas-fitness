@@ -1,0 +1,75 @@
+@reference "./global.css";
+/* ==========================================================================
+   PlansPage Module
+   Membership grid, checkout step switcher, consultation banner, and
+   superuser plan management panel.
+   ========================================================================== */
+
+.page {
+  @apply min-h-screen space-y-12 p-8;
+  background-color: var(--color-matte-black);
+  color: #ffffff;
+}
+
+.contentWrap {
+  @apply mx-auto max-w-7xl space-y-12;
+}
+
+.superuserSection {
+  @apply space-y-6 rounded-xl border border-orange-500 p-6;
+  background-color: rgba(249, 115, 22, 0.05);
+  border-width: 2px;
+}
+
+.heading {
+  @apply space-y-4 text-center;
+}
+
+.headingTitle {
+  @apply text-4xl font-black;
+}
+
+.headingSubtitle {
+  @apply mx-auto max-w-xl text-sm text-neutral-400;
+}
+
+/* Responsive grid: 2 cards/row desktop & mobile landscape, 1/row mobile portrait */
+.planGrid {
+  @apply grid grid-cols-1 gap-6 md:grid-cols-2;
+}
+
+@media (max-width: 480px) {
+  .planGrid {
+    @apply grid-cols-1;
+  }
+}
+
+.loading {
+  @apply col-span-full py-12 text-center text-neutral-400;
+}
+
+.empty {
+  @apply col-span-full py-12 text-center text-neutral-500;
+}
+
+.consultationBanner {
+  @apply flex flex-col items-center justify-between gap-6 rounded-xl border p-8 md:flex-row;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.consultationTitle {
+  @apply text-lg font-bold;
+}
+
+.consultationCopy {
+  @apply text-xs text-neutral-400;
+}
+
+.consultationButton {
+  @apply rounded px-6 py-3 text-xs font-bold text-white transition;
+  background-color: var(--color-electric-blue);
+}
+.consultationButton:hover {
+  background-color: var(--color-electric-blue-hover);
+}

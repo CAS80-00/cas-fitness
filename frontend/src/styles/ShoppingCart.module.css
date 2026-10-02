@@ -1,0 +1,94 @@
+@reference "./global.css";
+/* ==========================================================================
+   ShoppingCart Module
+   Slide-out drawer with an empty-cart state and an active reservation
+   state showing the 10-minute hold countdown.
+   ========================================================================== */
+
+.overlay {
+  @apply fixed inset-0 z-50 flex justify-end;
+  background-color: rgb(0 0 0 / 70%);
+}
+
+.drawer {
+  @apply flex w-full max-w-md flex-col gap-6 border-l p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.header {
+  @apply flex items-center justify-between;
+}
+
+.logo {
+  @apply text-lg font-black;
+  color: var(--color-crimson-red);
+}
+
+.closeButton {
+  @apply text-xl text-neutral-300 transition;
+}
+.closeButton:hover {
+  color: #ffffff;
+}
+
+.emptyState {
+  @apply space-y-4;
+}
+
+.emptyText {
+  @apply text-neutral-300;
+}
+
+.viewPlansButton {
+  @apply h-11 w-full rounded font-semibold text-white transition;
+  background-color: var(--color-crimson-red);
+}
+.viewPlansButton:hover {
+  background-color: var(--color-crimson-red-hover);
+}
+
+.activeState {
+  @apply space-y-4;
+}
+
+.itemCard {
+  @apply rounded-xl border p-4;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+
+.itemTitle {
+  @apply font-bold;
+}
+
+.itemDescription {
+  @apply mt-1 text-xs text-neutral-400;
+}
+
+.itemPrice {
+  @apply mt-3 text-xl font-bold text-white;
+}
+
+.timerBox {
+  @apply rounded-lg border p-3;
+  background-color: rgb(67 20 7 / 40%);
+  border-color: #9a3412;
+}
+
+.timerLabel {
+  @apply text-xs text-neutral-300;
+}
+
+.timerValue {
+  @apply font-mono text-lg;
+  color: var(--color-neon-orange);
+}
+
+.continueButton {
+  @apply h-11 w-full rounded font-semibold text-white transition;
+  background-color: var(--color-electric-blue);
+}
+.continueButton:hover {
+  background-color: var(--color-electric-blue-hover);
+}

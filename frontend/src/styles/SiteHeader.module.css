@@ -1,0 +1,213 @@
+@reference "./global.css";
+/* ==========================================================================
+   SiteHeader Module
+   Shared header used across Landing, Plans, and About Us pages. The header
+   itself is a CSS Grid with three named areas — "brand" (logo+name),
+   "auth" (Auth Card when signed out, Welcome + Log Out when signed in),
+   and "nav" — whose columns/rows/order change by viewport/orientation so
+   the same three pieces can be arranged very differently without
+   reordering the DOM:
+
+     - Mobile portrait, signed out (default/mobile-first): 3 stacked rows,
+       in order: brand, then nav, then auth (Auth Card sits centered under
+       the nav bar).
+     - Mobile portrait, signed in (".authenticated"): 2 rows — row 1 is
+       "brand auth" side by side (brand left, Welcome+Log Out right), row
+       2 is nav (full width, below).
+     - Mobile landscape, signed out: brand top-left, nav directly below
+       it (left-aligned), Auth Card on the right spanning both rows.
+     - Mobile landscape, signed in: same 2-row shape as portrait
+       signed-in — "brand auth" then nav (full width) — brand left,
+       Welcome/Log Out right. Detected by a short viewport height rather
+       than width, since many phones report landscape widths past the
+       desktop breakpoint.
+     - Desktop (md+): brand centered on its own row, nav below; the auth
+       area is pulled out of grid flow (absolute) and anchored inside the
+       header's right side so it never affects the brand's centering or
+       the header's height.
+
+   IMPORTANT: all unconditional/base rules are declared BEFORE the
+   responsive overrides below. CSS media queries don't raise specificity —
+   an unconditional rule declared *after* a media query block still wins
+   the cascade at equal specificity even while the query matches. Keeping
+   base rules first (and ordering the media queries themselves from least
+   to most specific — desktop, then the narrower landscape-phone query
+   last) ensures each override reliably wins when it should.
+
+   Nav never wraps: route links + cart shrink responsively to always stay
+   on one line, growing to a 4th "Profile" link once a user is signed in.
+   ========================================================================== */
+
+.header {
+  @apply sticky top-0 z-30 border-b px-8 py-1;
+  display: grid;
+  align-items: center;
+  row-gap: 0.15rem;
+  column-gap: 0.5rem;
+  grid-template-columns: 1fr;
+  grid-template-areas: "brand" "nav" "auth";
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-header-glow) 92%, var(--color-matte-black)) 0%,
+    var(--color-matte-black) 100%
+  );
+  border-color: #262626;
+  position: sticky;
+}
+
+/* Mobile portrait, signed in: single row (brand left, Welcome/Log Out
+   right), nav below. */
+.header.authenticated {
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "brand auth" "nav nav";
+}
+.header.authenticated .logoNameGroup {
+  justify-content: flex-start;
+}
+.header.authenticated .welcomeSlot {
+  justify-content: flex-end;
+}
+
+.logoNameGroup {
+  @apply flex items-center gap-2;
+  grid-area: brand;
+  justify-content: center;
+}
+
+.logoButton {
+  @apply flex items-center justify-center;
+}
+
+.logoImage {
+  @apply h-10 w-auto object-contain;
+}
+
+.brandNameButton {
+  @apply flex items-center justify-center;
+}
+
+.brandNameImage {
+  @apply h-6 w-auto object-contain;
+}
+
+.floatingAuthCard,
+.welcomeSlot {
+  @apply flex justify-center;
+  grid-area: auth;
+}
+
+.welcomeCard {
+  @apply flex flex-nowrap items-center gap-2 rounded-xl border px-3 py-1.5 text-left shadow-2xl;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.welcomeText {
+  @apply whitespace-nowrap text-xs font-semibold text-neutral-300 sm:text-sm;
+}
+
+.logoutButton {
+  @apply shrink-0 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-semibold text-white transition sm:text-sm;
+  border-color: #262626;
+  background-color: #262626;
+}
+.logoutButton:hover {
+  color: var(--color-crimson-red);
+  border-color: var(--color-crimson-red);
+}
+
+.nav {
+  @apply flex flex-nowrap items-center justify-center gap-2 text-sm font-semibold sm:gap-4 sm:text-base md:gap-6 md:text-lg;
+  grid-area: nav;
+}
+
+.navLink {
+  @apply shrink-0 whitespace-nowrap rounded-lg px-2 py-1.5 transition sm:px-4 sm:py-2;
+  box-shadow: inset 0 -2px 0 0 transparent;
+}
+.navLink:hover {
+  color: var(--color-header-accent);
+  box-shadow: inset 0 -2px 0 0 var(--color-header-accent);
+}
+
+.cartButton {
+  @apply flex shrink-0 items-center justify-center rounded-lg p-1.5 text-white transition sm:p-2;
+}
+.cartButton:hover {
+  color: var(--color-header-accent);
+}
+
+/* Desktop: brand centered on its own row, nav below; auth area pulled out
+   of flow so it can't affect the brand's centering or the header's
+   height. */
+@media (min-width: 768px) {
+  .header,
+  .header.authenticated {
+    grid-template-columns: 1fr;
+    grid-template-areas: "brand" "nav";
+  }
+  .logoNameGroup {
+    justify-content: center;
+  }
+  .logoImage {
+    height: 8rem;
+  }
+  .brandNameImage {
+    height: 3rem;
+  }
+  .floatingAuthCard {
+    position: absolute;
+    right: 2rem;
+    top: 0.5rem;
+    z-index: 40;
+  }
+  .welcomeSlot {
+    position: absolute;
+    right: 2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 20;
+  }
+}
+
+/* Mobile landscape, signed out: brand top-left, nav directly below it
+   (left column, left-aligned), Auth Card on the right spanning both rows
+   so it can occupy the full header height. Signed-in stays a simple
+   2-row "brand auth" / "nav nav" (nav spans full width below) — see the
+   ".authenticated" override right after, which takes precedence via
+   selector specificity. */
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 1024px) {
+  .header,
+  .header.authenticated {
+    grid-template-columns: auto 1fr;
+    row-gap: 0;
+  }
+  .header {
+    grid-template-areas: "brand auth" "nav auth";
+  }
+  .header.authenticated {
+    grid-template-areas: "brand auth" "nav nav";
+  }
+  .header .logoNameGroup,
+  .header.authenticated .logoNameGroup {
+    justify-content: flex-start;
+  }
+  .logoImage {
+    height: 2.5rem;
+  }
+  .brandNameImage {
+    height: 1.5rem;
+  }
+  .header .nav {
+    justify-content: flex-start;
+  }
+  .header .floatingAuthCard,
+  .header .welcomeSlot,
+  .header.authenticated .welcomeSlot {
+    position: static;
+    justify-content: flex-end;
+  }
+  .header .floatingAuthCard {
+    align-self: center;
+  }
+}

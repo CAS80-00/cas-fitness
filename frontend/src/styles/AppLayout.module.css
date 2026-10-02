@@ -1,0 +1,58 @@
+@reference "./global.css";
+/* ==========================================================================
+   AppLayout Module
+   Provides the app-wide dark canvas background and hosts chrome that must
+   appear on every route: the cookie consent banner and the session
+   inactivity modal. Responsive across desktop, mobile landscape, and
+   mobile portrait via the shared breakpoints in styles/global.css.
+   ========================================================================== */
+.shell {
+  @apply min-h-screen text-[#F5F5F0];
+  background-color: var(--color-matte-black);
+}
+
+.inactivityOverlay {
+  @apply fixed inset-0 z-[80] flex items-center justify-center p-4;
+  background-color: rgb(0 0 0 / 70%);
+}
+
+.inactivityCard {
+  @apply w-full max-w-md space-y-4 rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #404040;
+}
+
+.inactivityTitle {
+  @apply text-xl font-bold;
+}
+
+.inactivityMessage {
+  @apply text-sm text-neutral-300;
+}
+
+.inactivityActions {
+  @apply flex gap-3;
+}
+
+.stayButton {
+  @apply h-11 flex-1 rounded font-semibold transition;
+  background-color: #262626;
+}
+.stayButton:hover {
+  background-color: #404040;
+}
+
+.logoutButton {
+  @apply h-11 flex-1 rounded font-semibold transition text-white;
+  background-color: var(--color-crimson-red);
+}
+.logoutButton:hover {
+  background-color: var(--color-crimson-red-hover);
+}
+
+/* Mobile portrait: stack the action buttons for easier tap targets */
+@media (max-width: 480px) {
+  .inactivityActions {
+    @apply flex-col;
+  }
+}

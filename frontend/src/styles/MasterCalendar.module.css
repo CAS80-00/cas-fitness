@@ -1,0 +1,94 @@
+@reference "./global.css";
+/* ==========================================================================
+   MasterCalendar Module
+   Shared styling for MasterConsultationCalendar / MasterWorkoutCalendar.
+   ========================================================================== */
+
+.card {
+  @apply space-y-4 rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.header {
+  @apply flex flex-wrap items-center justify-between gap-3;
+}
+
+.title {
+  @apply text-lg font-bold;
+}
+
+.select {
+  @apply rounded border px-3 py-2 text-sm text-white;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+
+.errorText {
+  @apply text-xs text-red-400;
+}
+
+/* FullCalendar enhancements for better visibility */
+:global(.fc) {
+  font-family: inherit;
+}
+
+:global(.fc .fc-toolbar-title) {
+  font-size: 1.25em;
+  font-weight: 700;
+  color: #e5e7eb;
+  margin-bottom: 0.5rem;
+}
+
+:global(.fc .fc-col-header-cell) {
+  background-color: #0a0a0a;
+  border-color: #262626;
+  color: #e5e7eb;
+  font-weight: 600;
+  font-size: 0.95em;
+  padding: 0.75rem 0;
+}
+
+:global(.fc .fc-daygrid-day) {
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+
+:global(.fc .fc-daygrid-day-number) {
+  padding: 0.5rem;
+  color: #e5e7eb;
+  font-weight: 500;
+  font-size: 1em;
+}
+
+:global(.fc .fc-daygrid-day-frame) {
+  min-height: 100px;
+}
+
+:global(.fc .fc-button-primary) {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+:global(.fc .fc-button-primary:hover) {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+:global(.fc .fc-button-primary.fc-button-active) {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+:global(.fc .fc-today) {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+:global(.fc .fc-timegrid-slot) {
+  height: 3em;
+}
+
+:global(.fc .fc-col-header-cell) {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

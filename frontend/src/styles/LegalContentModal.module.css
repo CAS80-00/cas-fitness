@@ -1,0 +1,78 @@
+@reference "./global.css";
+/* ==========================================================================
+   LegalContentModal Module
+   Shared modal for Terms & Conditions / Privacy Policy with Superuser
+   inline CMS editing, a scrollable body (max-h-[60vh]), and a 3-second
+   auto-fading save confirmation banner.
+   ========================================================================== */
+
+.overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+  background-color: rgb(0 0 0 / 70%);
+}
+
+.modal {
+  @apply w-full max-w-3xl space-y-4 rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #404040;
+}
+
+.header {
+  @apply flex items-center justify-between;
+}
+
+.title {
+  @apply text-xl font-bold;
+}
+
+.closeButton {
+  @apply text-xl text-neutral-400 transition;
+}
+.closeButton:hover {
+  color: #ffffff;
+}
+
+.successBanner {
+  @apply rounded border px-3 py-2 text-xs;
+  background-color: rgb(5 46 22 / 40%);
+  border-color: #166534;
+  color: #86efac;
+}
+
+.textarea {
+  @apply w-full max-h-[60vh] overflow-y-auto rounded border p-3 text-sm;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+
+.bodyText {
+  @apply max-h-[60vh] overflow-y-auto whitespace-pre-wrap text-sm text-neutral-200;
+}
+
+.actions {
+  @apply flex justify-end gap-3;
+}
+
+.editButton {
+  @apply rounded px-4 py-2 text-white transition;
+  background-color: var(--color-electric-blue);
+}
+.editButton:hover {
+  background-color: var(--color-electric-blue-hover);
+}
+
+.cancelButton {
+  @apply rounded px-4 py-2 transition;
+  background-color: #262626;
+}
+.cancelButton:hover {
+  background-color: #404040;
+}
+
+.saveButton {
+  @apply rounded px-4 py-2 text-white transition;
+  background-color: var(--color-crimson-red);
+}
+.saveButton:hover {
+  background-color: var(--color-crimson-red-hover);
+}

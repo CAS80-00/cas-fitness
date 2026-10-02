@@ -1,0 +1,105 @@
+@reference "./global.css";
+/* ==========================================================================
+   LandingPage Module
+   Body layout for both the public read-only carousel/headline view and the
+   Superuser inline CMS editing view (card grid + headline editor). Header
+   and Footer are unaffected by either mode.
+   ========================================================================== */
+
+.page {
+  @apply flex min-h-screen flex-col font-sans;
+  background-color: var(--color-matte-black);
+  color: var(--color-off-white);
+}
+
+.main {
+  @apply mx-auto flex w-full max-w-7xl flex-1 flex-col items-center gap-12 px-6 py-12;
+}
+
+.heroColumn {
+  @apply w-full max-w-4xl space-y-6;
+}
+
+.headline {
+  @apply text-4xl font-black leading-tight text-white md:text-5xl;
+}
+
+/* ---- Superuser inline editing view ---- */
+
+.editableBody {
+  @apply w-full max-w-5xl space-y-6;
+}
+
+.editModeBanner {
+  @apply rounded-lg border px-4 py-2 text-sm font-semibold;
+  background-color: rgb(30 64 175 / 15%);
+  border-color: var(--color-electric-blue);
+  color: #93c5fd;
+}
+
+.cardGrid {
+  @apply grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4;
+}
+
+.addCardButton {
+  @apply flex aspect-video flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed text-sm font-semibold text-neutral-400 transition;
+  border-color: #404040;
+}
+.addCardButton:hover {
+  color: #ffffff;
+  border-color: var(--color-electric-blue);
+}
+
+.headlineEditor {
+  @apply space-y-3 rounded-xl border p-5;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.headlineLabel {
+  @apply block text-sm font-semibold text-neutral-300;
+}
+
+.headlineTextarea {
+  @apply w-full rounded border p-3 text-base text-white;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+
+.headlineActions {
+  @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between;
+}
+
+.headlineStatus {
+  @apply flex flex-wrap items-center gap-3 text-xs;
+}
+
+.dirtyBadge {
+  @apply rounded-full px-2 py-1 font-semibold;
+  background-color: rgb(249 115 22 / 20%);
+  color: #fdba74;
+}
+
+.successText {
+  color: #86efac;
+}
+
+.errorText {
+  color: #fca5a5;
+}
+
+.saveHeadlineButton {
+  @apply w-full shrink-0 rounded px-6 py-2 font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto;
+  background-color: var(--color-crimson-red);
+}
+.saveHeadlineButton:hover:not(:disabled) {
+  background-color: var(--color-crimson-red-hover);
+}
+
+/* Mobile portrait: single-column card grid for easier tap targets */
+@media (max-width: 480px) {
+  .cardGrid {
+    @apply grid-cols-2;
+  }
+}
+

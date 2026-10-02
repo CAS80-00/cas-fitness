@@ -1,0 +1,199 @@
+@reference "./global.css";
+/* ==========================================================================
+   AuthCard Module
+   Styles the standalone login/register card, its live password-criteria
+   checklist, 2FA OTP step, and Forgot Password modal.
+   ========================================================================== */
+
+.card {
+  @apply w-full max-w-[260px] rounded-xl border p-3 text-xs shadow-2xl;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.tabs {
+  @apply mb-3 flex justify-between border-b pb-1;
+  border-color: #262626;
+}
+
+.tabButton {
+  @apply pb-1 text-xs font-bold text-neutral-500 transition;
+}
+
+.tabButtonActive {
+  @apply pb-1 text-xs font-bold border-b-2;
+  color: var(--color-crimson-red);
+  border-color: var(--color-crimson-red);
+}
+
+.serverError {
+  @apply mb-2 rounded border p-2 text-[11px];
+  background-color: rgb(69 10 10 / 50%);
+  border-color: #991b1b;
+  color: #fca5a5;
+}
+
+.form {
+  @apply space-y-2;
+}
+
+.fieldGroup {
+  @apply space-y-2;
+}
+
+.credentialsRow {
+  @apply grid grid-cols-2 gap-2;
+}
+
+.credentialsRowLogin {
+  @apply grid gap-1.5;
+  grid-template-columns: 1fr 1fr auto;
+}
+
+.inlineSubmitButton {
+  @apply h-full shrink-0 rounded px-2 text-[11px] font-bold text-white transition disabled:opacity-50;
+  background-color: var(--color-crimson-red);
+}
+.inlineSubmitButton:hover {
+  background-color: var(--color-crimson-red-hover);
+}
+
+.label {
+  @apply mb-1 block text-[10px] font-semibold text-neutral-400;
+}
+
+.input {
+  @apply w-full min-w-0 rounded border px-2 py-1.5 text-xs text-white transition focus:outline-none;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+.input:focus {
+  border-color: var(--color-crimson-red);
+}
+
+.inputOtp {
+  @apply w-full rounded border px-2 py-1.5 text-xs font-mono tracking-[0.3em] text-white transition focus:outline-none;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+.inputOtp:focus {
+  border-color: var(--color-crimson-red);
+}
+
+.errorText {
+  @apply mt-1 text-[10px];
+  color: var(--color-crimson-red);
+}
+
+.passwordChecklist {
+  @apply mt-1 space-y-0.5;
+}
+
+.checklistRow {
+  @apply flex items-center gap-1.5 text-[10px];
+}
+
+.checklistIconPass {
+  color: #22c55e;
+}
+.checklistIconFail {
+  color: var(--color-crimson-red);
+}
+
+.checklistLabelPass {
+  @apply text-neutral-300;
+}
+.checklistLabelFail {
+  @apply text-neutral-500;
+}
+
+.nameRow {
+  @apply grid grid-cols-2 gap-2;
+}
+
+.resendButton {
+  @apply w-full rounded py-1 text-[10px] transition disabled:opacity-50;
+  background-color: #262626;
+}
+.resendButton:hover:not(:disabled) {
+  background-color: #404040;
+}
+
+.devCodeBanner {
+  @apply space-y-1 rounded border px-2 py-1.5;
+  background-color: rgb(120 53 15 / 30%);
+  border-color: #92400e;
+}
+
+.devCodeNote {
+  @apply text-[10px] text-amber-300;
+}
+
+.devCodeButton {
+  @apply w-full rounded py-1 text-[10px] font-bold text-amber-200 transition;
+  background-color: rgb(146 64 14 / 40%);
+}
+.devCodeButton:hover {
+  background-color: rgb(146 64 14 / 60%);
+}
+
+.forgotLink {
+  @apply text-[10px] text-neutral-400 underline transition;
+}
+.forgotLink:hover {
+  color: #ffffff;
+}
+
+.submitButton {
+  @apply mt-2 w-full rounded py-1.5 text-xs font-bold text-white transition disabled:opacity-50;
+  background-color: var(--color-crimson-red);
+}
+.submitButton:hover:not(:disabled) {
+  background-color: var(--color-crimson-red-hover);
+}
+
+.modalOverlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+  background-color: rgb(0 0 0 / 70%);
+}
+
+.modalCard {
+  @apply w-full max-w-md space-y-4 rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #404040;
+}
+
+.modalTitle {
+  @apply text-lg font-bold;
+}
+
+.modalMessage {
+  @apply text-sm text-neutral-400;
+}
+
+.modalActions {
+  @apply flex gap-3;
+}
+
+.modalCancelButton {
+  @apply h-10 flex-1 rounded transition;
+  background-color: #262626;
+}
+.modalCancelButton:hover {
+  background-color: #404040;
+}
+
+.modalSendButton {
+  @apply h-10 flex-1 rounded font-semibold text-white transition;
+  background-color: var(--color-crimson-red);
+}
+.modalSendButton:hover {
+  background-color: var(--color-crimson-red-hover);
+}
+
+/* Mobile portrait: collapse first/last name to a single column */
+@media (max-width: 480px) {
+  .nameRow {
+    @apply grid-cols-1;
+  }
+}

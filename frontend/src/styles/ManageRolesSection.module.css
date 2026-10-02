@@ -1,0 +1,82 @@
+@reference "./global.css";
+/* ==========================================================================
+   ManageRolesSection Module
+   Roles dropdown + Add Role two-step (name modal -> RolesCard permissions).
+   ========================================================================== */
+
+.card {
+  @apply space-y-4 rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.title {
+  @apply text-lg font-bold;
+}
+
+.errorText {
+  @apply text-xs text-red-400;
+}
+
+.rolesRow {
+  @apply flex flex-wrap items-center gap-3;
+}
+
+.select {
+  @apply rounded border px-3 py-2 text-sm text-white;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+
+.addButton {
+  @apply rounded px-4 py-2 text-sm font-bold text-white transition;
+  background-color: var(--color-electric-blue);
+}
+.addButton:hover {
+  background-color: var(--color-electric-blue-hover);
+}
+
+.overlay {
+  @apply fixed inset-0 z-[60] flex items-center justify-center p-4;
+  background-color: rgb(0 0 0 / 70%);
+}
+
+.modal {
+  @apply w-full max-w-sm space-y-4 rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #404040;
+}
+
+.modalTitle {
+  @apply text-lg font-bold;
+}
+
+.input {
+  @apply w-full rounded border px-3 py-2 text-sm text-white;
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+
+.modalActions {
+  @apply flex justify-end gap-3;
+}
+
+.cancelButton {
+  @apply rounded px-4 py-2 text-sm transition;
+  background-color: #262626;
+}
+.cancelButton:hover {
+  background-color: #404040;
+}
+
+.continueButton {
+  @apply rounded px-4 py-2 text-sm font-semibold text-white transition;
+  background-color: var(--color-crimson-red);
+}
+.continueButton:hover {
+  background-color: var(--color-crimson-red-hover);
+}
+
+.configureWrap {
+  @apply w-full max-w-lg;
+}

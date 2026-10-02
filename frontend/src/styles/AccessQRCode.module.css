@@ -1,0 +1,73 @@
+@reference "./global.css";
+/* ==========================================================================
+   AccessQRCode Module
+   Gym-entry QR pass card with a locked/denied state and a live countdown
+   ring around the 30-second auto-refresh timer.
+   ========================================================================== */
+
+.deniedCard {
+  @apply space-y-4 rounded-xl border p-8 text-center opacity-60;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.deniedIcon {
+  @apply text-4xl;
+}
+
+.deniedMessage {
+  @apply rounded-lg border p-4 text-sm;
+  background-color: rgb(69 10 10 / 80%);
+  border-color: #991b1b;
+  color: #fecaca;
+}
+
+.card {
+  @apply flex flex-col items-center space-y-6 rounded-xl border p-8;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.title {
+  @apply text-lg font-bold text-white;
+}
+
+.qrFrame {
+  @apply relative flex items-center justify-center rounded-2xl border-4 bg-white p-4 shadow-2xl;
+  border-color: var(--color-crimson-red);
+}
+
+.qrPlaceholder {
+  @apply h-[220px] w-[220px] animate-pulse rounded;
+  background-color: #e5e5e5;
+}
+
+.countdownRow {
+  @apply flex items-center gap-3;
+}
+
+.countdownRing {
+  @apply relative flex h-8 w-8 items-center justify-center;
+}
+
+.countdownSvg {
+  @apply h-full w-full;
+  transform: rotate(-90deg);
+}
+
+.countdownTrack {
+  stroke: #262626;
+}
+
+.countdownProgress {
+  stroke: var(--color-crimson-red);
+  transition: stroke-dashoffset 1s linear;
+}
+
+.countdownLabel {
+  @apply absolute text-xs font-bold text-white;
+}
+
+.refreshHint {
+  @apply text-xs text-neutral-400;
+}

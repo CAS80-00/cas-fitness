@@ -1,0 +1,174 @@
+@reference "./global.css";
+/* ==========================================================================
+   AboutUsPage Module
+   Two-column mission layout (stacked on mobile) with Superuser CMS editing.
+   ========================================================================== */
+
+.page {
+  @apply min-h-screen;
+  background-color: var(--color-matte-black);
+  color: #ffffff;
+}
+
+.contentWrap {
+  @apply mx-auto max-w-7xl space-y-8 p-8;
+}
+
+.title {
+  @apply text-4xl font-black;
+}
+
+.grid {
+  @apply grid grid-cols-1 gap-8 lg:grid-cols-2;
+}
+
+/* Mission Text Section */
+.missionCard {
+  @apply space-y-4 rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.missionText {
+  @apply text-neutral-300;
+}
+
+.textarea {
+  @apply w-full rounded border p-3;
+  background-color: #0a0a0a;
+  border-color: #262626;
+  resize: vertical;
+  min-height: 200px;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-electric-blue);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+}
+
+.missionActions {
+  @apply space-y-3;
+}
+
+.missionStatus {
+  @apply flex flex-col gap-2 text-sm;
+}
+
+.dirtyBadge {
+  @apply rounded bg-yellow-900 px-3 py-1 text-yellow-100;
+}
+
+.successText {
+  @apply text-green-400;
+}
+
+.errorText {
+  @apply text-red-400;
+}
+
+.missionButtons {
+  @apply flex gap-3;
+}
+
+.saveButton {
+  @apply rounded px-4 py-2 text-white transition;
+  background-color: var(--color-crimson-red);
+}
+.saveButton:hover:not(:disabled) {
+  background-color: var(--color-crimson-red-hover);
+}
+.saveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  @apply rounded px-4 py-2 transition;
+  background-color: #262626;
+  color: #ffffff;
+}
+.cancelButton:hover:not(:disabled) {
+  background-color: #404040;
+}
+.cancelButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Image Section */
+.imageSection {
+  @apply space-y-4 rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.imageFrame {
+  @apply overflow-hidden rounded-xl border;
+  border-color: #262626;
+  position: relative;
+  aspect-ratio: 16 / 9;
+}
+
+.image {
+  @apply h-full w-full object-cover;
+}
+
+.emptyImageFrame {
+  @apply flex min-h-[300px] flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed;
+  border-color: #404040;
+  background-color: #0a0a0a;
+  color: #808080;
+}
+
+.emptyImageFrame svg {
+  @apply opacity-50;
+}
+
+/* Image Upload Controls */
+.fileInput {
+  @apply hidden;
+}
+
+.imageActions {
+  @apply flex gap-3;
+  position: relative;
+}
+
+.uploadButton {
+  @apply flex items-center gap-2 rounded px-4 py-2 text-white transition;
+  background-color: var(--color-electric-blue);
+}
+.uploadButton:hover:not(:disabled) {
+  background-color: var(--color-electric-blue-hover);
+}
+.uploadButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.deleteImageButton {
+  @apply flex items-center justify-center rounded px-4 py-2 transition;
+  background-color: #404040;
+  color: #ff4444;
+}
+.deleteImageButton:hover:not(:disabled) {
+  background-color: #500000;
+}
+.deleteImageButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.uploadingOverlay {
+  @apply absolute inset-0 flex items-center justify-center rounded-xl;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.spinner {
+  @apply animate-spin text-blue-400;
+}
+
+.imageError {
+  @apply rounded bg-red-900 px-3 py-2 text-sm text-red-100;
+}
