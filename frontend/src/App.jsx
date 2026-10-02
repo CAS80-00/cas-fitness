@@ -146,6 +146,7 @@ function App() {
             <LandingPage
               currentUser={currentUser}
               onNavigate={handleNavigate}
+              onLogout={logout}
               onAuthenticated={handleAuthenticated}
               cartItem={cartItem}
               cartRequested={cartRequested}
@@ -188,6 +189,7 @@ function App() {
           <LandingPage
             currentUser={currentUser}
             onNavigate={handleNavigate}
+            onLogout={logout}
             onAuthenticated={handleAuthenticated}
             cartItem={cartItem}
             cartRequested={cartRequested}
