@@ -1,0 +1,573 @@
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
+const multer = require("multer");
+const router = express.Router();
+const db = require("../db/client");
+const { authenticateToken, requireSuperuser } = require("../middleware/authMiddleware");
+const { uploadPlanPhoto, deletePlanPhoto } = require("../services/plansStorage");
+
+// Every route below is Superuser-only.
+router.use(authenticateToken, requireSuperuser);
+
+// Multer for plan photo uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    if (["image/jpeg", "image/png", "image/webp"].includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only JPEG, PNG, and WebP images are allowed"));
+    }
+  },
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+});
+
+const isProduction = process.env.NODE_ENV === "production";
+
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function generateTemporaryPassword() {
+  // 10 chars, alphanumeric + one guaranteed symbol so it satisfies the
+  // app's own password-strength rules if the user keeps it as-is.
+  return `Cas${crypto.randomBytes(5).toString("hex")}@1`;
+}
+
+async function sendActivationEmail({ email, firstName, temporaryPassword }) {
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT || 587),
+        secure: false,
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      });
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to: email,
+        subject: "Your CAS Fitness account is ready",
+        text: `Hi ${firstName},\n\nAn account has been created for you at CAS Fitness.\n\nEmail: ${email}\nTemporary password: ${temporaryPassword}\n\nLog in and change your password as soon as possible.`,
+      });
+      return { delivered: true };
+    } catch (err) {
+      console.error("Activation email failed:", err.message);
+      return {
+        delivered: false,
+        ...(!isProduction && {
+          devNote: `Email delivery failed (${err.message}). Showing the temporary password for local testing only.`,
+        }),
+      };
+    }
+  }
+  return {
+    delivered: false,
+    ...(!isProduction && {
+      devNote: "SMTP isn't configured. Showing the temporary password for local testing only.",
+    }),
+  };
+}
+
+function toUserResponse(row) {
+  return {
+    id: row.id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    email: row.email,
+    phone: row.phone,
+    status: row.status,
+    statusStartsAt: row.status_starts_at,
+    statusEndsAt: row.status_ends_at,
+    roleId: row.role_id,
+    roleName: row.role_name,
+    createdAt: row.created_at,
+  };
+}
+
+const EMPLOYEE_ROLE_IDS = [2, 3];
+const MEMBER_ROLE_ID = 4;
+const ALLOWED_STATUSES = ["PENDING", "PENDING_VERIFICATION", "ACTIVE", "SUSPENDED", "CANCELLED", "INACTIVE"];
+
+/* ============================== ROLES ============================== */
+
+router.get("/roles", async (req, res) => {
+  try {
+    const result = await db.query("SELECT id, role_name, permissions FROM roles ORDER BY id ASC");
+    res.json({ roles: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load roles." });
+  }
+});
+
+router.post("/roles", async (req, res) => {
+  const roleName = String(req.body.roleName || "").trim();
+  if (!roleName) {
+    return res.status(400).json({ error: "Role name is required." });
+  }
+
+  try {
+    const result = await db.query(
+      "INSERT INTO roles (role_name, permissions) VALUES ($1, $2::jsonb) RETURNING id, role_name, permissions",
+      [roleName.toUpperCase(), JSON.stringify(req.body.permissions ?? [])],
+    );
+    res.status(201).json({ role: result.rows[0] });
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(409).json({ error: "A role with that name already exists." });
+    }
+    res.status(500).json({ error: "Failed to create role." });
+  }
+});
+
+router.patch("/roles/:id", async (req, res) => {
+  try {
+    const result = await db.query(
+      "UPDATE roles SET permissions = $1::jsonb WHERE id = $2 RETURNING id, role_name, permissions",
+      [JSON.stringify(req.body.permissions ?? []), req.params.id],
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Role not found." });
+    }
+    res.json({ role: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update role permissions." });
+  }
+});
+
+/* ======================= EMPLOYEES & MEMBERS ======================= */
+// Both are rows in `users`; "employee" = role_id 2/3, "member" = role_id 4.
+
+router.get("/users", async (req, res) => {
+  const type = req.query.type === "member" ? "member" : "employee";
+  const search = String(req.query.search || "").trim();
+  const roleFilter = type === "member" ? [MEMBER_ROLE_ID] : EMPLOYEE_ROLE_IDS;
+
+  try {
+    const params = [roleFilter];
+    let whereClause = "u.role_id = ANY($1::int[])";
+
+    if (search) {
+      params.push(`%${search}%`);
+      whereClause += ` AND (
+        u.id::text ILIKE $${params.length}
+        OR u.last_name ILIKE $${params.length}
+        OR u.email ILIKE $${params.length}
+        OR u.phone ILIKE $${params.length}
+      )`;
+    }
+
+    const result = await db.query(
+      `
+      SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.status,
+             u.status_starts_at, u.status_ends_at, u.role_id, u.created_at,
+             r.role_name
+      FROM users u
+      LEFT JOIN roles r ON r.id = u.role_id
+      WHERE ${whereClause}
+      ORDER BY u.created_at DESC
+      LIMIT 200
+    `,
+      params,
+    );
+
+    res.json({ users: result.rows.map(toUserResponse) });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to search users." });
+  }
+});
+
+// GET a single user by ID
+router.get("/users/:id", async (req, res) => {
+  const userId = String(req.params.id).trim();
+
+  try {
+    const result = await db.query(
+      `
+      SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.status,
+             u.status_starts_at, u.status_ends_at, u.role_id, u.created_at,
+             r.role_name
+      FROM users u
+      LEFT JOIN roles r ON r.id = u.role_id
+      WHERE u.id = $1
+    `,
+      [userId],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    res.json({ user: toUserResponse(result.rows[0]) });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch user." });
+  }
+});
+
+router.post("/users", async (req, res) => {
+  const userType = req.body.userType === "member" ? "member" : "employee";
+  const firstName = String(req.body.firstName || "").trim();
+  const lastName = String(req.body.lastName || "").trim();
+  const email = normalizeEmail(req.body.email);
+  const phone = String(req.body.phone || "").trim();
+  const roleId = userType === "member" ? MEMBER_ROLE_ID : Number(req.body.roleId) || EMPLOYEE_ROLE_IDS[0];
+
+  if (!firstName || !lastName || !email) {
+    return res.status(400).json({ error: "First name, last name, and email are required." });
+  }
+
+  try {
+    const existing = await db.query("SELECT id FROM users WHERE email = $1", [email]);
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ error: "A user with that email already exists." });
+    }
+
+    const temporaryPassword = generateTemporaryPassword();
+    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+
+    const insertRes = await db.query(
+      `
+      INSERT INTO users (email, phone, password_hash, first_name, last_name, role_id, status)
+      VALUES ($1, $2, $3, $4, $5, $6, 'PENDING')
+      RETURNING id, first_name, last_name, email, phone, status, status_starts_at, status_ends_at, role_id, created_at
+    `,
+      [email, phone || null, passwordHash, firstName, lastName, roleId],
+    );
+
+    await db.query(
+      "INSERT INTO authorized_emails (email, created_by) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING",
+      [email, req.user.userId],
+    );
+
+    const delivery = await sendActivationEmail({ email, firstName, temporaryPassword });
+
+    const row = insertRes.rows[0];
+    res.status(201).json({
+      user: toUserResponse({ ...row, role_name: null }),
+      delivery: { ...delivery, ...(delivery.devNote ? { temporaryPassword } : {}) },
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to create user." });
+  }
+});
+
+router.patch("/users/:id", async (req, res) => {
+  const firstName = String(req.body.firstName || "").trim();
+  const lastName = String(req.body.lastName || "").trim();
+  const email = normalizeEmail(req.body.email);
+  const phone = String(req.body.phone || "").trim();
+  const roleId = req.body.roleId ? Number(req.body.roleId) : null;
+
+  if (!firstName || !lastName || !email) {
+    return res.status(400).json({ error: "First name, last name, and email are required." });
+  }
+
+  try {
+    const duplicate = await db.query("SELECT id FROM users WHERE email = $1 AND id != $2", [
+      email,
+      req.params.id,
+    ]);
+    if (duplicate.rows.length > 0) {
+      return res.status(409).json({ error: "That email is already in use by another account." });
+    }
+
+    let updateQuery = `
+      UPDATE users
+      SET first_name = $1, last_name = $2, email = $3, phone = $4`;
+    const params = [firstName, lastName, email, phone || null];
+
+    if (roleId) {
+      params.push(roleId);
+      updateQuery += `, role_id = $${params.length}`;
+    }
+
+    params.push(req.params.id);
+    updateQuery += ` WHERE id = $${params.length}
+      RETURNING id, first_name, last_name, email, phone, status, status_starts_at, status_ends_at, role_id, created_at`;
+
+    const result = await db.query(updateQuery, params);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    // Fetch role_name
+    const roleResult = await db.query("SELECT role_name FROM roles WHERE id = $1", [
+      result.rows[0].role_id,
+    ]);
+    const roleName = roleResult.rows[0]?.role_name || null;
+
+    res.json({ user: toUserResponse({ ...result.rows[0], role_name: roleName }) });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update user." });
+  }
+});
+
+router.patch("/users/:id/status", async (req, res) => {
+  const status = String(req.body.status || "").toUpperCase();
+  const permanent = Boolean(req.body.permanent);
+  const startsAt = req.body.startsAt || null;
+  const endsAt = permanent ? null : req.body.endsAt || null;
+
+  if (!ALLOWED_STATUSES.includes(status)) {
+    return res.status(400).json({ error: "Invalid status value." });
+  }
+
+  try {
+    const result = await db.query(
+      `
+      UPDATE users
+      SET status = $1,
+          status_starts_at = $2,
+          status_ends_at = $3,
+          -- Cancelling revokes all access immediately by invalidating any
+          -- active sessions (mirrors the existing logout-all mechanism).
+          session_version = CASE WHEN $1::varchar = 'CANCELLED' THEN session_version + 1 ELSE session_version END
+      WHERE id = $4
+      RETURNING id, first_name, last_name, email, phone, status, status_starts_at, status_ends_at, role_id, created_at
+    `,
+      [status, startsAt, endsAt, req.params.id],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    res.json({ user: toUserResponse({ ...result.rows[0], role_name: null }) });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update user status." });
+  }
+});
+
+/* ============================ PROMOTIONS ============================ */
+
+function toPromotionResponse(row) {
+  const now = new Date();
+  const isCurrentlyLive =
+    row.is_active && new Date(row.start_time) <= now && new Date(row.end_time) >= now;
+  return {
+    id: row.id,
+    code: row.code,
+    campaignName: row.campaign_name,
+    planId: row.plan_id,
+    discountType: row.discount_type,
+    discountValue: Number(row.discount_value),
+    startTime: row.start_time,
+    endTime: row.end_time,
+    isActive: row.is_active,
+    isCurrentlyLive,
+  };
+}
+
+router.get("/promotions", async (req, res) => {
+  try {
+    const result = await db.query(
+      "SELECT * FROM promotions ORDER BY start_time DESC",
+    );
+    res.json({ promotions: result.rows.map(toPromotionResponse) });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load promotions." });
+  }
+});
+
+router.post("/promotions", async (req, res) => {
+  const code = String(req.body.code || "").trim().toUpperCase();
+  const campaignName = String(req.body.campaignName || "").trim();
+  const discountType = req.body.discountType === "PERCENTAGE" ? "PERCENTAGE" : "AMOUNT";
+  const discountValue = Number(req.body.discountValue);
+  const startTime = req.body.startTime;
+  const endTime = req.body.endTime;
+  const planId = req.body.planId ? Number(req.body.planId) : null;
+  const isActive = Boolean(req.body.isActive);
+
+  if (!code || !campaignName || !startTime || !endTime || Number.isNaN(discountValue)) {
+    return res.status(400).json({ error: "Missing required promotion fields." });
+  }
+
+  try {
+    const result = await db.query(
+      `
+      INSERT INTO promotions (code, campaign_name, plan_id, discount_type, discount_value, start_time, end_time, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+    `,
+      [code, campaignName, planId, discountType, discountValue, startTime, endTime, isActive],
+    );
+    res.status(201).json({ promotion: toPromotionResponse(result.rows[0]) });
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(409).json({ error: "A promotion with that code already exists." });
+    }
+    res.status(500).json({ error: "Failed to create promotion." });
+  }
+});
+
+router.patch("/promotions/:id", async (req, res) => {
+  const campaignName = String(req.body.campaignName || "").trim();
+  const discountType = req.body.discountType === "PERCENTAGE" ? "PERCENTAGE" : "AMOUNT";
+  const discountValue = Number(req.body.discountValue);
+  const startTime = req.body.startTime;
+  const endTime = req.body.endTime;
+  const planId = req.body.planId ? Number(req.body.planId) : null;
+  const isActive = Boolean(req.body.isActive);
+
+  try {
+    const result = await db.query(
+      `
+      UPDATE promotions
+      SET campaign_name = $1, plan_id = $2, discount_type = $3, discount_value = $4,
+          start_time = $5, end_time = $6, is_active = $7
+      WHERE id = $8
+      RETURNING *
+    `,
+      [campaignName, planId, discountType, discountValue, startTime, endTime, isActive, req.params.id],
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Promotion not found." });
+    }
+    res.json({ promotion: toPromotionResponse(result.rows[0]) });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update promotion." });
+  }
+});
+
+router.delete("/promotions/:id", async (req, res) => {
+  try {
+    await db.query("DELETE FROM promotions WHERE id = $1", [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete promotion." });
+  }
+});
+
+/* ============================== PLANS ============================== */
+
+// Create a new plan with optional photo upload
+router.post("/plans", upload.single("photo"), async (req, res) => {
+  const title = String(req.body.title || "").trim();
+  const description = String(req.body.description || "").trim();
+  const price = Number(req.body.price);
+  const billingCycle = String(req.body.billing_cycle || "monthly").trim();
+
+  if (!title || !description || Number.isNaN(price) || price <= 0) {
+    return res.status(400).json({ error: "Title, description, and valid price are required." });
+  }
+
+  try {
+    let photoUrl = null;
+    let photoStorageKey = null;
+
+    if (req.file) {
+      try {
+        const { storageKey, publicPath } = uploadPlanPhoto(req.file.buffer, req.file.mimetype);
+        photoStorageKey = storageKey;
+        photoUrl = publicPath;
+      } catch (photoErr) {
+        return res.status(400).json({ error: "Failed to upload photo: " + photoErr.message });
+      }
+    }
+
+    const result = await db.query(
+      `
+      INSERT INTO plans (title, description, price, billing_cycle, photo_url, photo_storage_key)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, title, description, price, billing_cycle, photo_url, created_at
+    `,
+      [title, description, price, billingCycle, photoUrl, photoStorageKey],
+    );
+
+    res.status(201).json({ plan: result.rows[0] });
+  } catch (err) {
+    if (req.file) {
+      // Clean up uploaded photo on DB error
+      deletePlanPhoto(req.file.filename);
+    }
+    console.error("Error creating plan:", err.message, err.stack);
+    res.status(500).json({ error: "Failed to create plan: " + err.message });
+  }
+});
+
+// Update an existing plan with optional photo replacement
+router.put("/plans/:id", upload.single("photo"), async (req, res) => {
+  const planId = Number(req.params.id);
+  const title = String(req.body.title || "").trim();
+  const description = String(req.body.description || "").trim();
+  const price = Number(req.body.price);
+  const billingCycle = String(req.body.billing_cycle || "monthly").trim();
+
+  if (!title || !description || Number.isNaN(price) || price <= 0) {
+    return res.status(400).json({ error: "Title, description, and valid price are required." });
+  }
+
+  try {
+    // Fetch existing plan to get current photo info
+    const existing = await db.query("SELECT photo_storage_key FROM plans WHERE id = $1", [planId]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: "Plan not found." });
+    }
+
+    let photoUrl = existing.rows[0].photo_url;
+    let photoStorageKey = existing.rows[0].photo_storage_key;
+
+    // Handle photo update
+    if (req.file) {
+      try {
+        // Delete old photo if it exists
+        if (photoStorageKey) {
+          deletePlanPhoto(photoStorageKey);
+        }
+        // Upload new photo
+        const { storageKey, publicPath } = uploadPlanPhoto(req.file.buffer, req.file.mimetype);
+        photoStorageKey = storageKey;
+        photoUrl = publicPath;
+      } catch (photoErr) {
+        return res.status(400).json({ error: "Failed to upload photo: " + photoErr.message });
+      }
+    }
+
+    const result = await db.query(
+      `
+      UPDATE plans
+      SET title = $1, description = $2, price = $3, billing_cycle = $4, photo_url = $5, photo_storage_key = $6, updated_at = NOW()
+      WHERE id = $7
+      RETURNING id, title, description, price, billing_cycle, photo_url, updated_at
+    `,
+      [title, description, price, billingCycle, photoUrl, photoStorageKey, planId],
+    );
+
+    res.json({ plan: result.rows[0] });
+  } catch (err) {
+    console.error("Error updating plan:", err.message, err.stack);
+    res.status(500).json({ error: "Failed to update plan: " + err.message });
+  }
+});
+
+// Delete a plan (with photo cleanup)
+router.delete("/plans/:id", async (req, res) => {
+  const planId = Number(req.params.id);
+
+  try {
+    // Fetch plan to get photo storage key
+    const result = await db.query("SELECT photo_storage_key FROM plans WHERE id = $1", [planId]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Plan not found." });
+    }
+
+    const photoStorageKey = result.rows[0].photo_storage_key;
+
+    // Delete from database
+    await db.query("DELETE FROM plans WHERE id = $1", [planId]);
+
+    // Delete photo from storage
+    if (photoStorageKey) {
+      deletePlanPhoto(photoStorageKey);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error deleting plan:", err.message, err.stack);
+    res.status(500).json({ error: "Failed to delete plan: " + err.message });
+  }
+});
+
+module.exports = router;

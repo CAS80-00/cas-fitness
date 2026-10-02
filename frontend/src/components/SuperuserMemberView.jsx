@@ -220,14 +220,21 @@ export default function SuperuserMemberView({
             <div className={styles.qrSection}>
               <h3 className={styles.qrTitle}>Gym Entry Pass</h3>
               <div className={styles.qrFrame}>
-                {member?.id && (
+                {member && member.id ? (
                   <QRCodeSVG 
                     value={member.id} 
                     size={220} 
                     level="H" 
                     includeMargin
+                    fgColor="#000000"
+                    bgColor="#ffffff"
                   />
+                ) : (
+                  <div className={styles.qrPlaceholder}>Loading...</div>
                 )}
+              </div>
+              <div className={styles.qrMemberId}>
+                <small>ID: {member?.id || "—"}</small>
               </div>
               <p className={styles.qrHint}>
                 {subscription?.status === "ACTIVE" 

@@ -85,6 +85,15 @@
   @apply relative flex items-center justify-center rounded-2xl border-4 bg-white p-4;
   border-color: var(--color-crimson-red);
   margin-bottom: 1rem;
+  min-height: 240px;
+}
+
+.qrPlaceholder {
+  @apply text-center text-sm text-gray-400;
+}
+
+.qrMemberId {
+  @apply mb-2 text-center text-xs text-gray-500;
 }
 
 .qrHint {
