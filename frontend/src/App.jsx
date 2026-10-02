@@ -29,6 +29,10 @@ function App() {
   const isSuperuser = currentUser?.roleId === 1;
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 
+  useEffect(() => {
+    console.log("🔄 currentUser state updated:", currentUser);
+  }, [currentUser]);
+
   const logout = useCallback(async () => {
     const token = localStorage.getItem("cas_jwt");
     if (token) {
@@ -147,6 +151,7 @@ function App() {
         default:
           return (
             <LandingPage
+              currentUser={currentUser}
               onNavigate={handleNavigate}
               onAuthenticated={handleAuthenticated}
               cartItem={cartItem}
@@ -188,6 +193,7 @@ function App() {
       default:
         return (
           <LandingPage
+            currentUser={currentUser}
             onNavigate={handleNavigate}
             onAuthenticated={handleAuthenticated}
             cartItem={cartItem}
