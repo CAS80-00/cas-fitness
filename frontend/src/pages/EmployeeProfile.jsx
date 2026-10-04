@@ -1,5 +1,6 @@
 import WorkoutCalendar from "../components/WorkoutCalendar";
 import ConsultationCalendar from "../components/ConsultationCalendar";
+import PersonalCalendar from "../components/PersonalCalendar";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import styles from "../styles/EmployeeProfile.module.css";
@@ -57,6 +58,7 @@ export default function EmployeeProfile({ currentUser, onLogout, onNavigate, onA
 
         <ConsultationCalendar employeeId={currentUser.id} />
         <WorkoutCalendar trainerId={currentUser.id} isStudent={false} />
+        <PersonalCalendar />
       </div>
 
       <SiteFooter isSuperuser={currentUser?.roleId === 1} />
