@@ -1059,6 +1059,9 @@ router.post("/slot-templates", async (req, res) => {
     let endTimeOfDay = req.body.endTimeOfDay || "23:59";
     const [endHours, endMinutes] = endTimeOfDay.split(":").map(Number);
 
+    // Parse publish date/time from request (when slots become visible)
+    const publishedAt = req.body.publishedAt ? new Date(req.body.publishedAt) : null;
+
     for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
       const dayOfWeek = d.getDay();
       if (daysOfWeek.includes(dayOfWeek)) {
@@ -1085,11 +1088,11 @@ router.post("/slot-templates", async (req, res) => {
 
           const instanceRes = await db.query(
             `
-            INSERT INTO slot_instances (user_id, template_id, calendar_type, slot_date, start_time, end_time)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO slot_instances (user_id, template_id, calendar_type, slot_date, start_time, end_time, status, published_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
             `,
-            [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr],
+            [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, "APPROVED", publishedAt],
           );
           instancesInserted.push(instanceRes.rows[0]);
 
@@ -1143,12 +1146,13 @@ router.get("/slot-templates/:userId", async (req, res) => {
 router.get("/slot-instances/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
-    const { startDate, endDate, status } = req.query;
+    const { startDate, endDate, status, includeUnpublished } = req.query;
 
     let query = `
       SELECT si.id, si.user_id, si.template_id, si.calendar_type, 
              TO_CHAR(si.slot_date, 'YYYY-MM-DD') as slot_date,
-             si.start_time, si.end_time, si.status, si.modified_by, si.modified_at,
+             si.start_time, si.end_time, si.status, si.published_at, 
+             si.modified_by, si.modified_at,
              si.approved_by, si.approved_at, si.created_at,
              u.first_name, u.last_name, u.email, 
              modified_user.first_name as modified_by_first_name, modified_user.last_name as modified_by_last_name
@@ -1158,6 +1162,11 @@ router.get("/slot-instances/:userId", async (req, res) => {
       WHERE si.user_id = $1
     `;
     const params = [userId];
+
+    // Only show published slots unless explicitly requested otherwise (for member view)
+    if (!includeUnpublished || includeUnpublished !== 'true') {
+      query += ` AND (si.published_at IS NULL OR si.published_at <= NOW())`;
+    }
 
     if (startDate) {
       query += ` AND si.slot_date >= $${params.length + 1}`;
@@ -1185,8 +1194,8 @@ router.get("/slot-instances/:userId", async (req, res) => {
 });
 
 // PUT: Update a slot instance (member or superuser)
-// Members can set: CONSULTATION, TRAINING, BREAK
-// Superusers can set: SICK, NO_SHOW, VACATION, or approve PENDING slots
+// Members can set: CONSULTATION, WORKOUT, BREAK, LUNCH
+// Superusers can set: CONSULTATION, WORKOUT, BREAK, LUNCH, SICK, NO_SHOW, VACATION, PERSONAL_TIME, REMOVED
 router.put("/slot-instances/:slotId", async (req, res) => {
   try {
     const { slotId } = req.params;
@@ -1197,23 +1206,28 @@ router.put("/slot-instances/:slotId", async (req, res) => {
       return res.status(400).json({ error: "Status is required." });
     }
 
-    // Member can only set: CONSULTATION, TRAINING, BREAK
-    const memberStatuses = ["CONSULTATION", "TRAINING", "BREAK"];
-    // Superuser can set: SICK, NO_SHOW, VACATION, APPROVED
-    const superuserStatuses = ["SICK", "NO_SHOW", "VACATION", "APPROVED"];
+    // Member can set: CONSULTATION, WORKOUT, BREAK, LUNCH
+    const memberStatuses = ["CONSULTATION", "WORKOUT", "BREAK", "LUNCH"];
+    // Superuser can set: CONSULTATION, WORKOUT, BREAK, LUNCH, SICK, NO_SHOW, VACATION, PERSONAL_TIME, REMOVED
+    const superuserStatuses = ["CONSULTATION", "WORKOUT", "BREAK", "LUNCH", "SICK", "NO_SHOW", "VACATION", "PERSONAL_TIME", "REMOVED"];
 
     if (!isUserSuperuser && !memberStatuses.includes(status)) {
-      return res.status(403).json({ error: "You can only set CONSULTATION, TRAINING, or BREAK status." });
+      return res.status(403).json({ error: `You can only set these statuses: ${memberStatuses.join(", ")}` });
     }
 
     if (isUserSuperuser && !superuserStatuses.includes(status)) {
-      return res.status(400).json({ error: "Invalid superuser status." });
+      return res.status(400).json({ error: `Invalid status. Allowed: ${superuserStatuses.join(", ")}` });
     }
+
+    // Superuser changes go to approved_by/approved_at, member changes go to modified_by/modified_at
+    const updateField = isUserSuperuser ? 
+      `approved_by = $2, approved_at = NOW()` : 
+      `modified_by = $2, modified_at = NOW()`;
 
     const result = await db.query(
       `
       UPDATE slot_instances
-      SET status = $1, modified_by = $2, modified_at = NOW()
+      SET status = $1, ${updateField}
       WHERE id = $3
       RETURNING *
       `,
@@ -1228,6 +1242,47 @@ router.put("/slot-instances/:slotId", async (req, res) => {
   } catch (err) {
     console.error("Error updating slot instance:", err.message);
     res.status(500).json({ error: "Failed to update slot instance." });
+  }
+});
+
+// PUT: Mark entire day with a status (superuser only)
+// Superuser can mark whole day as: SICK, NO_SHOW, VACATION, PERSONAL_TIME, REMOVED
+router.put("/slot-instances-whole-day/:userId/:date", async (req, res) => {
+  try {
+    const { userId, date } = req.params;
+    const { status } = req.body;
+    const isUserSuperuser = req.user.roleId === 1;
+
+    if (!isUserSuperuser) {
+      return res.status(403).json({ error: "Only superusers can mark whole days." });
+    }
+
+    // Whole day statuses (superuser only)
+    const wholeDayStatuses = ["SICK", "NO_SHOW", "VACATION", "PERSONAL_TIME", "REMOVED"];
+
+    if (!wholeDayStatuses.includes(status)) {
+      return res.status(400).json({ error: `Invalid whole day status. Allowed: ${wholeDayStatuses.join(", ")}` });
+    }
+
+    // Update all slots for the given user and date
+    const result = await db.query(
+      `
+      UPDATE slot_instances
+      SET status = $1, approved_by = $2, approved_at = NOW()
+      WHERE user_id = $3 AND slot_date = $4
+      RETURNING *
+      `,
+      [status, req.user.userId, userId, date],
+    );
+
+    res.json({ 
+      updatedCount: result.rows.length,
+      instances: result.rows,
+      message: `Marked ${result.rows.length} slots for ${date} as ${status}.` 
+    });
+  } catch (err) {
+    console.error("Error marking whole day:", err.message);
+    res.status(500).json({ error: "Failed to mark whole day." });
   }
 });
 

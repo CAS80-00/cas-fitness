@@ -227,12 +227,20 @@ CREATE TABLE IF NOT EXISTS slot_instances (
     slot_date DATE NOT NULL,
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
-    -- Status: pending (awaiting approval), approved (published), consultation, training, break, sick, no_show, vacation
-    status VARCHAR(50) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'CONSULTATION', 'TRAINING', 'BREAK', 'SICK', 'NO_SHOW', 'VACATION')),
-    -- For member-made changes (CONSULTATION, TRAINING, BREAK)
+    -- Status options: APPROVED (initial), CONSULTATION, WORKOUT, BREAK, LUNCH, SICK, NO_SHOW, VACATION, PERSONAL_TIME, REMOVED
+    -- APPROVED = created but not yet assigned a specific type
+    -- CONSULTATION = available for consultation bookings
+    -- WORKOUT = available for workout bookings
+    -- BREAK/LUNCH = unavailable (shows as break/lunch to public)
+    -- SICK/NO_SHOW/VACATION/PERSONAL_TIME = unavailable (shows as unavailable except VACATION shows as "Vacation")
+    -- REMOVED = hidden completely
+    status VARCHAR(50) DEFAULT 'APPROVED' CHECK (status IN ('APPROVED', 'CONSULTATION', 'WORKOUT', 'BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'REMOVED')),
+    -- Publish date/time: slot is hidden until this time
+    published_at TIMESTAMPTZ,
+    -- For member-made changes (CONSULTATION, WORKOUT, BREAK, LUNCH)
     modified_by UUID REFERENCES users(id),
     modified_at TIMESTAMPTZ,
-    -- For superuser-only changes (SICK, NO_SHOW, VACATION)
+    -- For superuser-only changes (SICK, NO_SHOW, VACATION, PERSONAL_TIME, REMOVED)
     approved_by UUID REFERENCES users(id),
     approved_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -248,4 +256,5 @@ CREATE INDEX IF NOT EXISTS idx_promotions_plan_id ON promotions(plan_id);
 CREATE INDEX IF NOT EXISTS idx_scheduled_slot_templates_user ON scheduled_slot_templates(user_id);
 CREATE INDEX IF NOT EXISTS idx_scheduled_slot_templates_status ON scheduled_slot_templates(status);
 CREATE INDEX IF NOT EXISTS idx_slot_instances_user_date ON slot_instances(user_id, slot_date);
+CREATE INDEX IF NOT EXISTS idx_slot_instances_status_published ON slot_instances(status, published_at);
 CREATE INDEX IF NOT EXISTS idx_slot_instances_status ON slot_instances(status);

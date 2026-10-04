@@ -4,6 +4,13 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import styles from "../styles/CalendarSlotManagement.module.css";
+import {
+  SLOT_STATUSES,
+  getMemberStatusOptions,
+  getSuperuserStatusOptions,
+  getWholeDayStatusOptions,
+  getStatusColor,
+} from "../utils/slotStatusConfig";
 
 /**
  * Comprehensive Calendar Slot Management
@@ -40,6 +47,15 @@ export default function CalendarSlotManagement() {
     endMinute: 0,
     locationFormat: "IN_PERSON",
     daysOfWeek: [1, 2, 3, 4, 5], // Mon-Fri
+    publishedAtDate: new Date().toISOString().split("T")[0], // When to publish slots
+    publishedAtTime: "00:00", // When to publish slots
+  });
+
+  // Whole day marking state
+  const [showWholeDayModal, setShowWholeDayModal] = useState(false);
+  const [wholeDayData, setWholeDayData] = useState({
+    date: null,
+    status: "SICK",
   });
 
   const apiToken = () => localStorage.getItem("cas_jwt");
@@ -149,6 +165,11 @@ export default function CalendarSlotManagement() {
       const startTime = `${String(formData.startHour).padStart(2, "0")}:${String(formData.startMinute).padStart(2, "0")}`;
       const endTimeOfDay = `${String(formData.endHour).padStart(2, "0")}:${String(formData.endMinute).padStart(2, "0")}`;
 
+      // Combine publish date and time
+      const publishedAt = formData.publishedAtDate && formData.publishedAtTime 
+        ? new Date(`${formData.publishedAtDate}T${formData.publishedAtTime}:00Z`)
+        : null;
+
       const payload = {
         userId: selectedEmployee.id,
         calendarType: formData.calendarType,
@@ -159,6 +180,7 @@ export default function CalendarSlotManagement() {
         endTimeOfDay,
         locationFormat: formData.locationFormat,
         daysOfWeek: formData.daysOfWeek,
+        publishedAt,
       };
 
       console.log("Creating slots with payload:", payload); // Debug log
@@ -192,6 +214,8 @@ export default function CalendarSlotManagement() {
         endMinute: 0,
         locationFormat: "IN_PERSON",
         daysOfWeek: [1, 2, 3, 4, 5],
+        publishedAtDate: new Date().toISOString().split("T")[0],
+        publishedAtTime: "00:00",
       });
       // Reload slots after creation
       await new Promise(resolve => setTimeout(resolve, 500)); // Small delay to ensure DB writes
@@ -257,6 +281,40 @@ export default function CalendarSlotManagement() {
     } catch (err) {
       setMessage(`Error: ${err.message}`);
       console.error("Error deleting slot:", err); // Debug log
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleMarkWholDay = async () => {
+    if (!selectedEmployee || !wholeDayData.date || !wholeDayData.status) {
+      setMessage("Please select a date and status.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const token = apiToken();
+      const res = await fetch(
+        `${apiBaseUrl}/admin/slot-instances-whole-day/${selectedEmployee.id}/${wholeDayData.date}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status: wholeDayData.status }),
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to mark whole day.");
+      const data = await res.json();
+      setMessage(`✓ Marked ${data.updatedCount} slots as ${wholeDayData.status}`);
+      setShowWholeDayModal(false);
+      setWholeDayData({ date: null, status: "SICK" });
+      if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
+    } catch (err) {
+      setMessage(`Error: ${err.message}`);
+      console.error("Error marking whole day:", err);
     } finally {
       setLoading(false);
     }
@@ -395,6 +453,35 @@ export default function CalendarSlotManagement() {
                         setFormData({ ...formData, endDate: e.target.value })
                       }
                       required
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.formRow}>
+                  <div className={styles.formGroup}>
+                    <label>
+                      Publish Date
+                      <div className={styles.helpText}>
+                        Slots will not appear until this date and time
+                      </div>
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.publishedAtDate}
+                      onChange={(e) =>
+                        setFormData({ ...formData, publishedAtDate: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>Publish Time</label>
+                    <input
+                      type="time"
+                      value={formData.publishedAtTime}
+                      onChange={(e) =>
+                        setFormData({ ...formData, publishedAtTime: e.target.value })
+                      }
                     />
                   </div>
                 </div>
@@ -686,7 +773,74 @@ export default function CalendarSlotManagement() {
               </div>
             )}
 
-            {/* Legend */}
+            
+            {/* Whole Day Marking Modal */}
+            {showWholeDayModal && isSuperuser && (
+              <div className={styles.modal}>
+                <div className={styles.modalContent}>
+                  <div className={styles.modalHeader}>
+                    <h3>Mark Whole Day</h3>
+                    <button
+                      className={styles.closeBtn}
+                      onClick={() => {
+                        setShowWholeDayModal(false);
+                        setWholeDayData({ date: null, status: "SICK" });
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>Select Date</label>
+                    <input
+                      type="date"
+                      value={wholeDayData.date || ""}
+                      onChange={(e) =>
+                        setWholeDayData({ ...wholeDayData, date: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>Status for Whole Day</label>
+                    <div className={styles.statusOptions}>
+                      {getWholeDayStatusOptions().map((status) => (
+                        <button
+                          key={status}
+                          className={`${styles.optionBtn} ${wholeDayData.status === status ? styles.selected : ""}`}
+                          style={{ borderLeftColor: getStatusColor(status) }}
+                          onClick={() => setWholeDayData({ ...wholeDayData, status })}
+                        >
+                          {status}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className={styles.modalFooter}>
+                    <button
+                      className={styles.submitButton}
+                      onClick={handleMarkWholDay}
+                      disabled={loading}
+                    >
+                      {loading ? "Updating..." : "Mark Day"}
+                    </button>
+                    <button
+                      className={styles.cancelBtn}
+                      onClick={() => {
+                        setShowWholeDayModal(false);
+                        setWholeDayData({ date: null, status: "SICK" });
+                      }}
+                      disabled={loading}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+{/* Legend */}
             <div className={styles.legend}>
               <h4>Slot Status Legend:</h4>
               <div className={styles.legendItems}>
@@ -714,5 +868,8 @@ export default function CalendarSlotManagement() {
     </div>
   );
 }
+
+
+
 
 
