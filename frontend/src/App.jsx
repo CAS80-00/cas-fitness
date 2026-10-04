@@ -156,6 +156,7 @@ function App() {
       }
     }
 
+    // Authenticated user routing
     switch (route) {
       case "profile":
         return currentUser.roleId === 1 ? (
@@ -184,6 +185,7 @@ function App() {
         return <PlansPage onAddToCart={handleAddToCart} onNavigate={handleNavigate} />;
       case "about":
         return <AboutUsPage onNavigate={handleNavigate} />;
+      case "home":
       default:
         return (
           <LandingPage
