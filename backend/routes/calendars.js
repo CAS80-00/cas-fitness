@@ -459,9 +459,17 @@ router.put("/workouts/:sessionId/status", authenticateToken, async (req, res) =>
 // 11. Get All Trainer Availability Slots (for calendar display)
 router.get("/trainer-slots-all", authenticateToken, async (req, res) => {
   try {
+    // Check if published_at column exists
+    const columnRes = await db.query(
+      `SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'slot_instances' AND column_name = 'published_at'
+      )`
+    );
+    const hasPublishedAt = columnRes.rows[0].exists;
+
     // Get all workout slots from the new slot_instances table with trainer info
-    const result = await db.query(
-      `
+    let query = `
       SELECT 
         si.id, 
         si.user_id as trainer_id, 
@@ -474,10 +482,17 @@ router.get("/trainer-slots-all", authenticateToken, async (req, res) => {
         u.last_name
       FROM slot_instances si
       JOIN users u ON si.user_id = u.id
-      WHERE si.status = 'WORKOUT' AND (si.published_at IS NULL OR si.published_at <= NOW())
-      ORDER BY si.user_id, si.slot_date, si.start_time
-      `
-    );
+      WHERE si.status = 'WORKOUT'
+    `;
+
+    // Only filter by published_at if the column exists
+    if (hasPublishedAt) {
+      query += ` AND (si.published_at IS NULL OR si.published_at <= NOW())`;
+    }
+
+    query += ` ORDER BY si.user_id, si.slot_date, si.start_time`;
+
+    const result = await db.query(query);
 
     const slots = result.rows.map((slot) => ({
       id: slot.id,
