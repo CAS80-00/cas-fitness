@@ -1112,9 +1112,6 @@ router.post("/slot-templates", async (req, res) => {
           const slotEndStr = `${String(slotEndHour).padStart(2, "0")}:${String(slotEndMinute).padStart(2, "0")}`;
 
           try {
-            // Create slot with status matching the calendar type
-            const slotStatus = calendarType; // WORKOUT or CONSULTATION
-            
             // Build INSERT based on whether published_at column exists
             if (hasPublishedAt) {
               const instanceRes = await db.query(
@@ -1123,7 +1120,7 @@ router.post("/slot-templates", async (req, res) => {
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 RETURNING *
                 `,
-                [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, slotStatus, publishedAt],
+                [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, "APPROVED", publishedAt],
               );
               instancesInserted.push(instanceRes.rows[0]);
             } else {
@@ -1133,7 +1130,7 @@ router.post("/slot-templates", async (req, res) => {
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING *
                 `,
-                [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, slotStatus],
+                [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, "APPROVED"],
               );
               instancesInserted.push(instanceRes.rows[0]);
             }
