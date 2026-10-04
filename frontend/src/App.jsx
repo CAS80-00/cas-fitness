@@ -124,7 +124,6 @@ function App() {
     (user) => {
       setCurrentUser(user);
       localStorage.setItem("cas_user", JSON.stringify(user));
-      setRoute("home");
     },
     [],
   );
