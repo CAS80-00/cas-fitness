@@ -1064,17 +1064,18 @@ router.post("/slot-templates", async (req, res) => {
       if (daysOfWeek.includes(dayOfWeek)) {
         const dateStr = d.toISOString().split("T")[0];
 
-        // Generate slots continuously all day from start time until end time
+        // Generate slots at hourly intervals starting at the specified minute within the hour
+        // E.g., if startMinutes is 15 and duration is 50 mins:
+        // 6:15-7:05, 7:15-8:05, 8:15-9:05, etc.
         let currentHour = startHours;
-        let currentMinute = startMinutes;
 
-        while (currentHour < endHours || (currentHour === endHours && currentMinute < endMinutes)) {
-          const slotStartStr = `${String(currentHour).padStart(2, "0")}:${String(currentMinute).padStart(2, "0")}`;
-          
+        while (currentHour < endHours || (currentHour === endHours && startMinutes < endMinutes)) {
+          const slotStartStr = `${String(currentHour).padStart(2, "0")}:${String(startMinutes).padStart(2, "0")}`;
+
           // Calculate slot end time
-          let slotEndHour = currentHour + Math.floor((currentMinute + durationMinutes) / 60);
-          let slotEndMinute = (currentMinute + durationMinutes) % 60;
-          
+          let slotEndHour = currentHour + Math.floor((startMinutes + durationMinutes) / 60);
+          let slotEndMinute = (startMinutes + durationMinutes) % 60;
+
           // Don't create slot if it goes beyond end time of day
           if (slotEndHour > endHours || (slotEndHour === endHours && slotEndMinute > endMinutes)) {
             break;
@@ -1092,9 +1093,8 @@ router.post("/slot-templates", async (req, res) => {
           );
           instancesInserted.push(instanceRes.rows[0]);
 
-          // Move to next slot
-          currentHour = slotEndHour;
-          currentMinute = slotEndMinute;
+          // Move to next hour (same minute within that hour)
+          currentHour += 1;
         }
       }
     }

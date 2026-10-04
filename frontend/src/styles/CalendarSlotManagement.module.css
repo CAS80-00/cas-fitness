@@ -187,6 +187,46 @@
   justify-content: center;
 }
 
+.helpText {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.schedulePreview {
+  background-color: #0f172a;
+  border: 1px dashed #334155;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.scheduleHelp {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.slotExamples {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.slotExample {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-family: "Courier New", monospace;
+  padding: 0.25rem 0.5rem;
+  background-color: #1e293b;
+  border-radius: 0.25rem;
+  border-left: 3px solid #3b82f6;
+}
+
 .daysGrid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);

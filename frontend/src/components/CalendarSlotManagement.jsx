@@ -4,7 +4,7 @@ import styles from "../styles/CalendarSlotManagement.module.css";
 /**
  * Comprehensive Calendar Slot Management
  * - Superuser creates recurring slots for employees
- * - Generates continuous slots from start time until end time (all day)
+ * - Generates continuous hourly slots at the specified minute
  * - Employees/Members approve and manage their slots
  * - Member status options: CONSULTATION, TRAINING, BREAK
  * - Superuser status options: SICK, NO_SHOW, VACATION
@@ -47,8 +47,9 @@ export default function CalendarSlotManagement() {
 
   const loadEmployees = async () => {
     try {
+      const token = apiToken();
       const res = await fetch(`${apiBaseUrl}/admin/users`, {
-        headers: { Authorization: `Bearer ${apiToken()}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Failed to load employees.");
       const data = await res.json();
@@ -102,8 +103,8 @@ export default function CalendarSlotManagement() {
         startDate: formData.startDate,
         endDate: formData.endDate,
         startTime,
-        endTimeOfDay,
         durationMinutes: formData.durationMinutes,
+        endTimeOfDay,
         locationFormat: formData.locationFormat,
         daysOfWeek: formData.daysOfWeek,
       };
@@ -117,12 +118,14 @@ export default function CalendarSlotManagement() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Failed to create slots.");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to create slots.");
+      }
+
       const data = await res.json();
-      setMessage(`✓ Created ${data.instancesCount} slot instances!`);
+      setMessage(`✓ Created ${data.instancesCount} slots for ${selectedEmployee.firstName}`);
       setShowCreateForm(false);
-      loadSlotInstances(selectedEmployee.id);
-      // Reset form
       setFormData({
         calendarType: "WORKOUT",
         startDate: new Date().toISOString().split("T")[0],
@@ -135,6 +138,7 @@ export default function CalendarSlotManagement() {
         locationFormat: "IN_PERSON",
         daysOfWeek: [1, 2, 3, 4, 5],
       });
+      loadSlotInstances(selectedEmployee.id);
     } catch (err) {
       setMessage(`Error: ${err.message}`);
     } finally {
@@ -344,7 +348,12 @@ export default function CalendarSlotManagement() {
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label>Start Time (Minutes)</label>
+                    <label>
+                      Slot Start Minute
+                      <div className={styles.helpText}>
+                        Each hour, slots start at this minute (e.g., :00, :15, :30, :45)
+                      </div>
+                    </label>
                     <select
                       value={formData.startMinute}
                       onChange={(e) =>
@@ -387,6 +396,30 @@ export default function CalendarSlotManagement() {
                       {String((formData.startHour + Math.floor((formData.startMinute + formData.durationMinutes) / 60))).padStart(2, "0")}
                       :
                       {String((formData.startMinute + formData.durationMinutes) % 60).padStart(2, "0")}
+                    </div>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>Daily Slot Schedule Preview</label>
+                    <div className={styles.schedulePreview}>
+                      <div className={styles.scheduleHelp}>
+                        Slots will repeat every hour at :{String(formData.startMinute).padStart(2, "0")}
+                      </div>
+                      <div className={styles.slotExamples}>
+                        {[0, 1, 2, 3, 4].map((offset) => {
+                          const startH = formData.startHour + offset;
+                          if (startH > formData.endHour) return null;
+                          const endH = startH + Math.floor((formData.startMinute + formData.durationMinutes) / 60);
+                          const endM = (formData.startMinute + formData.durationMinutes) % 60;
+                          if (endH > formData.endHour) return null;
+                          return (
+                            <div key={offset} className={styles.slotExample}>
+                              {String(startH).padStart(2, "0")}:{String(formData.startMinute).padStart(2, "0")} - {String(endH).padStart(2, "0")}:{String(endM).padStart(2, "0")}
+                            </div>
+                          );
+                        })}
+                        <div className={styles.slotExample} style={{ opacity: 0.6 }}>... and so on until end of day</div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -453,78 +486,84 @@ export default function CalendarSlotManagement() {
                             }
                           }}
                         />
-                        {day}
+                        <span>{day}</span>
                       </label>
                     ))}
                   </div>
                 </div>
 
                 <button type="submit" className={styles.submitButton} disabled={loading}>
-                  {loading ? "Creating..." : "Create Slot Template"}
+                  {loading ? "Creating..." : "Create Slots"}
                 </button>
               </form>
             )}
 
             {/* Slots List */}
-            <div className={styles.slotsList}>
-              {loading && <div className={styles.loading}>Loading...</div>}
-              {!loading && slotInstances.length === 0 && (
-                <div className={styles.empty}>No slots yet.</div>
-              )}
-              {!loading &&
-                slotInstances.map((slot) => (
-                  <div key={slot.id} className={styles.slotCard}>
-                    <div className={styles.slotDate}>{slot.slot_date}</div>
-                    <div className={styles.slotTime}>
-                      {slot.start_time} - {slot.end_time}
-                    </div>
+            {!showCreateForm && (
+              <div className={styles.slotsList}>
+                {loading && <div className={styles.loading}>Loading slots...</div>}
+                {!loading && slotInstances.length === 0 && (
+                  <div className={styles.empty}>No slots found. Create some!</div>
+                )}
+                {!loading &&
+                  slotInstances.map((slot) => (
                     <div
-                      className={styles.slotStatus}
-                      style={{ backgroundColor: getStatusColor(slot.status) }}
+                      key={slot.id}
+                      className={styles.slotCard}
+                      style={{ borderLeftColor: getStatusColor(slot.status) }}
                     >
-                      {slot.status}
-                    </div>
+                      <div className={styles.slotInfo}>
+                        <div className={styles.slotDate}>{slot.slot_date}</div>
+                        <div className={styles.slotTime}>
+                          {slot.start_time} - {slot.end_time}
+                        </div>
+                        <div
+                          className={styles.slotStatus}
+                          style={{ backgroundColor: getStatusColor(slot.status) }}
+                        >
+                          {slot.status}
+                        </div>
+                      </div>
 
-                    {/* Status Update Buttons */}
-                    <div className={styles.slotActions}>
-                      {isSuperuser ? (
-                        <>
+                      {isSuperuser && (
+                        <div className={styles.slotActions}>
                           {getSuperuserStatusOptions().map((status) => (
                             <button
                               key={status}
-                              className={styles.statusBtn}
+                              className={styles.actionButton}
                               onClick={() => handleUpdateSlotStatus(slot.id, status)}
                               disabled={loading}
                             >
                               {status}
                             </button>
                           ))}
-                        </>
-                      ) : (
-                        <>
+                          <button
+                            className={styles.deleteButton}
+                            onClick={() => handleDeleteSlot(slot.id)}
+                            disabled={loading}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                      {!isSuperuser && (
+                        <div className={styles.slotActions}>
                           {getMemberStatusOptions().map((status) => (
                             <button
                               key={status}
-                              className={styles.statusBtn}
+                              className={styles.actionButton}
                               onClick={() => handleUpdateSlotStatus(slot.id, status)}
                               disabled={loading}
                             >
                               {status}
                             </button>
                           ))}
-                        </>
+                        </div>
                       )}
-                      <button
-                        className={styles.deleteBtn}
-                        onClick={() => handleDeleteSlot(slot.id)}
-                        disabled={loading}
-                      >
-                        Delete
-                      </button>
                     </div>
-                  </div>
-                ))}
-            </div>
+                  ))}
+              </div>
+            )}
           </div>
         )}
       </div>
