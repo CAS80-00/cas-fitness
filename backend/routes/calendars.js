@@ -482,7 +482,7 @@ router.get("/trainer-slots-all", authenticateToken, async (req, res) => {
         u.last_name
       FROM slot_instances si
       JOIN users u ON si.user_id = u.id
-      WHERE si.status = 'WORKOUT'
+      WHERE si.calendar_type = 'WORKOUT'
     `;
 
     // Only filter by published_at if the column exists
