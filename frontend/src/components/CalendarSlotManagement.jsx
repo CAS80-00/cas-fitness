@@ -77,9 +77,11 @@ export default function CalendarSlotManagement() {
       });
       if (!res.ok) throw new Error("Failed to load slots.");
       const data = await res.json();
+      console.log("Loaded slots:", data.instances); // Debug log
       setSlotInstances(data.instances || []);
     } catch (err) {
       setMessage(`Error: ${err.message}`);
+      console.error("Error loading slots:", err); // Debug log
     } finally {
       setLoading(false);
     }
@@ -87,17 +89,23 @@ export default function CalendarSlotManagement() {
 
   // Convert slot instances to calendar events
   useEffect(() => {
-    const events = slotInstances.map((slot) => ({
-      id: slot.id,
-      title: slot.status,
-      start: `${slot.slot_date}T${slot.start_time}`,
-      end: `${slot.slot_date}T${slot.end_time}`,
-      backgroundColor: getStatusColor(slot.status),
-      borderColor: getStatusColor(slot.status),
-      extendedProps: {
-        slotData: slot,
-      },
-    }));
+    console.log("Converting slots to events. SlotInstances count:", slotInstances.length); // Debug log
+    const events = slotInstances.map((slot) => {
+      const event = {
+        id: slot.id,
+        title: slot.status,
+        start: `${slot.slot_date}T${slot.start_time}`,
+        end: `${slot.slot_date}T${slot.end_time}`,
+        backgroundColor: getStatusColor(slot.status),
+        borderColor: getStatusColor(slot.status),
+        extendedProps: {
+          slotData: slot,
+        },
+      };
+      console.log("Event created:", event); // Debug log
+      return event;
+    });
+    console.log("Total events:", events.length); // Debug log
     setSlotEvents(events);
   }, [slotInstances]);
 
@@ -105,6 +113,7 @@ export default function CalendarSlotManagement() {
     setSelectedEmployee(employee);
     setShowCreateForm(false);
     setMessage("");
+    console.log("Selected employee:", employee.id); // Debug log
     loadSlotInstances(employee.id);
   };
 
@@ -133,6 +142,8 @@ export default function CalendarSlotManagement() {
         daysOfWeek: formData.daysOfWeek,
       };
 
+      console.log("Creating slots with payload:", payload); // Debug log
+
       const res = await fetch(`${apiBaseUrl}/admin/slot-templates`, {
         method: "POST",
         headers: {
@@ -148,6 +159,7 @@ export default function CalendarSlotManagement() {
       }
 
       const data = await res.json();
+      console.log("Slots created:", data.instancesCount); // Debug log
       setMessage(`✓ Created ${data.instancesCount} slots for ${selectedEmployee.firstName}`);
       setShowCreateForm(false);
       setFormData({
@@ -162,15 +174,19 @@ export default function CalendarSlotManagement() {
         locationFormat: "IN_PERSON",
         daysOfWeek: [1, 2, 3, 4, 5],
       });
+      // Reload slots after creation
+      await new Promise(resolve => setTimeout(resolve, 500)); // Small delay to ensure DB writes
       loadSlotInstances(selectedEmployee.id);
     } catch (err) {
       setMessage(`Error: ${err.message}`);
+      console.error("Error creating slots:", err); // Debug log
     } finally {
       setLoading(false);
     }
   };
 
   const handleSlotClick = (info) => {
+    console.log("Slot clicked:", info.event.extendedProps.slotData); // Debug log
     setSelectedSlot(info.event.extendedProps.slotData);
     setShowStatusModal(true);
   };
@@ -197,6 +213,7 @@ export default function CalendarSlotManagement() {
       if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
     } catch (err) {
       setMessage(`Error: ${err.message}`);
+      console.error("Error updating slot:", err); // Debug log
     } finally {
       setLoading(false);
     }
@@ -220,6 +237,7 @@ export default function CalendarSlotManagement() {
       if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
     } catch (err) {
       setMessage(`Error: ${err.message}`);
+      console.error("Error deleting slot:", err); // Debug log
     } finally {
       setLoading(false);
     }
