@@ -438,32 +438,6 @@ export default function CalendarSlotManagement() {
   const minuteOptions = [0, 15, 30, 45];
   const durationOptions = Array.from({ length: 12 }, (_, i) => (i + 1) * 5); // 5, 10, 15... 60
 
-  const getMemberStatusOptions = () => ["CONSULTATION", "TRAINING", "BREAK"];
-  const getSuperuserStatusOptions = () => ["SICK", "NO_SHOW", "VACATION", "APPROVED"];
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "PENDING":
-        return "#fbbf24"; // yellow
-      case "APPROVED":
-        return "#60a5fa"; // blue
-      case "CONSULTATION":
-        return "#34d399"; // green
-      case "TRAINING":
-        return "#8b5cf6"; // purple
-      case "BREAK":
-        return "#f87171"; // red
-      case "SICK":
-        return "#ef4444"; // dark red
-      case "NO_SHOW":
-        return "#f97316"; // orange
-      case "VACATION":
-        return "#06b6d4"; // cyan
-      default:
-        return "#6b7280"; // gray
-    }
-  };
-
   return (
     <div className={styles.container}>
       <h2 className={styles.title}>Calendar Slot Management</h2>
