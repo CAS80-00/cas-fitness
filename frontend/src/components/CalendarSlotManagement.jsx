@@ -61,6 +61,9 @@ export default function CalendarSlotManagement() {
     status: "SICK",
   });
 
+  // Calendar scroll time - set to earliest slot start time
+  const [scrollTime, setScrollTime] = useState("09:00:00");
+
   const apiToken = () => localStorage.getItem("cas_jwt");
   const currentUserData = localStorage.getItem("cas_user");
   const isSuperuser = currentUserData ? JSON.parse(currentUserData).roleId === 1 : false;
@@ -145,6 +148,23 @@ export default function CalendarSlotManagement() {
     console.log("Total events created:", events.length); // Debug log
     console.log("All events:", JSON.stringify(events, null, 2)); // Debug log - all events
     setSlotEvents(events);
+
+    // Calculate scroll time from earliest slot
+    if (slotInstances.length > 0) {
+      const startTimes = slotInstances.map((slot) => {
+        const startTime = typeof slot.start_time === 'string'
+          ? slot.start_time.substring(0, 5)  // Get HH:MM
+          : slot.start_time;
+        return startTime;
+      });
+      
+      // Sort times and get the earliest
+      const earliestTime = startTimes.sort()[0];
+      // Convert HH:MM to HH:MM:00 format for scrollTime
+      const scrollTimeFormatted = `${earliestTime}:00`;
+      setScrollTime(scrollTimeFormatted);
+      console.log("Set scroll time to:", scrollTimeFormatted); // Debug log
+    }
   }, [slotInstances]);
 
   const handleSelectEmployee = (employee) => {
@@ -777,6 +797,7 @@ export default function CalendarSlotManagement() {
                     height="auto"
                     slotDuration="00:30:00"
                     slotLabelInterval="00:30:00"
+                    scrollTime={scrollTime}
                   />
                 )}
               </div>
