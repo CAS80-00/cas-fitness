@@ -31,14 +31,16 @@ export default function SlotManagement() {
   const loadTrainersAndEmployees = async () => {
     try {
       const token = localStorage.getItem("cas_jwt");
-      const res = await fetch(`${apiBaseUrl}/admin/users?roleId=3,2`, {
+      const res = await fetch(`${apiBaseUrl}/admin/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Failed to load users.");
       const data = await res.json();
 
-      const trainersData = data.users.filter((u) => u.roleId === 3);
-      const employeesData = data.users.filter((u) => u.roleId === 2);
+      // Include both roleId 2 (employees) and 3 (trainers) for trainer slots
+      const allUsers = data.users || [];
+      const trainersData = allUsers.filter((u) => u.roleId === 3 || u.roleId === 2);
+      const employeesData = allUsers.filter((u) => u.roleId === 2);
 
       setTrainers(trainersData);
       setEmployees(employeesData);
@@ -209,7 +211,7 @@ export default function SlotManagement() {
         {/* Person Selection */}
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>
-            {activeTab === "trainer" ? "Select Trainer" : "Select Employee"}
+            {activeTab === "trainer" ? "Select Trainer or Employee" : "Select Employee"}
           </h3>
           <div className={styles.personGrid}>
             {(activeTab === "trainer" ? trainers : employees).map((person) => (
