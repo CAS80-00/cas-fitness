@@ -501,7 +501,7 @@ router.get("/trainer-slots-all", authenticateToken, async (req, res) => {
       slotDate: slot.slot_date,
       startTime: slot.start_time,
       endTime: slot.end_time,
-      status: slot.status,
+      status: slot.status === 'APPROVED' ? slot.calendar_type : slot.status,
       calendarType: slot.calendar_type,
       locationFormat: "IN_PERSON",
     }));

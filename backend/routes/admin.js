@@ -1251,7 +1251,14 @@ router.get("/slot-instances/:userId", authenticateToken, async (req, res) => {
 
     const result = await db.query(query, params);
     console.log(`Fetched ${result.rows.length} slot instances for user ${userId}`);
-    res.json({ instances: result.rows });
+    
+    // Map results to display status: show calendar_type for APPROVED slots
+    const instances = result.rows.map(row => ({
+      ...row,
+      status: row.status === 'APPROVED' ? row.calendar_type : row.status
+    }));
+    
+    res.json({ instances });
   } catch (err) {
     console.error("Error fetching slot instances:", err);
     console.error("Query error details:", err.message);
@@ -1305,6 +1312,18 @@ router.put("/slot-instances/:slotId", authenticateToken, async (req, res) => {
       console.log(`[SLOT UPDATE] Slot ${slotId} not found before update`);
     }
 
+    // For slots created with status='APPROVED', if status matches calendar_type, update to APPROVED only
+    // This avoids violating the CHECK constraint if the database doesn't allow WORKOUT/CONSULTATION as status
+    let statusToSet = status;
+    if (currentSlot.rows.length > 0) {
+      const calendarType = currentSlot.rows[0].calendar_type;
+      // If trying to set status to match calendar type, keep it as APPROVED but mark via calendar_type
+      if (status === calendarType && currentSlot.rows[0].status === 'APPROVED') {
+        console.log(`[SLOT UPDATE] Slot already APPROVED with calendar_type ${calendarType}, no update needed`);
+        return res.json({ instance: currentSlot.rows[0], message: `Slot is already available as ${calendarType}.` });
+      }
+    }
+
     // Try to update with all tracking columns first
     try {
       const result = await db.query(
@@ -1317,7 +1336,7 @@ router.put("/slot-instances/:slotId", authenticateToken, async (req, res) => {
          SET status = $1, modified_by = $2, modified_at = NOW()
          WHERE id = $3
          RETURNING *`,
-        [status, userId, slotId]
+        [statusToSet, userId, slotId]
       );
 
       if (result.rows.length === 0) {
