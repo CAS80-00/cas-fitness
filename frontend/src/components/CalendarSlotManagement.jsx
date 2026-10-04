@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
+import FullCalendar from "@fullcalendar/react";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
 import styles from "../styles/CalendarSlotManagement.module.css";
 
 /**
  * Comprehensive Calendar Slot Management
  * - Superuser creates recurring slots for employees
  * - Generates continuous hourly slots at the specified minute
+ * - Displays slots in a calendar view
  * - Employees/Members approve and manage their slots
  * - Member status options: CONSULTATION, TRAINING, BREAK
  * - Superuser status options: SICK, NO_SHOW, VACATION
@@ -13,7 +18,10 @@ export default function CalendarSlotManagement() {
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [slotInstances, setSlotInstances] = useState([]);
+  const [slotEvents, setSlotEvents] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
@@ -76,6 +84,22 @@ export default function CalendarSlotManagement() {
       setLoading(false);
     }
   };
+
+  // Convert slot instances to calendar events
+  useEffect(() => {
+    const events = slotInstances.map((slot) => ({
+      id: slot.id,
+      title: slot.status,
+      start: `${slot.slot_date}T${slot.start_time}`,
+      end: `${slot.slot_date}T${slot.end_time}`,
+      backgroundColor: getStatusColor(slot.status),
+      borderColor: getStatusColor(slot.status),
+      extendedProps: {
+        slotData: slot,
+      },
+    }));
+    setSlotEvents(events);
+  }, [slotInstances]);
 
   const handleSelectEmployee = (employee) => {
     setSelectedEmployee(employee);
@@ -146,11 +170,18 @@ export default function CalendarSlotManagement() {
     }
   };
 
-  const handleUpdateSlotStatus = async (slotId, newStatus) => {
+  const handleSlotClick = (info) => {
+    setSelectedSlot(info.event.extendedProps.slotData);
+    setShowStatusModal(true);
+  };
+
+  const handleUpdateSlotStatus = async (newStatus) => {
+    if (!selectedSlot) return;
+
     try {
       setLoading(true);
       const token = apiToken();
-      const res = await fetch(`${apiBaseUrl}/admin/slot-instances/${slotId}`, {
+      const res = await fetch(`${apiBaseUrl}/admin/slot-instances/${selectedSlot.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -161,6 +192,8 @@ export default function CalendarSlotManagement() {
 
       if (!res.ok) throw new Error("Failed to update slot.");
       setMessage(`✓ Slot updated to ${newStatus}`);
+      setShowStatusModal(false);
+      setSelectedSlot(null);
       if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
     } catch (err) {
       setMessage(`Error: ${err.message}`);
@@ -169,19 +202,21 @@ export default function CalendarSlotManagement() {
     }
   };
 
-  const handleDeleteSlot = async (slotId) => {
-    if (!window.confirm("Delete this slot?")) return;
+  const handleDeleteSlot = async () => {
+    if (!selectedSlot || !window.confirm("Delete this slot?")) return;
 
     try {
       setLoading(true);
       const token = apiToken();
-      const res = await fetch(`${apiBaseUrl}/admin/slot-instances/${slotId}`, {
+      const res = await fetch(`${apiBaseUrl}/admin/slot-instances/${selectedSlot.id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) throw new Error("Failed to delete slot.");
       setMessage("✓ Slot deleted");
+      setShowStatusModal(false);
+      setSelectedSlot(null);
       if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
     } catch (err) {
       setMessage(`Error: ${err.message}`);
@@ -498,72 +533,144 @@ export default function CalendarSlotManagement() {
               </form>
             )}
 
-            {/* Slots List */}
+            {/* Calendar View of Slots */}
             {!showCreateForm && (
-              <div className={styles.slotsList}>
+              <div className={styles.calendarWrapper}>
                 {loading && <div className={styles.loading}>Loading slots...</div>}
                 {!loading && slotInstances.length === 0 && (
                   <div className={styles.empty}>No slots found. Create some!</div>
                 )}
-                {!loading &&
-                  slotInstances.map((slot) => (
-                    <div
-                      key={slot.id}
-                      className={styles.slotCard}
-                      style={{ borderLeftColor: getStatusColor(slot.status) }}
-                    >
-                      <div className={styles.slotInfo}>
-                        <div className={styles.slotDate}>{slot.slot_date}</div>
-                        <div className={styles.slotTime}>
-                          {slot.start_time} - {slot.end_time}
-                        </div>
-                        <div
-                          className={styles.slotStatus}
-                          style={{ backgroundColor: getStatusColor(slot.status) }}
-                        >
-                          {slot.status}
-                        </div>
-                      </div>
-
-                      {isSuperuser && (
-                        <div className={styles.slotActions}>
-                          {getSuperuserStatusOptions().map((status) => (
-                            <button
-                              key={status}
-                              className={styles.actionButton}
-                              onClick={() => handleUpdateSlotStatus(slot.id, status)}
-                              disabled={loading}
-                            >
-                              {status}
-                            </button>
-                          ))}
-                          <button
-                            className={styles.deleteButton}
-                            onClick={() => handleDeleteSlot(slot.id)}
-                            disabled={loading}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                      {!isSuperuser && (
-                        <div className={styles.slotActions}>
-                          {getMemberStatusOptions().map((status) => (
-                            <button
-                              key={status}
-                              className={styles.actionButton}
-                              onClick={() => handleUpdateSlotStatus(slot.id, status)}
-                              disabled={loading}
-                            >
-                              {status}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                {!loading && slotEvents.length > 0 && (
+                  <FullCalendar
+                    plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                    initialView="timeGridWeek"
+                    headerToolbar={{
+                      left: "prev,next today",
+                      center: "title",
+                      right: "dayGridMonth,timeGridWeek,timeGridDay",
+                    }}
+                    events={slotEvents}
+                    eventClick={handleSlotClick}
+                    height="auto"
+                    slotDuration="00:30:00"
+                    slotLabelInterval="00:30:00"
+                  />
+                )}
               </div>
             )}
+
+            {/* Status Update Modal */}
+            {showStatusModal && selectedSlot && (
+              <div className={styles.modal}>
+                <div className={styles.modalContent}>
+                  <div className={styles.modalHeader}>
+                    <h3>Update Slot Status</h3>
+                    <button
+                      className={styles.closeBtn}
+                      onClick={() => {
+                        setShowStatusModal(false);
+                        setSelectedSlot(null);
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className={styles.slotDetails}>
+                    <p>
+                      <strong>Date:</strong> {selectedSlot.slot_date}
+                    </p>
+                    <p>
+                      <strong>Time:</strong> {selectedSlot.start_time} - {selectedSlot.end_time}
+                    </p>
+                    <p>
+                      <strong>Current Status:</strong>{" "}
+                      <span style={{ color: getStatusColor(selectedSlot.status) }}>
+                        {selectedSlot.status}
+                      </span>
+                    </p>
+                  </div>
+
+                  <div className={styles.statusOptions}>
+                    <p className={styles.optionLabel}>Select new status:</p>
+                    {isSuperuser ? (
+                      <div>
+                        {getSuperuserStatusOptions().map((status) => (
+                          <button
+                            key={status}
+                            className={styles.optionBtn}
+                            style={{ borderLeftColor: getStatusColor(status) }}
+                            onClick={() => handleUpdateSlotStatus(status)}
+                            disabled={loading}
+                          >
+                            {status}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div>
+                        {getMemberStatusOptions().map((status) => (
+                          <button
+                            key={status}
+                            className={styles.optionBtn}
+                            style={{ borderLeftColor: getStatusColor(status) }}
+                            onClick={() => handleUpdateSlotStatus(status)}
+                            disabled={loading}
+                          >
+                            {status}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={styles.modalFooter}>
+                    {isSuperuser && (
+                      <button
+                        className={styles.deleteBtn}
+                        onClick={handleDeleteSlot}
+                        disabled={loading}
+                      >
+                        Delete Slot
+                      </button>
+                    )}
+                    <button
+                      className={styles.cancelBtn}
+                      onClick={() => {
+                        setShowStatusModal(false);
+                        setSelectedSlot(null);
+                      }}
+                      disabled={loading}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Legend */}
+            <div className={styles.legend}>
+              <h4>Slot Status Legend:</h4>
+              <div className={styles.legendItems}>
+                <div className={styles.legendItem}>
+                  <span className={styles.legendColor} style={{ backgroundColor: "#fbbf24" }}></span>
+                  <span>Pending - Awaiting decision</span>
+                </div>
+                <div className={styles.legendItem}>
+                  <span className={styles.legendColor} style={{ backgroundColor: "#34d399" }}></span>
+                  <span>Consultation - Available for consultation</span>
+                </div>
+                <div className={styles.legendItem}>
+                  <span className={styles.legendColor} style={{ backgroundColor: "#8b5cf6" }}></span>
+                  <span>Training - Available for training session</span>
+                </div>
+                <div className={styles.legendItem}>
+                  <span className={styles.legendColor} style={{ backgroundColor: "#f87171" }}></span>
+                  <span>Break - Time off</span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
