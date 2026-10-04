@@ -982,28 +982,6 @@ export default function CalendarSlotManagement() {
                 </div>
               </div>
             )}
-{/* Legend */}
-            <div className={styles.legend}>
-              <h4>Slot Status Legend:</h4>
-              <div className={styles.legendItems}>
-                <div className={styles.legendItem}>
-                  <span className={styles.legendColor} style={{ backgroundColor: "#fbbf24" }}></span>
-                  <span>Pending - Awaiting decision</span>
-                </div>
-                <div className={styles.legendItem}>
-                  <span className={styles.legendColor} style={{ backgroundColor: "#34d399" }}></span>
-                  <span>Consultation - Available for consultation</span>
-                </div>
-                <div className={styles.legendItem}>
-                  <span className={styles.legendColor} style={{ backgroundColor: "#8b5cf6" }}></span>
-                  <span>Training - Available for training session</span>
-                </div>
-                <div className={styles.legendItem}>
-                  <span className={styles.legendColor} style={{ backgroundColor: "#f87171" }}></span>
-                  <span>Break - Time off</span>
-                </div>
-              </div>
-            </div>
           </div>
         )}
       </div>
