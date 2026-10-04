@@ -743,4 +743,268 @@ router.delete("/subscriptions/:id", async (req, res) => {
   }
 });
 
+// ============================================================================
+// CALENDAR SLOT MANAGEMENT
+// ============================================================================
+
+// POST: Create trainer availability slots (Workout Calendar)
+router.post("/trainer-slots", async (req, res) => {
+  try {
+    const { trainerId, dayOfWeek, startTime, endTime, locationFormat } = req.body;
+
+    if (!trainerId || dayOfWeek === undefined || !startTime || !endTime || !locationFormat) {
+      return res.status(400).json({ error: "Missing required fields." });
+    }
+
+    if (dayOfWeek < 0 || dayOfWeek > 6) {
+      return res.status(400).json({ error: "Day of week must be 0-6." });
+    }
+
+    if (!["IN_PERSON", "VIDEO", "STUDENT_CHOICE"].includes(locationFormat)) {
+      return res.status(400).json({ error: "Invalid location format." });
+    }
+
+    const result = await db.query(
+      `
+      INSERT INTO trainer_availability (trainer_id, day_of_week, start_time, end_time, location_format)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, trainer_id, day_of_week, start_time, end_time, location_format
+      `,
+      [trainerId, dayOfWeek, startTime, endTime, locationFormat],
+    );
+
+    const slot = result.rows[0];
+    res.status(201).json({
+      slot: {
+        id: slot.id,
+        trainerId: slot.trainer_id,
+        dayOfWeek: slot.day_of_week,
+        startTime: slot.start_time,
+        endTime: slot.end_time,
+        locationFormat: slot.location_format,
+      },
+    });
+  } catch (err) {
+    console.error("Error creating trainer slot:", err.message);
+    res.status(500).json({ error: "Failed to create trainer slot." });
+  }
+});
+
+// GET: Get trainer availability slots
+router.get("/trainer-slots/:trainerId", async (req, res) => {
+  try {
+    const { trainerId } = req.params;
+
+    const result = await db.query(
+      `
+      SELECT id, trainer_id, day_of_week, start_time, end_time, location_format
+      FROM trainer_availability
+      WHERE trainer_id = $1
+      ORDER BY day_of_week, start_time
+      `,
+      [trainerId],
+    );
+
+    res.json({
+      slots: result.rows.map((slot) => ({
+        id: slot.id,
+        trainerId: slot.trainer_id,
+        dayOfWeek: slot.day_of_week,
+        startTime: slot.start_time,
+        endTime: slot.end_time,
+        locationFormat: slot.location_format,
+      })),
+    });
+  } catch (err) {
+    console.error("Error fetching trainer slots:", err.message);
+    res.status(500).json({ error: "Failed to fetch trainer slots." });
+  }
+});
+
+// PUT: Update trainer availability slot
+router.put("/trainer-slots/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { dayOfWeek, startTime, endTime, locationFormat } = req.body;
+
+    const updates = [];
+    const params = [];
+
+    if (dayOfWeek !== undefined) {
+      if (dayOfWeek < 0 || dayOfWeek > 6) {
+        return res.status(400).json({ error: "Day of week must be 0-6." });
+      }
+      updates.push(`day_of_week = $${params.length + 1}`);
+      params.push(dayOfWeek);
+    }
+    if (startTime) {
+      updates.push(`start_time = $${params.length + 1}`);
+      params.push(startTime);
+    }
+    if (endTime) {
+      updates.push(`end_time = $${params.length + 1}`);
+      params.push(endTime);
+    }
+    if (locationFormat) {
+      if (!["IN_PERSON", "VIDEO", "STUDENT_CHOICE"].includes(locationFormat)) {
+        return res.status(400).json({ error: "Invalid location format." });
+      }
+      updates.push(`location_format = $${params.length + 1}`);
+      params.push(locationFormat);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: "No fields to update." });
+    }
+
+    params.push(id);
+    const result = await db.query(
+      `
+      UPDATE trainer_availability
+      SET ${updates.join(", ")}
+      WHERE id = $${params.length}
+      RETURNING id, trainer_id, day_of_week, start_time, end_time, location_format
+      `,
+      params,
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Slot not found." });
+    }
+
+    const slot = result.rows[0];
+    res.json({
+      slot: {
+        id: slot.id,
+        trainerId: slot.trainer_id,
+        dayOfWeek: slot.day_of_week,
+        startTime: slot.start_time,
+        endTime: slot.end_time,
+        locationFormat: slot.location_format,
+      },
+    });
+  } catch (err) {
+    console.error("Error updating trainer slot:", err.message);
+    res.status(500).json({ error: "Failed to update trainer slot." });
+  }
+});
+
+// DELETE: Delete trainer availability slot
+router.delete("/trainer-slots/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await db.query(
+      "DELETE FROM trainer_availability WHERE id = $1 RETURNING id",
+      [id],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Slot not found." });
+    }
+
+    res.json({ success: true, message: "Trainer slot deleted." });
+  } catch (err) {
+    console.error("Error deleting trainer slot:", err.message);
+    res.status(500).json({ error: "Failed to delete trainer slot." });
+  }
+});
+
+// POST: Create consultation appointment slots
+router.post("/consultation-slots", async (req, res) => {
+  try {
+    const { employeeId, startTime, endTime, format } = req.body;
+
+    if (!employeeId || !startTime || !endTime || !format) {
+      return res.status(400).json({ error: "Missing required fields." });
+    }
+
+    if (!["IN_PERSON", "VIDEO"].includes(format)) {
+      return res.status(400).json({ error: "Invalid format." });
+    }
+
+    const result = await db.query(
+      `
+      INSERT INTO consultation_appointments (client_name, client_email, employee_id, format, start_time, end_time, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id, employee_id, format, start_time, end_time, status
+      `,
+      ["Available", "booking@casfitness.com", employeeId, format, startTime, endTime, "PENDING"],
+    );
+
+    const slot = result.rows[0];
+    res.status(201).json({
+      slot: {
+        id: slot.id,
+        employeeId: slot.employee_id,
+        format: slot.format,
+        startTime: slot.start_time,
+        endTime: slot.end_time,
+        status: slot.status,
+      },
+    });
+  } catch (err) {
+    console.error("Error creating consultation slot:", err.message);
+    res.status(500).json({ error: "Failed to create consultation slot." });
+  }
+});
+
+// GET: Get available consultation slots
+router.get("/consultation-slots", async (req, res) => {
+  try {
+    const { employeeId } = req.query;
+
+    let query = `
+      SELECT id, employee_id, format, start_time, end_time, status
+      FROM consultation_appointments
+      WHERE status = 'PENDING'
+    `;
+    const params = [];
+
+    if (employeeId) {
+      query += ` AND employee_id = $${params.length + 1}`;
+      params.push(employeeId);
+    }
+
+    query += ` ORDER BY start_time`;
+
+    const result = await db.query(query, params);
+
+    res.json({
+      slots: result.rows.map((slot) => ({
+        id: slot.id,
+        employeeId: slot.employee_id,
+        format: slot.format,
+        startTime: slot.start_time,
+        endTime: slot.end_time,
+        status: slot.status,
+      })),
+    });
+  } catch (err) {
+    console.error("Error fetching consultation slots:", err.message);
+    res.status(500).json({ error: "Failed to fetch consultation slots." });
+  }
+});
+
+// DELETE: Delete consultation slot
+router.delete("/consultation-slots/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await db.query(
+      "DELETE FROM consultation_appointments WHERE id = $1 AND status = 'PENDING' RETURNING id",
+      [id],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Slot not found or already booked." });
+    }
+
+    res.json({ success: true, message: "Consultation slot deleted." });
+  } catch (err) {
+    console.error("Error deleting consultation slot:", err.message);
+    res.status(500).json({ error: "Failed to delete consultation slot." });
+  }
+});
+
 module.exports = router;
