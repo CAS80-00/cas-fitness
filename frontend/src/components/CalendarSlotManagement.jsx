@@ -747,6 +747,18 @@ export default function CalendarSlotManagement() {
             {/* Calendar View of Slots */}
             {!showCreateForm && (
               <div className={styles.calendarWrapper}>
+                {/* Whole Day Marking Button */}
+                {isSuperuser && slotEvents.length > 0 && (
+                  <div className={styles.actionButtons}>
+                    <button
+                      className={styles.wholeDayButton}
+                      onClick={() => setShowWholeDayModal(true)}
+                    >
+                      Mark Whole Day...
+                    </button>
+                  </div>
+                )}
+                
                 {loading && <div className={styles.loading}>Loading slots...</div>}
                 {!loading && slotInstances.length === 0 && (
                   <div className={styles.empty}>No slots found. Create some!</div>
@@ -766,18 +778,6 @@ export default function CalendarSlotManagement() {
                     slotDuration="00:30:00"
                     slotLabelInterval="00:30:00"
                   />
-                )}
-
-                {/* Whole Day Marking Button */}
-                {isSuperuser && slotEvents.length > 0 && (
-                  <div className={styles.actionButtons}>
-                    <button
-                      className={styles.wholeDayButton}
-                      onClick={() => setShowWholeDayModal(true)}
-                    >
-                      Mark Whole Day...
-                    </button>
-                  </div>
                 )}
               </div>
             )}
