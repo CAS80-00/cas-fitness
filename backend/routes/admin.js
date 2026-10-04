@@ -1046,29 +1046,56 @@ router.post("/slot-templates", async (req, res) => {
     );
 
     // Generate slot instances for all matching dates in the range
+    // Create continuous slots from startTime until endTime (if provided)
     const template = result.rows[0];
     const startDateObj = new Date(startDate);
     const endDateObj = new Date(endDate);
     const instancesInserted = [];
 
+    // Parse start time
+    const [startHours, startMinutes] = startTime.split(":").map(Number);
+    
+    // Parse end time of day (from request body, defaults to 24:00 if not provided)
+    let endTimeOfDay = req.body.endTimeOfDay || "23:59";
+    const [endHours, endMinutes] = endTimeOfDay.split(":").map(Number);
+
     for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
       const dayOfWeek = d.getDay();
       if (daysOfWeek.includes(dayOfWeek)) {
         const dateStr = d.toISOString().split("T")[0];
-        const [hours, minutes] = startTime.split(":").map(Number);
-        const endHours = hours + Math.floor((minutes + durationMinutes) / 60);
-        const endMinutes = (minutes + durationMinutes) % 60;
-        const endTimeStr = `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`;
 
-        const instanceRes = await db.query(
-          `
-          INSERT INTO slot_instances (user_id, template_id, calendar_type, slot_date, start_time, end_time)
-          VALUES ($1, $2, $3, $4, $5, $6)
-          RETURNING *
-          `,
-          [userId, template.id, calendarType, dateStr, startTime, endTimeStr],
-        );
-        instancesInserted.push(instanceRes.rows[0]);
+        // Generate slots continuously all day from start time until end time
+        let currentHour = startHours;
+        let currentMinute = startMinutes;
+
+        while (currentHour < endHours || (currentHour === endHours && currentMinute < endMinutes)) {
+          const slotStartStr = `${String(currentHour).padStart(2, "0")}:${String(currentMinute).padStart(2, "0")}`;
+          
+          // Calculate slot end time
+          let slotEndHour = currentHour + Math.floor((currentMinute + durationMinutes) / 60);
+          let slotEndMinute = (currentMinute + durationMinutes) % 60;
+          
+          // Don't create slot if it goes beyond end time of day
+          if (slotEndHour > endHours || (slotEndHour === endHours && slotEndMinute > endMinutes)) {
+            break;
+          }
+
+          const slotEndStr = `${String(slotEndHour).padStart(2, "0")}:${String(slotEndMinute).padStart(2, "0")}`;
+
+          const instanceRes = await db.query(
+            `
+            INSERT INTO slot_instances (user_id, template_id, calendar_type, slot_date, start_time, end_time)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *
+            `,
+            [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr],
+          );
+          instancesInserted.push(instanceRes.rows[0]);
+
+          // Move to next slot
+          currentHour = slotEndHour;
+          currentMinute = slotEndMinute;
+        }
       }
     }
 

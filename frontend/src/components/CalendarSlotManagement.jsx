@@ -4,6 +4,7 @@ import styles from "../styles/CalendarSlotManagement.module.css";
 /**
  * Comprehensive Calendar Slot Management
  * - Superuser creates recurring slots for employees
+ * - Generates continuous slots from start time until end time (all day)
  * - Employees/Members approve and manage their slots
  * - Member status options: CONSULTATION, TRAINING, BREAK
  * - Superuser status options: SICK, NO_SHOW, VACATION
@@ -93,6 +94,7 @@ export default function CalendarSlotManagement() {
       setLoading(true);
       const token = apiToken();
       const startTime = `${String(formData.startHour).padStart(2, "0")}:${String(formData.startMinute).padStart(2, "0")}`;
+      const endTimeOfDay = `${String(formData.endHour).padStart(2, "0")}:${String(formData.endMinute).padStart(2, "0")}`;
 
       const payload = {
         userId: selectedEmployee.id,
@@ -100,6 +102,7 @@ export default function CalendarSlotManagement() {
         startDate: formData.startDate,
         endDate: formData.endDate,
         startTime,
+        endTimeOfDay,
         durationMinutes: formData.durationMinutes,
         locationFormat: formData.locationFormat,
         daysOfWeek: formData.daysOfWeek,
