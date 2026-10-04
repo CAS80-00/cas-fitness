@@ -1199,7 +1199,7 @@ router.get("/slot-templates/:userId", async (req, res) => {
 });
 
 // GET: Get all slot instances for a user (with optional date range and status filter)
-router.get("/slot-instances/:userId", async (req, res) => {
+router.get("/slot-instances/:userId", authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
     const { startDate, endDate, status, includeUnpublished } = req.query;
@@ -1262,7 +1262,7 @@ router.get("/slot-instances/:userId", async (req, res) => {
 // PUT: Update a slot instance (member or superuser)
 // Members can set: CONSULTATION, WORKOUT, BREAK, LUNCH
 // Superusers can set: CONSULTATION, WORKOUT, BREAK, LUNCH, SICK, NO_SHOW, VACATION, PERSONAL_TIME, REMOVED
-router.put("/slot-instances/:slotId", async (req, res) => {
+router.put("/slot-instances/:slotId", authenticateToken, async (req, res) => {
   try {
     const { slotId } = req.params;
     const { status } = req.body;
@@ -1313,7 +1313,7 @@ router.put("/slot-instances/:slotId", async (req, res) => {
 
 // PUT: Mark entire day with a status (superuser only)
 // Superuser can mark whole day as: SICK, NO_SHOW, VACATION, PERSONAL_TIME, REMOVED
-router.put("/slot-instances-whole-day/:userId/:date", async (req, res) => {
+router.put("/slot-instances-whole-day/:userId/:date", authenticateToken, async (req, res) => {
   try {
     const { userId, date } = req.params;
     const { status } = req.body;
@@ -1353,7 +1353,7 @@ router.put("/slot-instances-whole-day/:userId/:date", async (req, res) => {
 });
 
 // DELETE: Remove all slots for a whole day (superuser only)
-router.delete("/slot-instances-whole-day/:userId/:date", async (req, res) => {
+router.delete("/slot-instances-whole-day/:userId/:date", authenticateToken, async (req, res) => {
   try {
     const { userId, date } = req.params;
     const isUserSuperuser = req.user.roleId === 1;
@@ -1384,7 +1384,7 @@ router.delete("/slot-instances-whole-day/:userId/:date", async (req, res) => {
 });
 
 // PUT: Mark a date range with a status (superuser only)
-router.put("/slot-instances-date-range/:userId", async (req, res) => {
+router.put("/slot-instances-date-range/:userId", authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
     const { startDate, endDate, status } = req.body;
@@ -1428,7 +1428,7 @@ router.put("/slot-instances-date-range/:userId", async (req, res) => {
 });
 
 // DELETE: Remove all slots in a date range (superuser only)
-router.delete("/slot-instances-date-range/:userId", async (req, res) => {
+router.delete("/slot-instances-date-range/:userId", authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
     const { startDate, endDate } = req.body;
@@ -1464,7 +1464,7 @@ router.delete("/slot-instances-date-range/:userId", async (req, res) => {
 });
 
 // DELETE: Delete a slot instance
-router.delete("/slot-instances/:slotId", async (req, res) => {
+router.delete("/slot-instances/:slotId", authenticateToken, async (req, res) => {
   try {
     const { slotId } = req.params;
 
