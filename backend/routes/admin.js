@@ -1112,6 +1112,9 @@ router.post("/slot-templates", async (req, res) => {
           const slotEndStr = `${String(slotEndHour).padStart(2, "0")}:${String(slotEndMinute).padStart(2, "0")}`;
 
           try {
+            // Create slot with status matching the calendar type
+            const slotStatus = calendarType; // WORKOUT or CONSULTATION
+            
             // Build INSERT based on whether published_at column exists
             if (hasPublishedAt) {
               const instanceRes = await db.query(
@@ -1120,7 +1123,7 @@ router.post("/slot-templates", async (req, res) => {
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 RETURNING *
                 `,
-                [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, "APPROVED", publishedAt],
+                [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, slotStatus, publishedAt],
               );
               instancesInserted.push(instanceRes.rows[0]);
             } else {
@@ -1130,7 +1133,7 @@ router.post("/slot-templates", async (req, res) => {
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING *
                 `,
-                [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, "APPROVED"],
+                [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, slotStatus],
               );
               instancesInserted.push(instanceRes.rows[0]);
             }
@@ -1293,6 +1296,17 @@ router.put("/slot-instances/:slotId", authenticateToken, async (req, res) => {
     }
 
     console.log(`[SLOT UPDATE] Updating slot ${slotId} with valid status ${status}`);
+
+    // First, log the current state of the slot
+    const currentSlot = await db.query(
+      `SELECT id, calendar_type, status FROM slot_instances WHERE id = $1`,
+      [slotId]
+    );
+    if (currentSlot.rows.length > 0) {
+      console.log(`[SLOT UPDATE] Current slot state:`, JSON.stringify(currentSlot.rows[0]));
+    } else {
+      console.log(`[SLOT UPDATE] Slot ${slotId} not found before update`);
+    }
 
     // Try to update with all tracking columns first
     try {

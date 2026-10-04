@@ -26,6 +26,14 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
+// Request logging middleware
+app.use((req, res, next) => {
+  if (req.path.includes('/slot-instances')) {
+    console.log(`[REQUEST] ${req.method} ${req.path} - ${new Date().toISOString()}`);
+  }
+  next();
+});
+
 // Serves locally stored Object Storage uploads (see services/objectStorage.js).
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
