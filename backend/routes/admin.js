@@ -1049,6 +1049,19 @@ router.post("/slot-templates", async (req, res) => {
       return res.status(400).json({ error: "Days of week must be a non-empty array." });
     }
 
+    const result = await db.query(
+      `
+      INSERT INTO scheduled_slot_templates 
+      (user_id, created_by, calendar_type, start_date, end_date, start_time, duration_minutes, location_format, days_of_week)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *
+      `,
+      [userId, req.user.userId, calendarType, startDate, endDate, startTime, durationMinutes, locationFormat || null, daysOfWeek],
+    );
+
+    // Generate slot instances for all matching dates in the range
+    const template = result.rows[0];
+    
     // Parse dates as local dates, not UTC
     const startParts = startDate.split("-");
     const endParts = endDate.split("-");
