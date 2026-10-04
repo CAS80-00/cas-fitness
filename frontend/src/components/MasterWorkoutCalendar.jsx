@@ -62,42 +62,30 @@ export default function MasterWorkoutCalendar({ trainers }) {
         });
       });
 
-    // Add trainer availability slots (converted to calendar events)
-    const startDate = currentWeekStart;
-    const endDate = new Date(currentWeekStart.getTime() + 28 * 24 * 60 * 60 * 1000); // 4 weeks
-
+    // Add trainer availability slots from new slot_instances table
     trainerSlots
       .filter((slot) => !selectedTrainerId || slot.trainerId === selectedTrainerId)
       .forEach((slot) => {
-        // Generate events for each week in the range
-        let checkDate = new Date(startDate);
-        
-        while (checkDate < endDate) {
-          // Check if this day matches the slot's day of week
-          if (checkDate.getDay() === slot.dayOfWeek) {
-            // Create a date-time for this slot on this week
-            const [hours, minutes] = slot.startTime.split(":").map(Number);
-            const [endHours, endMinutes] = slot.endTime.split(":").map(Number);
+        // New slots have concrete slot_date and start/end times
+        if (slot.slotDate && slot.startTime && slot.endTime) {
+          const [hours, minutes] = slot.startTime.split(":").map(Number);
+          const [endHours, endMinutes] = slot.endTime.split(":").map(Number);
 
-            const eventStart = new Date(checkDate);
-            eventStart.setHours(hours, minutes, 0, 0);
+          // Parse slot_date (YYYY-MM-DD format)
+          const [year, month, day] = slot.slotDate.split("-").map(Number);
+          const eventStart = new Date(year, month - 1, day, hours, minutes, 0, 0);
+          const eventEnd = new Date(year, month - 1, day, endHours, endMinutes, 0, 0);
 
-            const eventEnd = new Date(checkDate);
-            eventEnd.setHours(endHours, endMinutes, 0, 0);
-
-            allEvents.push({
-              id: `slot-${slot.id}-${checkDate.toISOString().split("T")[0]}`,
-              title: `${slot.trainerName} - Available (${slot.locationFormat})`,
-              start: eventStart.toISOString(),
-              end: eventEnd.toISOString(),
-              backgroundColor: "#10b981",
-              borderColor: "#059669",
-              textColor: "#ffffff",
-              extendedProps: { type: "availability" },
-            });
-          }
-
-          checkDate.setDate(checkDate.getDate() + 1);
+          allEvents.push({
+            id: `slot-${slot.id}`,
+            title: `${slot.trainerName} - Available`,
+            start: eventStart.toISOString(),
+            end: eventEnd.toISOString(),
+            backgroundColor: "#10b981",
+            borderColor: "#059669",
+            textColor: "#ffffff",
+            extendedProps: { type: "availability" },
+          });
         }
       });
 

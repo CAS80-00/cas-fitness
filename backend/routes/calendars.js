@@ -459,21 +459,23 @@ router.put("/workouts/:sessionId/status", authenticateToken, async (req, res) =>
 // 11. Get All Trainer Availability Slots (for calendar display)
 router.get("/trainer-slots-all", authenticateToken, async (req, res) => {
   try {
-    // Get all trainer availability with trainer names
+    // Get all workout slots from the new slot_instances table with trainer info
     const result = await db.query(
       `
       SELECT 
-        ta.id, 
-        ta.trainer_id, 
-        ta.day_of_week, 
-        ta.start_time, 
-        ta.end_time, 
-        ta.location_format,
+        si.id, 
+        si.user_id as trainer_id, 
+        si.slot_date,
+        si.start_time, 
+        si.end_time, 
+        si.status,
+        si.calendar_type,
         u.first_name,
         u.last_name
-      FROM trainer_availability ta
-      JOIN users u ON ta.trainer_id = u.id
-      ORDER BY ta.trainer_id, ta.day_of_week, ta.start_time
+      FROM slot_instances si
+      JOIN users u ON si.user_id = u.id
+      WHERE si.status = 'WORKOUT' AND (si.published_at IS NULL OR si.published_at <= NOW())
+      ORDER BY si.user_id, si.slot_date, si.start_time
       `
     );
 
@@ -481,10 +483,12 @@ router.get("/trainer-slots-all", authenticateToken, async (req, res) => {
       id: slot.id,
       trainerId: slot.trainer_id,
       trainerName: `${slot.first_name} ${slot.last_name}`,
-      dayOfWeek: slot.day_of_week,
+      slotDate: slot.slot_date,
       startTime: slot.start_time,
       endTime: slot.end_time,
-      locationFormat: slot.location_format,
+      status: slot.status,
+      calendarType: slot.calendar_type,
+      locationFormat: "IN_PERSON",
     }));
 
     res.json({ slots });
