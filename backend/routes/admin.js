@@ -24,7 +24,21 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
 
-const isProduction = process.env.NODE_ENV === "production";
+// Helper: Check if a column exists in a table
+async function columnExists(tableName, columnName) {
+  try {
+    const result = await db.query(`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = $1 AND column_name = $2
+      ) as exists
+    `, [tableName, columnName]);
+    return result.rows[0].exists;
+  } catch (err) {
+    console.error(`Error checking if column ${columnName} exists:`, err.message);
+    return false;
+  }
+}
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -1062,6 +1076,10 @@ router.post("/slot-templates", async (req, res) => {
     // Parse publish date/time from request (when slots become visible)
     const publishedAt = req.body.publishedAt ? new Date(req.body.publishedAt) : null;
 
+    // Check if published_at column exists
+    const hasPublishedAt = await columnExists('slot_instances', 'published_at');
+    console.log(`Column published_at exists: ${hasPublishedAt}`);
+
     for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
       const dayOfWeek = d.getDay();
       if (daysOfWeek.includes(dayOfWeek)) {
@@ -1087,19 +1105,32 @@ router.post("/slot-templates", async (req, res) => {
           const slotEndStr = `${String(slotEndHour).padStart(2, "0")}:${String(slotEndMinute).padStart(2, "0")}`;
 
           try {
-            const instanceRes = await db.query(
-              `
-              INSERT INTO slot_instances (user_id, template_id, calendar_type, slot_date, start_time, end_time, status, published_at)
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-              RETURNING *
-              `,
-              [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, "APPROVED", publishedAt],
-            );
-            instancesInserted.push(instanceRes.rows[0]);
+            // Build INSERT based on whether published_at column exists
+            if (hasPublishedAt) {
+              const instanceRes = await db.query(
+                `
+                INSERT INTO slot_instances (user_id, template_id, calendar_type, slot_date, start_time, end_time, status, published_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                RETURNING *
+                `,
+                [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, "APPROVED", publishedAt],
+              );
+              instancesInserted.push(instanceRes.rows[0]);
+            } else {
+              const instanceRes = await db.query(
+                `
+                INSERT INTO slot_instances (user_id, template_id, calendar_type, slot_date, start_time, end_time, status)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                RETURNING *
+                `,
+                [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, "APPROVED"],
+              );
+              instancesInserted.push(instanceRes.rows[0]);
+            }
           } catch (colErr) {
-            // If published_at column doesn't exist, try without it
-            if (colErr.message.includes('published_at')) {
-              console.log('published_at column not found, creating slot without it');
+            // Additional error handling
+            if (colErr.message.includes('published_at') && hasPublishedAt) {
+              console.log('published_at column query failed, retrying without it');
               const instanceRes = await db.query(
                 `
                 INSERT INTO slot_instances (user_id, template_id, calendar_type, slot_date, start_time, end_time, status)
@@ -1166,11 +1197,17 @@ router.get("/slot-instances/:userId", async (req, res) => {
     const { userId } = req.params;
     const { startDate, endDate, status, includeUnpublished } = req.query;
 
+    // Check if published_at column exists
+    const hasPublishedAt = await columnExists('slot_instances', 'published_at');
+    console.log(`Column published_at exists: ${hasPublishedAt}`);
+
+    // Build query based on whether published_at column exists
+    const publishedAtClause = hasPublishedAt ? `si.published_at` : `NULL as published_at`;
+    
     let query = `
       SELECT si.id, si.user_id, si.template_id, si.calendar_type, 
              TO_CHAR(si.slot_date, 'YYYY-MM-DD') as slot_date,
-             si.start_time, si.end_time, si.status, 
-             COALESCE(si.published_at, NULL) as published_at,
+             si.start_time, si.end_time, si.status, ${publishedAtClause},
              si.modified_by, si.modified_at,
              si.approved_by, si.approved_at, si.created_at,
              u.first_name, u.last_name, u.email, 
@@ -1183,8 +1220,8 @@ router.get("/slot-instances/:userId", async (req, res) => {
     const params = [userId];
 
     // Only show published slots unless explicitly requested otherwise (for member view)
-    // If published_at is NULL or in the past, show the slot
-    if (!includeUnpublished || includeUnpublished !== 'true') {
+    // If published_at exists and is in the past, show the slot
+    if (hasPublishedAt && (!includeUnpublished || includeUnpublished !== 'true')) {
       query += ` AND (si.published_at IS NULL OR si.published_at <= NOW())`;
     }
 
@@ -1211,30 +1248,6 @@ router.get("/slot-instances/:userId", async (req, res) => {
   } catch (err) {
     console.error("Error fetching slot instances:", err);
     console.error("Query error details:", err.message);
-    // Fallback: Try without published_at if column doesn't exist
-    if (err.message.includes('published_at')) {
-      try {
-        const fallbackQuery = `
-          SELECT si.id, si.user_id, si.template_id, si.calendar_type, 
-                 TO_CHAR(si.slot_date, 'YYYY-MM-DD') as slot_date,
-                 si.start_time, si.end_time, si.status, NULL as published_at,
-                 si.modified_by, si.modified_at,
-                 si.approved_by, si.approved_at, si.created_at,
-                 u.first_name, u.last_name, u.email, 
-                 modified_user.first_name as modified_by_first_name, modified_user.last_name as modified_by_last_name
-          FROM slot_instances si
-          JOIN users u ON si.user_id = u.id
-          LEFT JOIN users modified_user ON si.modified_by = modified_user.id
-          WHERE si.user_id = $1
-          ORDER BY si.slot_date ASC, si.start_time ASC
-        `;
-        const fallbackResult = await db.query(fallbackQuery, [userId]);
-        console.log(`Fallback: Fetched ${fallbackResult.rows.length} slot instances`);
-        return res.json({ instances: fallbackResult.rows });
-      } catch (fallbackErr) {
-        console.error("Fallback query also failed:", fallbackErr.message);
-      }
-    }
     res.status(500).json({ error: "Failed to fetch slot instances: " + err.message });
   }
 });
