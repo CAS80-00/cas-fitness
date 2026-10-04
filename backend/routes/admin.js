@@ -1049,21 +1049,11 @@ router.post("/slot-templates", async (req, res) => {
       return res.status(400).json({ error: "Days of week must be a non-empty array." });
     }
 
-    const result = await db.query(
-      `
-      INSERT INTO scheduled_slot_templates 
-      (user_id, created_by, calendar_type, start_date, end_date, start_time, duration_minutes, location_format, days_of_week)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING *
-      `,
-      [userId, req.user.userId, calendarType, startDate, endDate, startTime, durationMinutes, locationFormat || null, daysOfWeek],
-    );
-
-    // Generate slot instances for all matching dates in the range
-    // Create continuous slots from startTime until endTime (if provided)
-    const template = result.rows[0];
-    const startDateObj = new Date(startDate);
-    const endDateObj = new Date(endDate);
+    // Parse dates as local dates, not UTC
+    const startParts = startDate.split("-");
+    const endParts = endDate.split("-");
+    const startDateObj = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]));
+    const endDateObj = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, parseInt(endParts[2]));
     const instancesInserted = [];
 
     // Parse start time
@@ -1083,7 +1073,11 @@ router.post("/slot-templates", async (req, res) => {
     for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
       const dayOfWeek = d.getDay();
       if (daysOfWeek.includes(dayOfWeek)) {
-        const dateStr = d.toISOString().split("T")[0];
+        // Format date as YYYY-MM-DD using local date values
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const dateStr = `${year}-${month}-${day}`;
 
         // Generate slots at hourly intervals starting at the specified minute within the hour
         // E.g., if startMinutes is 15 and duration is 50 mins:

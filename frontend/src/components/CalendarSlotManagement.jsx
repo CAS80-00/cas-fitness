@@ -127,7 +127,9 @@ export default function CalendarSlotManagement() {
       const endTime = typeof slot.end_time === 'string'
         ? slot.end_time.substring(0, 5)  // Get HH:MM from HH:MM:SS
         : slot.end_time;
-      
+
+      // Use ISO string format for dates to ensure proper timezone handling
+      // This treats the date/time as local time rather than UTC
       const startDateTime = `${dateStr}T${startTime}`;
       const endDateTime = `${dateStr}T${endTime}`;
       
