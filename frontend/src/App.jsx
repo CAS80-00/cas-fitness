@@ -138,9 +138,9 @@ function App() {
     if (!currentUser) {
       switch (route) {
         case "plans":
-          return <PlansPage onAddToCart={handleAddToCart} onNavigate={handleNavigate} />;
+          return <PlansPage currentUser={currentUser} onAddToCart={handleAddToCart} onNavigate={handleNavigate} />;
         case "about":
-          return <AboutUsPage onNavigate={handleNavigate} />;
+          return <AboutUsPage currentUser={currentUser} onNavigate={handleNavigate} />;
         default:
           return (
             <LandingPage
@@ -182,9 +182,9 @@ function App() {
           />
         );
       case "plans":
-        return <PlansPage onAddToCart={handleAddToCart} onNavigate={handleNavigate} />;
+        return <PlansPage currentUser={currentUser} onAddToCart={handleAddToCart} onNavigate={handleNavigate} onLogout={logout} onAuthenticated={handleAuthenticated} />;
       case "about":
-        return <AboutUsPage onNavigate={handleNavigate} />;
+        return <AboutUsPage currentUser={currentUser} onNavigate={handleNavigate} onLogout={logout} onAuthenticated={handleAuthenticated} />;
       case "home":
       default:
         return (
