@@ -456,4 +456,42 @@ router.put("/workouts/:sessionId/status", authenticateToken, async (req, res) =>
   }
 });
 
+// 11. Get All Trainer Availability Slots (for calendar display)
+router.get("/trainer-slots-all", authenticateToken, async (req, res) => {
+  try {
+    // Get all trainer availability with trainer names
+    const result = await db.query(
+      `
+      SELECT 
+        ta.id, 
+        ta.trainer_id, 
+        ta.day_of_week, 
+        ta.start_time, 
+        ta.end_time, 
+        ta.location_format,
+        u.first_name,
+        u.last_name
+      FROM trainer_availability ta
+      JOIN users u ON ta.trainer_id = u.id
+      ORDER BY ta.trainer_id, ta.day_of_week, ta.start_time
+      `
+    );
+
+    const slots = result.rows.map((slot) => ({
+      id: slot.id,
+      trainerId: slot.trainer_id,
+      trainerName: `${slot.first_name} ${slot.last_name}`,
+      dayOfWeek: slot.day_of_week,
+      startTime: slot.start_time,
+      endTime: slot.end_time,
+      locationFormat: slot.location_format,
+    }));
+
+    res.json({ slots });
+  } catch (err) {
+    console.error("Error fetching trainer slots:", err.message);
+    res.status(500).json({ error: "Failed to fetch trainer slots." });
+  }
+});
+
 module.exports = router;
