@@ -196,6 +196,48 @@ ALTER TABLE workout_sessions ADD COLUMN IF NOT EXISTS auto_completed_at TIMESTAM
 ALTER TABLE user_subscriptions DROP CONSTRAINT IF EXISTS user_subscriptions_plan_id_fkey;
 ALTER TABLE user_subscriptions ADD CONSTRAINT user_subscriptions_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE;
 
+-- NEW: Scheduled Slot Templates (created by superuser)
+-- Defines recurring pattern: which days, time range, date range, calendar type
+CREATE TABLE IF NOT EXISTS scheduled_slot_templates (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_by UUID NOT NULL REFERENCES users(id),
+    calendar_type VARCHAR(50) NOT NULL CHECK (calendar_type IN ('WORKOUT', 'CONSULTATION')),
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    duration_minutes INT NOT NULL,
+    location_format VARCHAR(30) CHECK (location_format IN ('IN_PERSON', 'VIDEO', 'STUDENT_CHOICE')),
+    -- Days of week as JSON array: [0, 1, 2, 3, 4, 5, 6] = Sun-Sat
+    days_of_week INT[] NOT NULL,
+    status VARCHAR(50) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
+    approval_by UUID REFERENCES users(id),
+    approval_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- NEW: Slot Instances (individual time blocks generated from templates or manually created)
+-- Each slot instance can be modified by the user or superuser
+CREATE TABLE IF NOT EXISTS slot_instances (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    template_id INT REFERENCES scheduled_slot_templates(id) ON DELETE SET NULL,
+    calendar_type VARCHAR(50) NOT NULL CHECK (calendar_type IN ('WORKOUT', 'CONSULTATION')),
+    slot_date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    -- Status: pending (awaiting approval), approved (published), consultation, training, break, sick, no_show, vacation
+    status VARCHAR(50) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'CONSULTATION', 'TRAINING', 'BREAK', 'SICK', 'NO_SHOW', 'VACATION')),
+    -- For member-made changes (CONSULTATION, TRAINING, BREAK)
+    modified_by UUID REFERENCES users(id),
+    modified_at TIMESTAMPTZ,
+    -- For superuser-only changes (SICK, NO_SHOW, VACATION)
+    approved_by UUID REFERENCES users(id),
+    approved_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 CREATE INDEX IF NOT EXISTS idx_users_role_status ON users(role_id, status);
@@ -203,3 +245,7 @@ CREATE INDEX IF NOT EXISTS idx_otp_user_purpose ON otp_codes(user_id, purpose);
 CREATE INDEX IF NOT EXISTS idx_consultation_reserved_until ON consultation_appointments(reserved_until);
 CREATE INDEX IF NOT EXISTS idx_workout_reserved_until ON workout_sessions(reserved_until);
 CREATE INDEX IF NOT EXISTS idx_promotions_plan_id ON promotions(plan_id);
+CREATE INDEX IF NOT EXISTS idx_scheduled_slot_templates_user ON scheduled_slot_templates(user_id);
+CREATE INDEX IF NOT EXISTS idx_scheduled_slot_templates_status ON scheduled_slot_templates(status);
+CREATE INDEX IF NOT EXISTS idx_slot_instances_user_date ON slot_instances(user_id, slot_date);
+CREATE INDEX IF NOT EXISTS idx_slot_instances_status ON slot_instances(status);

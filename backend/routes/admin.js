@@ -1007,4 +1007,237 @@ router.delete("/consultation-slots/:id", async (req, res) => {
   }
 });
 
+/* ============== NEW: COMPREHENSIVE SLOT MANAGEMENT ============== */
+
+// POST: Create a scheduled slot template (superuser creates recurring slots)
+router.post("/slot-templates", async (req, res) => {
+  try {
+    const {
+      userId,
+      calendarType,
+      startDate,
+      endDate,
+      startTime,
+      durationMinutes,
+      locationFormat,
+      daysOfWeek,
+    } = req.body;
+
+    if (!userId || !calendarType || !startDate || !endDate || !startTime || !durationMinutes || !daysOfWeek) {
+      return res.status(400).json({ error: "Missing required fields." });
+    }
+
+    if (!["WORKOUT", "CONSULTATION"].includes(calendarType)) {
+      return res.status(400).json({ error: "Invalid calendar type." });
+    }
+
+    if (!Array.isArray(daysOfWeek) || daysOfWeek.length === 0) {
+      return res.status(400).json({ error: "Days of week must be a non-empty array." });
+    }
+
+    const result = await db.query(
+      `
+      INSERT INTO scheduled_slot_templates 
+      (user_id, created_by, calendar_type, start_date, end_date, start_time, duration_minutes, location_format, days_of_week)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *
+      `,
+      [userId, req.user.userId, calendarType, startDate, endDate, startTime, durationMinutes, locationFormat || null, daysOfWeek],
+    );
+
+    // Generate slot instances for all matching dates in the range
+    const template = result.rows[0];
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+    const instancesInserted = [];
+
+    for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
+      const dayOfWeek = d.getDay();
+      if (daysOfWeek.includes(dayOfWeek)) {
+        const dateStr = d.toISOString().split("T")[0];
+        const [hours, minutes] = startTime.split(":").map(Number);
+        const endHours = hours + Math.floor((minutes + durationMinutes) / 60);
+        const endMinutes = (minutes + durationMinutes) % 60;
+        const endTimeStr = `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`;
+
+        const instanceRes = await db.query(
+          `
+          INSERT INTO slot_instances (user_id, template_id, calendar_type, slot_date, start_time, end_time)
+          VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING *
+          `,
+          [userId, template.id, calendarType, dateStr, startTime, endTimeStr],
+        );
+        instancesInserted.push(instanceRes.rows[0]);
+      }
+    }
+
+    res.status(201).json({
+      template,
+      instancesCount: instancesInserted.length,
+      message: `Template created with ${instancesInserted.length} slot instances.`,
+    });
+  } catch (err) {
+    console.error("Error creating slot template:", err.message);
+    res.status(500).json({ error: "Failed to create slot template." });
+  }
+});
+
+// GET: Get all slot templates for a user (with optional status filter)
+router.get("/slot-templates/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { status } = req.query;
+
+    let query = `
+      SELECT st.*, u.first_name, u.last_name, u.email
+      FROM scheduled_slot_templates st
+      JOIN users u ON st.user_id = u.id
+      WHERE st.user_id = $1
+    `;
+    const params = [userId];
+
+    if (status) {
+      query += ` AND st.status = $${params.length + 1}`;
+      params.push(status);
+    }
+
+    query += ` ORDER BY st.start_date ASC`;
+
+    const result = await db.query(query, params);
+    res.json({ templates: result.rows });
+  } catch (err) {
+    console.error("Error fetching slot templates:", err.message);
+    res.status(500).json({ error: "Failed to fetch slot templates." });
+  }
+});
+
+// GET: Get all slot instances for a user (with optional date range and status filter)
+router.get("/slot-instances/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { startDate, endDate, status } = req.query;
+
+    let query = `
+      SELECT si.*, u.first_name, u.last_name, u.email, 
+             modified_user.first_name as modified_by_first_name, modified_user.last_name as modified_by_last_name
+      FROM slot_instances si
+      JOIN users u ON si.user_id = u.id
+      LEFT JOIN users modified_user ON si.modified_by = modified_user.id
+      WHERE si.user_id = $1
+    `;
+    const params = [userId];
+
+    if (startDate) {
+      query += ` AND si.slot_date >= $${params.length + 1}`;
+      params.push(startDate);
+    }
+
+    if (endDate) {
+      query += ` AND si.slot_date <= $${params.length + 1}`;
+      params.push(endDate);
+    }
+
+    if (status) {
+      query += ` AND si.status = $${params.length + 1}`;
+      params.push(status);
+    }
+
+    query += ` ORDER BY si.slot_date ASC, si.start_time ASC`;
+
+    const result = await db.query(query, params);
+    res.json({ instances: result.rows });
+  } catch (err) {
+    console.error("Error fetching slot instances:", err.message);
+    res.status(500).json({ error: "Failed to fetch slot instances." });
+  }
+});
+
+// PUT: Update a slot instance (member or superuser)
+// Members can set: CONSULTATION, TRAINING, BREAK
+// Superusers can set: SICK, NO_SHOW, VACATION, or approve PENDING slots
+router.put("/slot-instances/:slotId", async (req, res) => {
+  try {
+    const { slotId } = req.params;
+    const { status } = req.body;
+    const isUserSuperuser = req.user.roleId === 1;
+
+    if (!status) {
+      return res.status(400).json({ error: "Status is required." });
+    }
+
+    // Member can only set: CONSULTATION, TRAINING, BREAK
+    const memberStatuses = ["CONSULTATION", "TRAINING", "BREAK"];
+    // Superuser can set: SICK, NO_SHOW, VACATION, APPROVED
+    const superuserStatuses = ["SICK", "NO_SHOW", "VACATION", "APPROVED"];
+
+    if (!isUserSuperuser && !memberStatuses.includes(status)) {
+      return res.status(403).json({ error: "You can only set CONSULTATION, TRAINING, or BREAK status." });
+    }
+
+    if (isUserSuperuser && !superuserStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid superuser status." });
+    }
+
+    const result = await db.query(
+      `
+      UPDATE slot_instances
+      SET status = $1, modified_by = $2, modified_at = NOW()
+      WHERE id = $3
+      RETURNING *
+      `,
+      [status, req.user.userId, slotId],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Slot instance not found." });
+    }
+
+    res.json({ instance: result.rows[0], message: `Slot status updated to ${status}.` });
+  } catch (err) {
+    console.error("Error updating slot instance:", err.message);
+    res.status(500).json({ error: "Failed to update slot instance." });
+  }
+});
+
+// DELETE: Delete a slot instance
+router.delete("/slot-instances/:slotId", async (req, res) => {
+  try {
+    const { slotId } = req.params;
+
+    const result = await db.query("DELETE FROM slot_instances WHERE id = $1 RETURNING id", [slotId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Slot instance not found." });
+    }
+
+    res.json({ success: true, message: "Slot instance deleted." });
+  } catch (err) {
+    console.error("Error deleting slot instance:", err.message);
+    res.status(500).json({ error: "Failed to delete slot instance." });
+  }
+});
+
+// DELETE: Delete a slot template (and all associated instances)
+router.delete("/slot-templates/:templateId", async (req, res) => {
+  try {
+    const { templateId } = req.params;
+
+    // Delete all instances first
+    await db.query("DELETE FROM slot_instances WHERE template_id = $1", [templateId]);
+
+    // Delete the template
+    const result = await db.query("DELETE FROM scheduled_slot_templates WHERE id = $1 RETURNING id", [templateId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Template not found." });
+    }
+
+    res.json({ success: true, message: "Template and all associated instances deleted." });
+  } catch (err) {
+    console.error("Error deleting slot template:", err.message);
+    res.status(500).json({ error: "Failed to delete slot template." });
+  }
+});
+
 module.exports = router;

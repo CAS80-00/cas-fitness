@@ -1,0 +1,338 @@
+.container {
+  padding: 2rem;
+  background-color: #0f172a;
+  min-height: 100vh;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+.panelTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #3b82f6;
+  padding-bottom: 0.75rem;
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.panelHeader .panelTitle {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.createButton {
+  background-color: #10b981;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.createButton:hover:not(:disabled) {
+  background-color: #059669;
+}
+
+.createButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.employeeList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.employeeButton {
+  padding: 1rem;
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 0.375rem;
+  color: #e2e8f0;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.employeeButton:hover {
+  border-color: #3b82f6;
+  background-color: #1e293b;
+}
+
+.employeeButtonActive {
+  padding: 1rem;
+  background-color: #3b82f6;
+  border: 2px solid #1e40af;
+  border-radius: 0.375rem;
+  color: white;
+  cursor: pointer;
+  text-align: left;
+  font-weight: 600;
+}
+
+.empName {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+
+.empRole {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.message {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 0.375rem;
+  background-color: #065f46;
+  color: #86efac;
+  font-size: 0.875rem;
+  border-left: 4px solid #10b981;
+}
+
+.form {
+  background-color: #0f172a;
+  padding: 1.5rem;
+  border: 1px solid #334155;
+  border-radius: 0.375rem;
+  margin-bottom: 1.5rem;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formGroup label {
+  color: #cbd5e1;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.formGroup input,
+.formGroup select {
+  padding: 0.5rem;
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.375rem;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+}
+
+.formGroup input:focus,
+.formGroup select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.daysGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+}
+
+.dayCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.375rem;
+  color: #cbd5e1;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dayCheckbox:hover {
+  border-color: #3b82f6;
+}
+
+.dayCheckbox input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.dayCheckbox input[type="checkbox"]:checked + * {
+  color: #3b82f6;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submitButton:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.slotsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.loading {
+  padding: 2rem;
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.empty {
+  padding: 2rem;
+  text-align: center;
+  color: #64748b;
+  background-color: #0f172a;
+  border: 1px dashed #334155;
+  border-radius: 0.375rem;
+}
+
+.slotCard {
+  padding: 1rem;
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 0.375rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 1rem;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .slotCard {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
+.slotDate {
+  font-weight: 600;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+}
+
+.slotTime {
+  color: #cbd5e1;
+  font-size: 0.875rem;
+}
+
+.slotStatus {
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  color: white;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.slotActions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.statusBtn {
+  padding: 0.375rem 0.75rem;
+  background-color: #475569;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.statusBtn:hover:not(:disabled) {
+  background-color: #64748b;
+}
+
+.statusBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.deleteBtn {
+  padding: 0.375rem 0.75rem;
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.deleteBtn:hover:not(:disabled) {
+  background-color: #991b1b;
+}
+
+.deleteBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

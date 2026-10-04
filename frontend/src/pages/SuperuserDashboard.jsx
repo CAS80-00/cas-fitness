@@ -8,7 +8,7 @@ import SuperuserEmployeeView from "../components/SuperuserEmployeeView";
 import SuperuserMemberView from "../components/SuperuserMemberView";
 import MasterConsultationCalendar from "../components/MasterConsultationCalendar";
 import MasterWorkoutCalendar from "../components/MasterWorkoutCalendar";
-import SlotManagement from "../components/SlotManagement";
+import CalendarSlotManagement from "../components/CalendarSlotManagement";
 import PromoCodesSection from "../components/PromoCodesSection";
 import styles from "../styles/SuperuserDashboard.module.css";
 
@@ -164,7 +164,7 @@ export default function SuperuserDashboard({ currentUser, onLogout, onNavigate, 
 
         <MasterWorkoutCalendar trainers={staff} />
 
-        <SlotManagement />
+        <CalendarSlotManagement />
 
         <PromoCodesSection plans={plans} onSessionInvalidated={handleSessionInvalidated} />
       </div>
