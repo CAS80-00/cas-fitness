@@ -85,6 +85,23 @@ export default function AuthCard({ onAuthenticated }) {
     return () => clearInterval(timer);
   }, [resendSeconds]);
 
+  const resetForm = () => {
+    setIsLogin(true);
+    setAuthStep("credentials");
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+    setPhone("");
+    setCountryCode("+1");
+    setFirstName("");
+    setLastName("");
+    setOtpCode("");
+    setUserId(null);
+    setServerError("");
+    setEmailError("");
+    setPasswordErrors([]);
+  };
+
   const performOtpLogin = async () => {
     if (!userId) {
       setServerError("Session lost. Please log in again.");
@@ -107,6 +124,7 @@ export default function AuthCard({ onAuthenticated }) {
       localStorage.setItem("cas_jwt", data.token);
       localStorage.setItem("cas_user", JSON.stringify(data.user));
       if (onAuthenticated) onAuthenticated(data.user);
+      resetForm();
     } catch (err) {
       setServerError(err.message);
     }
