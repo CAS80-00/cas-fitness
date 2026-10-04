@@ -125,6 +125,8 @@ export default function AuthCard({ onAuthenticated }) {
       localStorage.setItem("cas_user", JSON.stringify(data.user));
       if (onAuthenticated) onAuthenticated(data.user);
       resetForm();
+      // Hard refresh page to ensure UI updates with new currentUser
+      setTimeout(() => window.location.reload(), 500);
     } catch (err) {
       setServerError(err.message);
     }
