@@ -1266,11 +1266,14 @@ router.put("/slot-instances/:slotId", authenticateToken, async (req, res) => {
   try {
     const { slotId } = req.params;
     const { status } = req.body;
-    const isUserSuperuser = req.user.roleId === 1;
+    const userId = req.user.userId;
+    const roleId = req.user.roleId;
+    const isUserSuperuser = roleId === 1;
 
-    console.log(`Attempting to update slot ${slotId} to status ${status} by user ${req.user.userId} (superuser: ${isUserSuperuser})`);
+    console.log(`[SLOT UPDATE] Attempting to update slot ${slotId} to status ${status} by user ${userId} (superuser: ${isUserSuperuser})`);
 
     if (!status) {
+      console.log(`[SLOT UPDATE] Status is required`);
       return res.status(400).json({ error: "Status is required." });
     }
 
@@ -1280,75 +1283,62 @@ router.put("/slot-instances/:slotId", authenticateToken, async (req, res) => {
     const superuserStatuses = ["CONSULTATION", "WORKOUT", "BREAK", "LUNCH", "SICK", "NO_SHOW", "VACATION", "PERSONAL_TIME", "REMOVED"];
 
     if (!isUserSuperuser && !memberStatuses.includes(status)) {
+      console.log(`[SLOT UPDATE] Member user tried to set invalid status: ${status}`);
       return res.status(403).json({ error: `You can only set these statuses: ${memberStatuses.join(", ")}` });
     }
 
     if (isUserSuperuser && !superuserStatuses.includes(status)) {
+      console.log(`[SLOT UPDATE] Superuser tried to set invalid status: ${status}`);
       return res.status(400).json({ error: `Invalid status. Allowed: ${superuserStatuses.join(", ")}` });
     }
 
-    // Check which columns exist in the table
-    const columnRes = await db.query(
-      `SELECT EXISTS (
-        SELECT FROM information_schema.columns 
-        WHERE table_name = 'slot_instances' AND column_name = 'modified_by'
-      )`
-    );
-    const hasModifiedBy = columnRes.rows[0].exists;
+    console.log(`[SLOT UPDATE] Updating slot ${slotId} with valid status ${status}`);
 
-    // Build update query based on available columns
-    let updateQuery;
-    let params;
-    
-    if (isUserSuperuser) {
-      if (hasModifiedBy) {
-        updateQuery = `
-          UPDATE slot_instances
-          SET status = $1, approved_by = $2, approved_at = NOW()
-          WHERE id = $3
-          RETURNING *
-        `;
-        params = [status, req.user.userId, slotId];
-      } else {
-        updateQuery = `
-          UPDATE slot_instances
-          SET status = $1
-          WHERE id = $2
-          RETURNING *
-        `;
-        params = [status, slotId];
+    // Try to update with all tracking columns first
+    try {
+      const result = await db.query(
+        isUserSuperuser ?
+        `UPDATE slot_instances
+         SET status = $1, approved_by = $2, approved_at = NOW()
+         WHERE id = $3
+         RETURNING *` :
+        `UPDATE slot_instances
+         SET status = $1, modified_by = $2, modified_at = NOW()
+         WHERE id = $3
+         RETURNING *`,
+        [status, userId, slotId]
+      );
+
+      if (result.rows.length === 0) {
+        console.log(`[SLOT UPDATE] Slot instance ${slotId} not found`);
+        return res.status(404).json({ error: "Slot instance not found." });
       }
-    } else {
-      if (hasModifiedBy) {
-        updateQuery = `
-          UPDATE slot_instances
-          SET status = $1, modified_by = $2, modified_at = NOW()
-          WHERE id = $3
-          RETURNING *
-        `;
-        params = [status, req.user.userId, slotId];
-      } else {
-        updateQuery = `
-          UPDATE slot_instances
-          SET status = $1
-          WHERE id = $2
-          RETURNING *
-        `;
-        params = [status, slotId];
+
+      console.log(`[SLOT UPDATE] Successfully updated slot ${slotId} to status ${status}`);
+      res.json({ instance: result.rows[0], message: `Slot status updated to ${status}.` });
+    } catch (columnErr) {
+      console.log(`[SLOT UPDATE] First attempt with tracking columns failed, trying without: ${columnErr.message}`);
+      
+      // Fallback: try without modified_by/approved_by columns
+      const result = await db.query(
+        `UPDATE slot_instances
+         SET status = $1
+         WHERE id = $2
+         RETURNING *`,
+        [status, slotId]
+      );
+
+      if (result.rows.length === 0) {
+        console.log(`[SLOT UPDATE] Slot instance ${slotId} not found (fallback)`);
+        return res.status(404).json({ error: "Slot instance not found." });
       }
+
+      console.log(`[SLOT UPDATE] Successfully updated slot ${slotId} to status ${status} (without tracking columns)`);
+      res.json({ instance: result.rows[0], message: `Slot status updated to ${status}.` });
     }
-
-    const result = await db.query(updateQuery, params);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Slot instance not found." });
-    }
-
-    console.log(`Successfully updated slot ${slotId} to status ${status}`);
-    res.json({ instance: result.rows[0], message: `Slot status updated to ${status}.` });
   } catch (err) {
-    console.error("Error updating slot instance:", err.message);
-    console.error("Full error:", err);
+    console.error(`[SLOT UPDATE] ERROR:`, err.message);
+    console.error(`[SLOT UPDATE] Full error:`, err);
     res.status(500).json({ error: "Failed to update slot instance: " + err.message });
   }
 });
