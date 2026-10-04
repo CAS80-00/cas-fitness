@@ -1345,6 +1345,37 @@ router.put("/slot-instances-whole-day/:userId/:date", async (req, res) => {
   }
 });
 
+// DELETE: Remove all slots for a whole day (superuser only)
+router.delete("/slot-instances-whole-day/:userId/:date", async (req, res) => {
+  try {
+    const { userId, date } = req.params;
+    const isUserSuperuser = req.user.roleId === 1;
+
+    if (!isUserSuperuser) {
+      return res.status(403).json({ error: "Only superusers can remove whole days." });
+    }
+
+    // Delete all slots for the given user and date
+    const result = await db.query(
+      `
+      DELETE FROM slot_instances
+      WHERE user_id = $1 AND slot_date = $2
+      RETURNING *
+      `,
+      [userId, date],
+    );
+
+    res.json({ 
+      deletedCount: result.rows.length,
+      instances: result.rows,
+      message: `Removed ${result.rows.length} slots for ${date}.` 
+    });
+  } catch (err) {
+    console.error("Error removing whole day:", err.message);
+    res.status(500).json({ error: "Failed to remove whole day." });
+  }
+});
+
 // DELETE: Delete a slot instance
 router.delete("/slot-instances/:slotId", async (req, res) => {
   try {

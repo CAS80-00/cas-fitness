@@ -240,23 +240,34 @@ export default function CalendarSlotManagement() {
     try {
       setLoading(true);
       const token = apiToken();
-      const res = await fetch(`${apiBaseUrl}/admin/slot-instances/${selectedSlot.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!res.ok) throw new Error("Failed to update slot.");
-      setMessage(`✓ Slot updated to ${newStatus}`);
+      
+      // If REMOVED, delete the slot instead of updating status
+      if (newStatus === "REMOVED") {
+        const res = await fetch(`${apiBaseUrl}/admin/slot-instances/${selectedSlot.id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Failed to delete slot.");
+        setMessage("✓ Slot removed");
+      } else {
+        const res = await fetch(`${apiBaseUrl}/admin/slot-instances/${selectedSlot.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status: newStatus }),
+        });
+        if (!res.ok) throw new Error("Failed to update slot.");
+        setMessage(`✓ Slot updated to ${newStatus}`);
+      }
+      
       setShowStatusModal(false);
       setSelectedSlot(null);
       if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
     } catch (err) {
       setMessage(`Error: ${err.message}`);
-      console.error("Error updating slot:", err); // Debug log
+      console.error("Error updating slot:", err);
     } finally {
       setLoading(false);
     }
@@ -294,21 +305,39 @@ export default function CalendarSlotManagement() {
     try {
       setLoading(true);
       const token = apiToken();
-      const res = await fetch(
-        `${apiBaseUrl}/admin/slot-instances-whole-day/${selectedEmployee.id}/${wholeDayData.date}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ status: wholeDayData.status }),
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to mark whole day.");
-      const data = await res.json();
-      setMessage(`✓ Marked ${data.updatedCount} slots as ${wholeDayData.status}`);
+      
+      // If REMOVED, delete all slots for that day instead of updating status
+      if (wholeDayData.status === "REMOVED") {
+        const res = await fetch(
+          `${apiBaseUrl}/admin/slot-instances-whole-day/${selectedEmployee.id}/${wholeDayData.date}`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (!res.ok) throw new Error("Failed to remove whole day.");
+        const data = await res.json();
+        setMessage(`✓ Removed ${data.deletedCount} slots`);
+      } else {
+        const res = await fetch(
+          `${apiBaseUrl}/admin/slot-instances-whole-day/${selectedEmployee.id}/${wholeDayData.date}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ status: wholeDayData.status }),
+          }
+        );
+        if (!res.ok) throw new Error("Failed to mark whole day.");
+        const data = await res.json();
+        setMessage(`✓ Marked ${data.updatedCount} slots as ${wholeDayData.status}`);
+      }
+      
       setShowWholeDayModal(false);
       setWholeDayData({ date: null, status: "SICK" });
       if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
