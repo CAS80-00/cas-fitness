@@ -27,6 +27,8 @@ export default function CalendarSlotManagement() {
     startHour: 9,
     startMinute: 0,
     durationMinutes: 60,
+    endHour: 17,
+    endMinute: 0,
     locationFormat: "IN_PERSON",
     daysOfWeek: [1, 2, 3, 4, 5], // Mon-Fri
   });
@@ -125,6 +127,8 @@ export default function CalendarSlotManagement() {
         startHour: 9,
         startMinute: 0,
         durationMinutes: 60,
+        endHour: 17,
+        endMinute: 0,
         locationFormat: "IN_PERSON",
         daysOfWeek: [1, 2, 3, 4, 5],
       });
@@ -369,6 +373,55 @@ export default function CalendarSlotManagement() {
                       {durationOptions.map((d) => (
                         <option key={d} value={d}>
                           {d} mins
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>Calculated End Time</label>
+                    <div className={styles.calculatedTime}>
+                      {String((formData.startHour + Math.floor((formData.startMinute + formData.durationMinutes) / 60))).padStart(2, "0")}
+                      :
+                      {String((formData.startMinute + formData.durationMinutes) % 60).padStart(2, "0")}
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.formRow}>
+                  <div className={styles.formGroup}>
+                    <label>End Time of Day (Hour)</label>
+                    <select
+                      value={formData.endHour}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          endHour: parseInt(e.target.value),
+                        })
+                      }
+                    >
+                      {timeOptions.map((opt) => (
+                        <option key={opt.hour} value={opt.hour}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>End Time of Day (Minutes)</label>
+                    <select
+                      value={formData.endMinute}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          endMinute: parseInt(e.target.value),
+                        })
+                      }
+                    >
+                      {minuteOptions.map((m) => (
+                        <option key={m} value={m}>
+                          :{String(m).padStart(2, "0")}
                         </option>
                       ))}
                     </select>
