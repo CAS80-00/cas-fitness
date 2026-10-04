@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import styles from "../styles/SlotManagement.module.css";
 
 export default function SlotManagement() {
-  const [activeTab, setActiveTab] = useState("trainer"); // 'trainer' or 'consultation'
+  const [activeTab, setActiveTab] = useState("trainer");
   const [trainers, setTrainers] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [selectedPerson, setSelectedPerson] = useState(null);
@@ -11,13 +11,15 @@ export default function SlotManagement() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Form state for new slot
   const [formData, setFormData] = useState({
-    dayOfWeek: 0,
-    startTime: "09:00",
-    endTime: "10:00",
+    startDate: new Date().toISOString().split("T")[0],
+    startHour: 9,
+    startMinute: 0,
+    durationMinutes: 60,
     locationFormat: "IN_PERSON",
     format: "IN_PERSON",
+    consultationStart: "",
+    consultationEnd: "",
   });
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -35,7 +37,6 @@ export default function SlotManagement() {
       if (!res.ok) throw new Error("Failed to load users.");
       const data = await res.json();
 
-      // Separate trainers (role_id=3) and employees (role_id=2)
       const trainersData = data.users.filter((u) => u.roleId === 3);
       const employeesData = data.users.filter((u) => u.roleId === 2);
 
@@ -78,14 +79,6 @@ export default function SlotManagement() {
     loadSlots(person.id);
   };
 
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "dayOfWeek" ? parseInt(value) : value,
-    }));
-  };
-
   const handleCreateSlot = async (e) => {
     e.preventDefault();
     if (!selectedPerson) return;
@@ -93,21 +86,33 @@ export default function SlotManagement() {
     try {
       setLoading(true);
       const token = localStorage.getItem("cas_jwt");
-      const payload =
-        activeTab === "trainer"
-          ? {
-              trainerId: selectedPerson.id,
-              dayOfWeek: formData.dayOfWeek,
-              startTime: formData.startTime,
-              endTime: formData.endTime,
-              locationFormat: formData.locationFormat,
-            }
-          : {
-              employeeId: selectedPerson.id,
-              startTime: new Date(`2024-01-01T${formData.startTime}`).toISOString(),
-              endTime: new Date(`2024-01-01T${formData.endTime}`).toISOString(),
-              format: formData.format,
-            };
+      let payload;
+
+      if (activeTab === "trainer") {
+        // For trainer: convert date + hour + minute to start/end times
+        const startDateTime = `${formData.startDate}T${String(formData.startHour).padStart(2, "0")}:${String(formData.startMinute).padStart(2, "0")}:00`;
+        const startDate = new Date(startDateTime);
+        const endDate = new Date(startDate.getTime() + formData.durationMinutes * 60000);
+
+        const dayOfWeek = startDate.getDay();
+        const startTimeStr = startDate.toTimeString().slice(0, 5);
+        const endTimeStr = endDate.toTimeString().slice(0, 5);
+
+        payload = {
+          trainerId: selectedPerson.id,
+          dayOfWeek: dayOfWeek,
+          startTime: startTimeStr,
+          endTime: endTimeStr,
+          locationFormat: formData.locationFormat,
+        };
+      } else {
+        payload = {
+          employeeId: selectedPerson.id,
+          startTime: new Date(formData.consultationStart).toISOString(),
+          endTime: new Date(formData.consultationEnd).toISOString(),
+          format: formData.format,
+        };
+      }
 
       const res = await fetch(
         `${apiBaseUrl}/admin/${activeTab === "trainer" ? "trainer-slots" : "consultation-slots"}`,
@@ -122,9 +127,20 @@ export default function SlotManagement() {
       );
 
       if (!res.ok) throw new Error("Failed to create slot.");
-      setMessage("Slot created successfully!");
+      setMessage("✓ Slot created successfully!");
       setShowForm(false);
       loadSlots(selectedPerson.id);
+      // Reset form
+      setFormData({
+        startDate: new Date().toISOString().split("T")[0],
+        startHour: 9,
+        startMinute: 0,
+        durationMinutes: 60,
+        locationFormat: "IN_PERSON",
+        format: "IN_PERSON",
+        consultationStart: "",
+        consultationEnd: "",
+      });
     } catch (err) {
       setMessage(`Error: ${err.message}`);
     } finally {
@@ -157,6 +173,8 @@ export default function SlotManagement() {
   };
 
   const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const minuteOptions = [0, 15, 30, 45];
+  const durationOptions = [15, 25, 30, 45, 55, 60, 90, 120];
 
   return (
     <div className={styles.container}>
@@ -183,7 +201,7 @@ export default function SlotManagement() {
             setSlots([]);
           }}
         >
-          Consultation Calendar (Employee Slots)
+          Consultation Calendar
         </button>
       </div>
 
@@ -235,46 +253,84 @@ export default function SlotManagement() {
                 {activeTab === "trainer" ? (
                   <>
                     <div className={styles.formGroup}>
-                      <label>Day of Week</label>
-                      <select
-                        name="dayOfWeek"
-                        value={formData.dayOfWeek}
-                        onChange={handleFormChange}
+                      <label>Start Date</label>
+                      <input
+                        type="date"
+                        value={formData.startDate}
+                        onChange={(e) =>
+                          setFormData({ ...formData, startDate: e.target.value })
+                        }
                         required
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label>Start Time - Hour</label>
+                      <select
+                        value={formData.startHour}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            startHour: parseInt(e.target.value),
+                          })
+                        }
                       >
-                        {dayNames.map((day, idx) => (
-                          <option key={idx} value={idx}>
-                            {day}
+                        {Array.from({ length: 24 }, (_, i) => (
+                          <option key={i} value={i}>
+                            {String(i).padStart(2, "0")}:00
                           </option>
                         ))}
                       </select>
                     </div>
+
                     <div className={styles.formGroup}>
-                      <label>Start Time</label>
-                      <input
-                        type="time"
-                        name="startTime"
-                        value={formData.startTime}
-                        onChange={handleFormChange}
-                        required
-                      />
+                      <label>Start Time - Minutes</label>
+                      <select
+                        value={formData.startMinute}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            startMinute: parseInt(e.target.value),
+                          })
+                        }
+                      >
+                        {minuteOptions.map((m) => (
+                          <option key={m} value={m}>
+                            :{String(m).padStart(2, "0")}
+                          </option>
+                        ))}
+                      </select>
                     </div>
+
                     <div className={styles.formGroup}>
-                      <label>End Time</label>
-                      <input
-                        type="time"
-                        name="endTime"
-                        value={formData.endTime}
-                        onChange={handleFormChange}
-                        required
-                      />
+                      <label>Duration (minutes)</label>
+                      <select
+                        value={formData.durationMinutes}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            durationMinutes: parseInt(e.target.value),
+                          })
+                        }
+                      >
+                        {durationOptions.map((d) => (
+                          <option key={d} value={d}>
+                            {d} mins
+                          </option>
+                        ))}
+                      </select>
                     </div>
+
                     <div className={styles.formGroup}>
                       <label>Format</label>
                       <select
-                        name="locationFormat"
                         value={formData.locationFormat}
-                        onChange={handleFormChange}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            locationFormat: e.target.value,
+                          })
+                        }
                       >
                         <option value="IN_PERSON">In-Person</option>
                         <option value="VIDEO">Video</option>
@@ -288,13 +344,12 @@ export default function SlotManagement() {
                       <label>Start Date & Time</label>
                       <input
                         type="datetime-local"
-                        name="startTime"
-                        value={formData.startTime}
+                        value={formData.consultationStart}
                         onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            startTime: e.target.value,
-                          }))
+                          setFormData({
+                            ...formData,
+                            consultationStart: e.target.value,
+                          })
                         }
                         required
                       />
@@ -303,13 +358,12 @@ export default function SlotManagement() {
                       <label>End Date & Time</label>
                       <input
                         type="datetime-local"
-                        name="endTime"
-                        value={formData.endTime}
+                        value={formData.consultationEnd}
                         onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            endTime: e.target.value,
-                          }))
+                          setFormData({
+                            ...formData,
+                            consultationEnd: e.target.value,
+                          })
                         }
                         required
                       />
@@ -317,9 +371,10 @@ export default function SlotManagement() {
                     <div className={styles.formGroup}>
                       <label>Format</label>
                       <select
-                        name="format"
                         value={formData.format}
-                        onChange={handleFormChange}
+                        onChange={(e) =>
+                          setFormData({ ...formData, format: e.target.value })
+                        }
                       >
                         <option value="IN_PERSON">In-Person</option>
                         <option value="VIDEO">Video</option>
