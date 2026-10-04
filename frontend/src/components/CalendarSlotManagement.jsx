@@ -680,6 +680,18 @@ export default function CalendarSlotManagement() {
                     slotLabelInterval="00:30:00"
                   />
                 )}
+
+                {/* Whole Day Marking Button */}
+                {isSuperuser && slotEvents.length > 0 && (
+                  <div className={styles.actionButtons}>
+                    <button
+                      className={styles.wholeDayButton}
+                      onClick={() => setShowWholeDayModal(true)}
+                    >
+                      Mark Whole Day...
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

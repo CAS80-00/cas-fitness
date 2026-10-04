@@ -662,3 +662,37 @@
   border-radius: 0.25rem;
   flex-shrink: 0;
 }
+
+.actionButtons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #334155;
+}
+
+.wholeDayButton {
+  padding: 0.75rem 1.5rem;
+  background-color: #f59e0b;
+  color: #000;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.wholeDayButton:hover {
+  background-color: #d97706;
+  transform: translateY(-2px);
+}
+
+.wholeDayButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.selected {
+  background-color: #3b82f6;
+  color: #fff;
+}
