@@ -1146,7 +1146,11 @@ router.get("/slot-instances/:userId", async (req, res) => {
     const { startDate, endDate, status } = req.query;
 
     let query = `
-      SELECT si.*, u.first_name, u.last_name, u.email, 
+      SELECT si.id, si.user_id, si.template_id, si.calendar_type, 
+             TO_CHAR(si.slot_date, 'YYYY-MM-DD') as slot_date,
+             si.start_time, si.end_time, si.status, si.modified_by, si.modified_at,
+             si.approved_by, si.approved_at, si.created_at,
+             u.first_name, u.last_name, u.email, 
              modified_user.first_name as modified_by_first_name, modified_user.last_name as modified_by_last_name
       FROM slot_instances si
       JOIN users u ON si.user_id = u.id

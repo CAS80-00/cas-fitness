@@ -90,22 +90,41 @@ export default function CalendarSlotManagement() {
   // Convert slot instances to calendar events
   useEffect(() => {
     console.log("Converting slots to events. SlotInstances count:", slotInstances.length); // Debug log
-    const events = slotInstances.map((slot) => {
+    console.log("Full slots data:", JSON.stringify(slotInstances, null, 2)); // Debug log - full data
+    
+    const events = slotInstances.map((slot, idx) => {
+      // Ensure slot_date is in YYYY-MM-DD format and times are HH:MM
+      const dateStr = typeof slot.slot_date === 'string' 
+        ? slot.slot_date.split('T')[0]  // Strip any time part if present
+        : slot.slot_date;
+      
+      const startTime = typeof slot.start_time === 'string'
+        ? slot.start_time.substring(0, 5)  // Get HH:MM from HH:MM:SS
+        : slot.start_time;
+      
+      const endTime = typeof slot.end_time === 'string'
+        ? slot.end_time.substring(0, 5)  // Get HH:MM from HH:MM:SS
+        : slot.end_time;
+      
+      const startDateTime = `${dateStr}T${startTime}`;
+      const endDateTime = `${dateStr}T${endTime}`;
+      
       const event = {
-        id: slot.id,
-        title: slot.status,
-        start: `${slot.slot_date}T${slot.start_time}`,
-        end: `${slot.slot_date}T${slot.end_time}`,
+        id: slot.id || idx,
+        title: slot.status || "PENDING",
+        start: startDateTime,
+        end: endDateTime,
         backgroundColor: getStatusColor(slot.status),
         borderColor: getStatusColor(slot.status),
         extendedProps: {
           slotData: slot,
         },
       };
-      console.log("Event created:", event); // Debug log
+      console.log(`Event ${idx + 1}:`, event); // Debug log - each event
       return event;
     });
-    console.log("Total events:", events.length); // Debug log
+    console.log("Total events created:", events.length); // Debug log
+    console.log("All events:", JSON.stringify(events, null, 2)); // Debug log - all events
     setSlotEvents(events);
   }, [slotInstances]);
 
@@ -695,3 +714,5 @@ export default function CalendarSlotManagement() {
     </div>
   );
 }
+
+
