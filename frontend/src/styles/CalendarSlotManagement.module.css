@@ -696,3 +696,35 @@
   background-color: #3b82f6;
   color: #fff;
 }
+
+.tabButton {
+  padding: 0.5rem 1rem;
+  background-color: #475569;
+  color: #cbd5e1;
+  border: 1px solid #334155;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tabButton:hover {
+  background-color: #64748b;
+  color: #e2e8f0;
+}
+
+.selectedTab {
+  padding: 0.5rem 1rem;
+  background-color: #3b82f6;
+  color: #fff;
+  border: 1px solid #2563eb;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.selectedTab:hover {
+  background-color: #2563eb;
+}

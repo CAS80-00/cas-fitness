@@ -54,7 +54,10 @@ export default function CalendarSlotManagement() {
   // Whole day marking state
   const [showWholeDayModal, setShowWholeDayModal] = useState(false);
   const [wholeDayData, setWholeDayData] = useState({
+    dateType: "single", // "single" or "range"
     date: null,
+    startDate: null,
+    endDate: null,
     status: "SICK",
   });
 
@@ -297,8 +300,27 @@ export default function CalendarSlotManagement() {
     }
   };
   const handleMarkWholDay = async () => {
-    if (!selectedEmployee || !wholeDayData.date || !wholeDayData.status) {
-      setMessage("Please select a date and status.");
+    const date = wholeDayData.dateType === "single" ? wholeDayData.date : null;
+    const startDate = wholeDayData.dateType === "range" ? wholeDayData.startDate : null;
+    const endDate = wholeDayData.dateType === "range" ? wholeDayData.endDate : null;
+
+    if (!selectedEmployee || !wholeDayData.status) {
+      setMessage("Please select a status.");
+      return;
+    }
+
+    if (wholeDayData.dateType === "single" && !date) {
+      setMessage("Please select a date.");
+      return;
+    }
+
+    if (wholeDayData.dateType === "range" && (!startDate || !endDate)) {
+      setMessage("Please select start and end dates.");
+      return;
+    }
+
+    if (wholeDayData.dateType === "range" && new Date(startDate) > new Date(endDate)) {
+      setMessage("Start date must be before end date.");
       return;
     }
 
@@ -306,40 +328,76 @@ export default function CalendarSlotManagement() {
       setLoading(true);
       const token = apiToken();
       
-      // If REMOVED, delete all slots for that day instead of updating status
-      if (wholeDayData.status === "REMOVED") {
-        const res = await fetch(
-          `${apiBaseUrl}/admin/slot-instances-whole-day/${selectedEmployee.id}/${wholeDayData.date}`,
-          {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        if (!res.ok) throw new Error("Failed to remove whole day.");
-        const data = await res.json();
-        setMessage(`✓ Removed ${data.deletedCount} slots`);
-      } else {
-        const res = await fetch(
-          `${apiBaseUrl}/admin/slot-instances-whole-day/${selectedEmployee.id}/${wholeDayData.date}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ status: wholeDayData.status }),
-          }
-        );
-        if (!res.ok) throw new Error("Failed to mark whole day.");
-        const data = await res.json();
-        setMessage(`✓ Marked ${data.updatedCount} slots as ${wholeDayData.status}`);
+      // Single day
+      if (wholeDayData.dateType === "single") {
+        if (wholeDayData.status === "REMOVED") {
+          const res = await fetch(
+            `${apiBaseUrl}/admin/slot-instances-whole-day/${selectedEmployee.id}/${date}`,
+            {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          if (!res.ok) throw new Error("Failed to remove whole day.");
+          const data = await res.json();
+          setMessage(`✓ Removed ${data.deletedCount} slots`);
+        } else {
+          const res = await fetch(
+            `${apiBaseUrl}/admin/slot-instances-whole-day/${selectedEmployee.id}/${date}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ status: wholeDayData.status }),
+            }
+          );
+          if (!res.ok) throw new Error("Failed to mark whole day.");
+          const data = await res.json();
+          setMessage(`✓ Marked ${data.updatedCount} slots as ${wholeDayData.status}`);
+        }
+      } 
+      // Date range
+      else {
+        if (wholeDayData.status === "REMOVED") {
+          const res = await fetch(
+            `${apiBaseUrl}/admin/slot-instances-date-range/${selectedEmployee.id}`,
+            {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ startDate, endDate }),
+            }
+          );
+          if (!res.ok) throw new Error("Failed to remove date range.");
+          const data = await res.json();
+          setMessage(`✓ Removed ${data.deletedCount} slots`);
+        } else {
+          const res = await fetch(
+            `${apiBaseUrl}/admin/slot-instances-date-range/${selectedEmployee.id}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ status: wholeDayData.status, startDate, endDate }),
+            }
+          );
+          if (!res.ok) throw new Error("Failed to mark date range.");
+          const data = await res.json();
+          setMessage(`✓ Marked ${data.updatedCount} slots as ${wholeDayData.status}`);
+        }
       }
       
       setShowWholeDayModal(false);
-      setWholeDayData({ date: null, status: "SICK" });
+      setWholeDayData({ dateType: "single", date: null, startDate: null, endDate: null, status: "SICK" });
       if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
     } catch (err) {
       setMessage(`Error: ${err.message}`);
@@ -820,12 +878,12 @@ export default function CalendarSlotManagement() {
               <div className={styles.modal}>
                 <div className={styles.modalContent}>
                   <div className={styles.modalHeader}>
-                    <h3>Mark Whole Day</h3>
+                    <h3>Mark Whole Day / Date Range</h3>
                     <button
                       className={styles.closeBtn}
                       onClick={() => {
                         setShowWholeDayModal(false);
-                        setWholeDayData({ date: null, status: "SICK" });
+                        setWholeDayData({ dateType: "single", date: null, startDate: null, endDate: null, status: "SICK" });
                       }}
                     >
                       ✕
@@ -833,18 +891,61 @@ export default function CalendarSlotManagement() {
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label>Select Date</label>
-                    <input
-                      type="date"
-                      value={wholeDayData.date || ""}
-                      onChange={(e) =>
-                        setWholeDayData({ ...wholeDayData, date: e.target.value })
-                      }
-                    />
+                    <label>Select Type</label>
+                    <div style={{ display: "flex", gap: "10px" }}>
+                      <button
+                        className={wholeDayData.dateType === "single" ? styles.selectedTab : styles.tabButton}
+                        onClick={() => setWholeDayData({ ...wholeDayData, dateType: "single" })}
+                      >
+                        Single Day
+                      </button>
+                      <button
+                        className={wholeDayData.dateType === "range" ? styles.selectedTab : styles.tabButton}
+                        onClick={() => setWholeDayData({ ...wholeDayData, dateType: "range" })}
+                      >
+                        Date Range
+                      </button>
+                    </div>
                   </div>
 
+                  {wholeDayData.dateType === "single" ? (
+                    <div className={styles.formGroup}>
+                      <label>Select Date</label>
+                      <input
+                        type="date"
+                        value={wholeDayData.date || ""}
+                        onChange={(e) =>
+                          setWholeDayData({ ...wholeDayData, date: e.target.value })
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div className={styles.formGroup}>
+                        <label>Start Date</label>
+                        <input
+                          type="date"
+                          value={wholeDayData.startDate || ""}
+                          onChange={(e) =>
+                            setWholeDayData({ ...wholeDayData, startDate: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label>End Date</label>
+                        <input
+                          type="date"
+                          value={wholeDayData.endDate || ""}
+                          onChange={(e) =>
+                            setWholeDayData({ ...wholeDayData, endDate: e.target.value })
+                          }
+                        />
+                      </div>
+                    </>
+                  )}
+
                   <div className={styles.formGroup}>
-                    <label>Status for Whole Day</label>
+                    <label>Status for {wholeDayData.dateType === "single" ? "Day" : "Date Range"}</label>
                     <div className={styles.statusOptions}>
                       {getWholeDayStatusOptions().map((status) => (
                         <button
@@ -865,13 +966,13 @@ export default function CalendarSlotManagement() {
                       onClick={handleMarkWholDay}
                       disabled={loading}
                     >
-                      {loading ? "Updating..." : "Mark Day"}
+                      {loading ? "Updating..." : wholeDayData.dateType === "single" ? "Mark Day" : "Mark Date Range"}
                     </button>
                     <button
                       className={styles.cancelBtn}
                       onClick={() => {
                         setShowWholeDayModal(false);
-                        setWholeDayData({ date: null, status: "SICK" });
+                        setWholeDayData({ dateType: "single", date: null, startDate: null, endDate: null, status: "SICK" });
                       }}
                       disabled={loading}
                     >

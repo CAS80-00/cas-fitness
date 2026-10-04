@@ -1376,6 +1376,86 @@ router.delete("/slot-instances-whole-day/:userId/:date", async (req, res) => {
   }
 });
 
+// PUT: Mark a date range with a status (superuser only)
+router.put("/slot-instances-date-range/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { startDate, endDate, status } = req.body;
+    const isUserSuperuser = req.user.roleId === 1;
+
+    if (!isUserSuperuser) {
+      return res.status(403).json({ error: "Only superusers can mark date ranges." });
+    }
+
+    if (!startDate || !endDate || !status) {
+      return res.status(400).json({ error: "startDate, endDate, and status are required." });
+    }
+
+    // Whole day statuses (superuser only)
+    const wholeDayStatuses = ["SICK", "NO_SHOW", "VACATION", "PERSONAL_TIME"];
+
+    if (!wholeDayStatuses.includes(status)) {
+      return res.status(400).json({ error: `Invalid status. Allowed: ${wholeDayStatuses.join(", ")}` });
+    }
+
+    // Update all slots between startDate and endDate (inclusive)
+    const result = await db.query(
+      `
+      UPDATE slot_instances
+      SET status = $1, approved_by = $2, approved_at = NOW()
+      WHERE user_id = $3 AND slot_date >= $4 AND slot_date <= $5
+      RETURNING *
+      `,
+      [status, req.user.userId, userId, startDate, endDate],
+    );
+
+    res.json({ 
+      updatedCount: result.rows.length,
+      instances: result.rows,
+      message: `Marked ${result.rows.length} slots from ${startDate} to ${endDate} as ${status}.` 
+    });
+  } catch (err) {
+    console.error("Error marking date range:", err.message);
+    res.status(500).json({ error: "Failed to mark date range." });
+  }
+});
+
+// DELETE: Remove all slots in a date range (superuser only)
+router.delete("/slot-instances-date-range/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { startDate, endDate } = req.body;
+    const isUserSuperuser = req.user.roleId === 1;
+
+    if (!isUserSuperuser) {
+      return res.status(403).json({ error: "Only superusers can remove date ranges." });
+    }
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: "startDate and endDate are required." });
+    }
+
+    // Delete all slots between startDate and endDate (inclusive)
+    const result = await db.query(
+      `
+      DELETE FROM slot_instances
+      WHERE user_id = $1 AND slot_date >= $2 AND slot_date <= $3
+      RETURNING *
+      `,
+      [userId, startDate, endDate],
+    );
+
+    res.json({ 
+      deletedCount: result.rows.length,
+      instances: result.rows,
+      message: `Removed ${result.rows.length} slots from ${startDate} to ${endDate}.` 
+    });
+  } catch (err) {
+    console.error("Error removing date range:", err.message);
+    res.status(500).json({ error: "Failed to remove date range." });
+  }
+});
+
 // DELETE: Delete a slot instance
 router.delete("/slot-instances/:slotId", async (req, res) => {
   try {
