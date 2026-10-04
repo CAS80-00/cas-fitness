@@ -438,6 +438,11 @@ export default function CalendarSlotManagement() {
   const minuteOptions = [0, 15, 30, 45];
   const durationOptions = Array.from({ length: 12 }, (_, i) => (i + 1) * 5); // 5, 10, 15... 60
 
+  // Fallback status options if imports fail
+  const memberStatusOptions = getMemberStatusOptions();
+  const superuserStatusOptions = getSuperuserStatusOptions();
+  const wholeDayStatusOptions = getWholeDayStatusOptions();
+
   return (
     <div className={styles.container}>
       <h2 className={styles.title}>Calendar Slot Management</h2>
@@ -815,7 +820,7 @@ export default function CalendarSlotManagement() {
                     <p className={styles.optionLabel}>Select new status:</p>
                     {isSuperuser ? (
                       <div>
-                        {getSuperuserStatusOptions().map((status) => (
+                        {superuserStatusOptions.map((status) => (
                           <button
                             key={status}
                             className={styles.optionBtn}
@@ -829,7 +834,7 @@ export default function CalendarSlotManagement() {
                       </div>
                     ) : (
                       <div>
-                        {getMemberStatusOptions().map((status) => (
+                        {memberStatusOptions.map((status) => (
                           <button
                             key={status}
                             className={styles.optionBtn}
@@ -944,7 +949,7 @@ export default function CalendarSlotManagement() {
                   <div className={styles.formGroup}>
                     <label>Status for {wholeDayData.dateType === "single" ? "Day" : "Date Range"}</label>
                     <div className={styles.statusOptions}>
-                      {getWholeDayStatusOptions().map((status) => (
+                      {wholeDayStatusOptions.map((status) => (
                         <button
                           key={status}
                           className={`${styles.optionBtn} ${wholeDayData.status === status ? styles.selected : ""}`}
