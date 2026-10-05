@@ -861,20 +861,31 @@ export default function CalendarSlotManagement() {
                     <div className={styles.statusOptions}>
                       <p className={styles.optionLabel}>Change Calendar Type:</p>
                       <div style={{ display: "flex", gap: "10px", marginBottom: "1.5rem" }}>
-                        {["WORKOUT", "CONSULTATION"].map((type) => (
-                          <button
-                            key={type}
-                            className={styles.optionBtn}
-                            style={{ 
-                              borderLeftColor: type === "WORKOUT" ? "#3b82f6" : "#10b981",
-                              backgroundColor: selectedSlot.calendar_type === type ? "#f0f9ff" : "#ffffff"
-                            }}
-                            onClick={() => handleChangeCalendarType(type)}
-                            disabled={loading || selectedSlot.calendar_type === type}
-                          >
-                            {type}
-                          </button>
-                        ))}
+                        {["WORKOUT", "CONSULTATION"].map((type) => {
+                          const isCurrentType = selectedSlot.calendar_type === type;
+                          const isWorkout = type === "WORKOUT";
+                          const bgColor = isWorkout ? "#3b82f6" : "#10b981"; // Blue for WORKOUT, Green for CONSULTATION
+                          
+                          return (
+                            <button
+                              key={type}
+                              className={styles.optionBtn}
+                              style={{ 
+                                backgroundColor: isCurrentType ? "#d1d5db" : bgColor,
+                                color: isCurrentType ? "#9ca3af" : "#ffffff",
+                                borderLeftColor: bgColor,
+                                opacity: isCurrentType ? 0.6 : 1,
+                                cursor: isCurrentType ? "not-allowed" : "pointer",
+                                fontWeight: "500"
+                              }}
+                              onClick={() => handleChangeCalendarType(type)}
+                              disabled={loading || isCurrentType}
+                            >
+                              {type}
+                            </button>
+                          );
+                        })}
+                      </div>
                       </div>
                     </div>
                   )}
