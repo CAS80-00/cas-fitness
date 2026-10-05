@@ -45,11 +45,8 @@ export default function ConsultationCalendar({ employeeId }) {
     const loadSlots = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("cas_jwt");
         
-        const slotsRes = await fetch(`${apiBaseUrl}/calendars/trainer-consultation-slots-all`, {
-          headers: { Authorization: `Bearer ${token || ""}` },
-        });
+        const slotsRes = await fetch(`${apiBaseUrl}/calendars/trainer-consultation-slots-all`);
         const slotsData = await slotsRes.json();
         if (!slotsRes.ok) throw new Error(slotsData.error || "Failed to load available slots.");
         setConsultationSlots(slotsData.slots || []);

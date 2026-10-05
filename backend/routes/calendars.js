@@ -539,7 +539,8 @@ router.get("/trainer-slots-all", authenticateToken, async (req, res) => {
 });
 
 // 12. Get All Trainer Consultation Availability Slots (for calendar display)
-router.get("/trainer-consultation-slots-all", authenticateToken, async (req, res) => {
+// Public endpoint - no authentication required for booking from Plans page
+router.get("/trainer-consultation-slots-all", async (req, res) => {
   try {
     // Check if published_at column exists
     const columnRes = await db.query(
