@@ -886,7 +886,6 @@ export default function CalendarSlotManagement() {
                           );
                         })}
                       </div>
-                      </div>
                     </div>
                   )}
 
