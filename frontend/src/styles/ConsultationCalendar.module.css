@@ -65,6 +65,13 @@
   border-color: #9a3412;
 }
 
+.legend {
+  @apply rounded-lg border p-3 text-sm;
+  background-color: #0a0a0a;
+  border-color: #262626;
+  color: #e5e7eb;
+}
+
 .holdForm {
   @apply space-y-3;
 }
