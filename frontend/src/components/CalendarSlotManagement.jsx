@@ -296,6 +296,15 @@ export default function CalendarSlotManagement({ onSlotChanged = () => {} }) {
       setTimeout(() => {
         onSlotChanged();
       }, 500);
+    } catch (err) {
+      setMessage(`Error: ${err.message}`);
+      console.error("Error updating slot:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteSlot = async () => {
     if (!selectedSlot || !window.confirm("Delete this slot?")) return;
 
     try {
