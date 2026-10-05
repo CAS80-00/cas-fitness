@@ -1,10 +1,28 @@
 const { Pool } = require('pg');
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 
 async function migrate() {
   const db = new Pool({ connectionString: process.env.DATABASE_URL });
 
   try {
     console.log('Running migration: fix slot_instances status CHECK constraint...');
+
+    // First, check for any invalid status values
+    const invalidRows = await db.query(`
+      SELECT id, status FROM slot_instances 
+      WHERE status NOT IN ('APPROVED', 'CONSULTATION', 'WORKOUT', 'BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'REMOVED')
+    `);
+    
+    if (invalidRows.rows.length > 0) {
+      console.log(`Found ${invalidRows.rows.length} rows with invalid status. Fixing them...`);
+      // Set any invalid status to APPROVED
+      await db.query(`
+        UPDATE slot_instances 
+        SET status = 'APPROVED'
+        WHERE status NOT IN ('APPROVED', 'CONSULTATION', 'WORKOUT', 'BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'REMOVED')
+      `);
+      console.log('✓ Fixed invalid status values');
+    }
 
     // Drop the old constraint if it exists
     await db.query(`
