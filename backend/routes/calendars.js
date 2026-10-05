@@ -962,7 +962,8 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
     const endDateObj = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, parseInt(endParts[2]));
 
     const [startHours, startMinutes] = startTime.split(":").map(Number);
-    const [endHours, endMinutes] = String(endHour).padStart(2, "0") + ":" + String(endMinute).padStart(2, "0").split(":").map(Number);
+    const endTimeStr = `${String(endHour).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`;
+    const [endHours, endMinutes] = endTimeStr.split(":").map(Number);
 
     let instancesInserted = 0;
 
@@ -978,15 +979,22 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
     const hasPublishedAt = columnRes.rows[0].exists;
 
     // Generate slot instances for all matching dates in the range
+    console.log("Starting date loop. startDateObj:", startDateObj, "endDateObj:", endDateObj);
+    
+    let dateCount = 0;
     for (let d = new Date(startDateObj.getTime()); d <= endDateObj; d = new Date(d.getTime() + 86400000)) {
+      dateCount++;
+      if (dateCount > 100) {
+        console.log("Date loop exceeded 100 iterations, breaking");
+        break;
+      }
+      
       const dayOfWeek = d.getDay();
-      console.log("Checking date:", { dateStr: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, dayOfWeek, daysOfWeek, matches: daysOfWeek.includes(dayOfWeek) });
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      console.log(`Date ${dateCount}: ${dateStr}, dayOfWeek=${dayOfWeek}, checking against daysOfWeek=${JSON.stringify(daysOfWeek)}`);
+      
       if (daysOfWeek.includes(dayOfWeek)) {
-        // Format date as YYYY-MM-DD
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        const dateStr = `${year}-${month}-${day}`;
+        console.log(`  ✓ Match! Creating slots for ${dateStr}`);
 
         // Generate slots at the specified time interval
         let currentHour = startHours;
@@ -1009,7 +1017,7 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
           try {
             // Insert slot instance
             if (hasPublishedAt) {
-              await db.query(
+              const insertRes = await db.query(
                 `
                 INSERT INTO slot_instances (user_id, template_id, calendar_type, slot_date, start_time, end_time, status, published_at)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
@@ -1017,8 +1025,9 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
                 `,
                 [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, "APPROVED"]
               );
+              if (insertRes.rows.length > 0) instancesInserted++;
             } else {
-              await db.query(
+              const insertRes = await db.query(
                 `
                 INSERT INTO slot_instances (user_id, template_id, calendar_type, slot_date, start_time, end_time, status)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -1026,8 +1035,8 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
                 `,
                 [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, "APPROVED"]
               );
+              if (insertRes.rows.length > 0) instancesInserted++;
             }
-            instancesInserted++;
           } catch (err) {
             console.error(`Error inserting slot on ${dateStr}:`, err.message);
             // Continue with next slot
