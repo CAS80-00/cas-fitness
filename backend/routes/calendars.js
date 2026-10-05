@@ -513,4 +513,61 @@ router.get("/trainer-slots-all", authenticateToken, async (req, res) => {
   }
 });
 
+// 12. Get All Trainer Consultation Availability Slots (for calendar display)
+router.get("/trainer-consultation-slots-all", authenticateToken, async (req, res) => {
+  try {
+    // Check if published_at column exists
+    const columnRes = await db.query(
+      `SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'slot_instances' AND column_name = 'published_at'
+      )`
+    );
+    const hasPublishedAt = columnRes.rows[0].exists;
+
+    // Get all consultation slots from the new slot_instances table with trainer info
+    let query = `
+      SELECT 
+        si.id, 
+        si.user_id as trainer_id, 
+        si.slot_date,
+        si.start_time, 
+        si.end_time, 
+        si.status,
+        si.calendar_type,
+        u.first_name,
+        u.last_name
+      FROM slot_instances si
+      JOIN users u ON si.user_id = u.id
+      WHERE si.calendar_type = 'CONSULTATION'
+    `;
+
+    // Only filter by published_at if the column exists
+    if (hasPublishedAt) {
+      query += ` AND (si.published_at IS NULL OR si.published_at <= NOW())`;
+    }
+
+    query += ` ORDER BY si.user_id, si.slot_date, si.start_time`;
+
+    const result = await db.query(query);
+
+    const slots = result.rows.map((slot) => ({
+      id: slot.id,
+      trainerId: slot.trainer_id,
+      trainerName: `${slot.first_name} ${slot.last_name}`,
+      slotDate: slot.slot_date,
+      startTime: slot.start_time,
+      endTime: slot.end_time,
+      status: slot.status === 'APPROVED' ? slot.calendar_type : slot.status,
+      calendarType: slot.calendar_type,
+      locationFormat: "IN_PERSON",
+    }));
+
+    res.json({ slots });
+  } catch (err) {
+    console.error("Error fetching trainer consultation slots:", err.message);
+    res.status(500).json({ error: "Failed to fetch trainer consultation slots." });
+  }
+});
+
 module.exports = router;
