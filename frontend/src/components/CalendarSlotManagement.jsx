@@ -291,15 +291,11 @@ export default function CalendarSlotManagement({ onSlotChanged = () => {} }) {
       setShowStatusModal(false);
       setSelectedSlot(null);
       if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
-    } catch (err) {
-      setMessage(`Error: ${err.message}`);
-      console.error("Error updating slot:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteSlot = async () => {
+      
+      // Trigger calendar refresh after status change
+      setTimeout(() => {
+        onSlotChanged();
+      }, 500);
     if (!selectedSlot || !window.confirm("Delete this slot?")) return;
 
     try {
@@ -456,6 +452,11 @@ export default function CalendarSlotManagement({ onSlotChanged = () => {} }) {
       setShowWholeDayModal(false);
       setWholeDayData({ dateType: "single", date: null, startDate: null, endDate: null, status: "SICK" });
       if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
+      
+      // Trigger calendar refresh after whole day status change
+      setTimeout(() => {
+        onSlotChanged();
+      }, 500);
     } catch (err) {
       setMessage(`Error: ${err.message}`);
       console.error("Error marking whole day:", err);

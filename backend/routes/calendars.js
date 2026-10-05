@@ -469,6 +469,7 @@ router.get("/trainer-slots-all", authenticateToken, async (req, res) => {
     const hasPublishedAt = columnRes.rows[0].exists;
 
     // Get all workout slots from the new slot_instances table with trainer info
+    // Exclude slots with unavailable statuses (BREAK, LUNCH, SICK, NO_SHOW, VACATION, PERSONAL_TIME, REMOVED)
     let query = `
       SELECT 
         si.id, 
@@ -483,6 +484,7 @@ router.get("/trainer-slots-all", authenticateToken, async (req, res) => {
       FROM slot_instances si
       JOIN users u ON si.user_id = u.id
       WHERE si.calendar_type = 'WORKOUT'
+        AND si.status NOT IN ('BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'REMOVED')
     `;
 
     // Only filter by published_at if the column exists
@@ -549,6 +551,7 @@ router.get("/trainer-consultation-slots-all", authenticateToken, async (req, res
     const hasPublishedAt = columnRes.rows[0].exists;
 
     // Get all consultation slots from the new slot_instances table with trainer info
+    // Exclude slots with unavailable statuses (BREAK, LUNCH, SICK, NO_SHOW, VACATION, PERSONAL_TIME, REMOVED)
     let query = `
       SELECT 
         si.id, 
@@ -563,6 +566,7 @@ router.get("/trainer-consultation-slots-all", authenticateToken, async (req, res
       FROM slot_instances si
       JOIN users u ON si.user_id = u.id
       WHERE si.calendar_type = 'CONSULTATION'
+        AND si.status NOT IN ('BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'REMOVED')
     `;
 
     // Only filter by published_at if the column exists
