@@ -894,7 +894,9 @@ export default function CalendarSlotManagement({ onSlotChanged = () => {} }) {
                     <p className={styles.optionLabel}>Select new status:</p>
                     {isSuperuser ? (
                       <div>
-                        {superuserStatusOptions.map((status) => (
+                        {superuserStatusOptions
+                          .filter(status => status !== "CONSULTATION" && status !== "WORKOUT")
+                          .map((status) => (
                           <button
                             key={status}
                             className={styles.optionBtn}
@@ -908,7 +910,9 @@ export default function CalendarSlotManagement({ onSlotChanged = () => {} }) {
                       </div>
                     ) : (
                       <div>
-                        {memberStatusOptions.map((status) => (
+                        {memberStatusOptions
+                          .filter(status => status !== "CONSULTATION" && status !== "WORKOUT")
+                          .map((status) => (
                           <button
                             key={status}
                             className={styles.optionBtn}
