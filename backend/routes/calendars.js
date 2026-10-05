@@ -654,17 +654,14 @@ router.get("/trainer-consultation-slots", authenticateToken, async (req, res) =>
     const query = `
       SELECT 
         si.id,
-        si.trainer_id,
+        si.user_id as trainer_id,
         si.slot_date,
         si.start_time,
         si.end_time,
         si.calendar_type,
-        si.status,
-        u.first_name,
-        u.last_name
+        si.status
       FROM slot_instances si
-      LEFT JOIN users u ON si.trainer_id = u.id
-      WHERE si.trainer_id = $1 
+      WHERE si.user_id = $1 
         AND si.calendar_type = 'CONSULTATION'
         AND si.status = 'APPROVED'
       ORDER BY si.slot_date, si.start_time
@@ -673,23 +670,50 @@ router.get("/trainer-consultation-slots", authenticateToken, async (req, res) =>
     const result = await db.query(query, [trainer_id]);
 
     const slots = result.rows.map((slot) => {
-      const slotDate = new Date(slot.slot_date);
-      const startTime = new Date(`${slotDate.toISOString().split('T')[0]}T${slot.start_time}`);
-      const endTime = new Date(`${slotDate.toISOString().split('T')[0]}T${slot.end_time}`);
+      try {
+        // Handle slot_date - could be Date object or string
+        let dateStr = slot.slot_date;
+        if (slot.slot_date instanceof Date) {
+          dateStr = slot.slot_date.toISOString().split('T')[0];
+        } else if (typeof slot.slot_date === 'string') {
+          dateStr = slot.slot_date.split('T')[0];
+        }
 
-      return {
-        id: slot.id,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        status: slot.status,
-        calendar_type: slot.calendar_type,
-      };
-    });
+        // Handle time - ensure it's in HH:MM:SS format
+        let startTimeStr = slot.start_time;
+        let endTimeStr = slot.end_time;
+
+        if (typeof startTimeStr !== 'string' || !startTimeStr.includes(':')) {
+          console.warn(`Invalid start_time format: ${startTimeStr}`);
+          startTimeStr = '09:00:00';
+        }
+        if (typeof endTimeStr !== 'string' || !endTimeStr.includes(':')) {
+          console.warn(`Invalid end_time format: ${endTimeStr}`);
+          endTimeStr = '10:00:00';
+        }
+
+        // Construct full ISO timestamp
+        const startTime = new Date(`${dateStr}T${startTimeStr}Z`);
+        const endTime = new Date(`${dateStr}T${endTimeStr}Z`);
+
+        return {
+          id: slot.id,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          status: slot.status,
+          calendar_type: slot.calendar_type,
+        };
+      } catch (parseErr) {
+        console.error(`Error parsing slot ${slot.id}:`, parseErr, slot);
+        return null;
+      }
+    }).filter(s => s !== null);
 
     res.json({ data: slots });
   } catch (err) {
     console.error("Error fetching trainer consultation slots:", err.message);
-    res.status(500).json({ error: "Failed to fetch trainer consultation slots." });
+    console.error("Error details:", err);
+    res.status(500).json({ error: "Failed to fetch trainer consultation slots.", details: err.message });
   }
 });
 
@@ -713,7 +737,6 @@ router.get("/trainer-consultations", authenticateToken, async (req, res) => {
         ca.format,
         ca.start_time,
         ca.end_time,
-        ca.timezone,
         ca.created_at
       FROM consultation_appointments ca
       WHERE ca.employee_id = $1
@@ -724,7 +747,127 @@ router.get("/trainer-consultations", authenticateToken, async (req, res) => {
     res.json({ data: result.rows });
   } catch (err) {
     console.error("Error fetching trainer consultations:", err.message);
-    res.status(500).json({ error: "Failed to fetch trainer consultations." });
+    res.status(500).json({ error: "Failed to fetch trainer consultations.", details: err.message });
+  }
+});
+
+// Get trainer's available workout slots (for trainer's consolidated calendar)
+router.get("/trainer-workout-slots", authenticateToken, async (req, res) => {
+  const { trainer_id } = req.query;
+
+  if (!trainer_id) {
+    return res.status(400).json({ error: "trainer_id is required" });
+  }
+
+  try {
+    const query = `
+      SELECT 
+        si.id,
+        si.user_id as trainer_id,
+        si.slot_date,
+        si.start_time,
+        si.end_time,
+        si.calendar_type,
+        si.status
+      FROM slot_instances si
+      WHERE si.user_id = $1 
+        AND si.calendar_type = 'WORKOUT'
+        AND si.status = 'APPROVED'
+      ORDER BY si.slot_date, si.start_time
+    `;
+
+    const result = await db.query(query, [trainer_id]);
+
+    const slots = result.rows.map((slot) => {
+      try {
+        // Handle slot_date - could be Date object or string
+        let dateStr = slot.slot_date;
+        if (slot.slot_date instanceof Date) {
+          dateStr = slot.slot_date.toISOString().split('T')[0];
+        } else if (typeof slot.slot_date === 'string') {
+          dateStr = slot.slot_date.split('T')[0];
+        }
+
+        // Handle time - ensure it's in HH:MM:SS format
+        let startTimeStr = slot.start_time;
+        let endTimeStr = slot.end_time;
+
+        if (typeof startTimeStr !== 'string' || !startTimeStr.includes(':')) {
+          console.warn(`Invalid start_time format: ${startTimeStr}`);
+          startTimeStr = '09:00:00';
+        }
+        if (typeof endTimeStr !== 'string' || !endTimeStr.includes(':')) {
+          console.warn(`Invalid end_time format: ${endTimeStr}`);
+          endTimeStr = '10:00:00';
+        }
+
+        // Construct full ISO timestamp
+        const startTime = new Date(`${dateStr}T${startTimeStr}Z`);
+        const endTime = new Date(`${dateStr}T${endTimeStr}Z`);
+
+        return {
+          id: slot.id,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          status: slot.status,
+          calendar_type: slot.calendar_type,
+        };
+      } catch (parseErr) {
+        console.error(`Error parsing slot ${slot.id}:`, parseErr, slot);
+        return null;
+      }
+    }).filter(s => s !== null);
+
+    res.json({ data: slots });
+  } catch (err) {
+    console.error("Error fetching trainer workout slots:", err.message);
+    res.status(500).json({ error: "Failed to fetch trainer workout slots.", details: err.message });
+  }
+});
+
+// Get trainer's booked workout sessions (for trainer's consolidated calendar)
+router.get("/trainer-workouts", authenticateToken, async (req, res) => {
+  const { trainer_id } = req.query;
+
+  if (!trainer_id) {
+    return res.status(400).json({ error: "trainer_id is required" });
+  }
+
+  try {
+    const query = `
+      SELECT 
+        ws.id,
+        ws.trainer_id,
+        ws.student_id,
+        ws.status,
+        ws.start_time,
+        ws.end_time,
+        u.first_name as student_first_name,
+        u.last_name as student_last_name,
+        u.email as student_email
+      FROM workout_sessions ws
+      LEFT JOIN users u ON ws.student_id = u.id
+      WHERE ws.trainer_id = $1
+      ORDER BY ws.start_time DESC
+    `;
+
+    const result = await db.query(query, [trainer_id]);
+    
+    const workouts = result.rows.map((session) => ({
+      id: session.id,
+      client_name: session.student_first_name && session.student_last_name 
+        ? `${session.student_first_name} ${session.student_last_name}` 
+        : 'Student',
+      client_email: session.student_email || 'N/A',
+      status: session.status,
+      start_time: session.start_time,
+      end_time: session.end_time,
+    }));
+
+    res.json({ data: workouts });
+  } catch (err) {
+    console.error("Error fetching trainer workouts:", err.message);
+    res.status(500).json({ error: "Failed to fetch trainer workouts.", details: err.message });
   }
 });
 
