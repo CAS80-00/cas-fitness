@@ -1252,10 +1252,11 @@ router.get("/slot-instances/:userId", authenticateToken, async (req, res) => {
     const result = await db.query(query, params);
     console.log(`Fetched ${result.rows.length} slot instances for user ${userId}`);
     
-    // Map results to display status: show calendar_type for APPROVED slots
+    // Keep both status and calendar_type - don't overwrite status
+    // Frontend can use calendar_type for display if status is APPROVED
     const instances = result.rows.map(row => ({
       ...row,
-      status: row.status === 'APPROVED' ? row.calendar_type : row.status
+      displayStatus: row.status === 'APPROVED' ? row.calendar_type : row.status
     }));
     
     res.json({ instances });

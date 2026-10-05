@@ -135,11 +135,11 @@ export default function CalendarSlotManagement() {
       
       const event = {
         id: slot.id || idx,
-        title: slot.status || "PENDING",
+        title: slot.displayStatus || slot.status || "PENDING",
         start: startDateTime,
         end: endDateTime,
-        backgroundColor: getStatusColor(slot.status),
-        borderColor: getStatusColor(slot.status),
+        backgroundColor: getStatusColor(slot.displayStatus || slot.status),
+        borderColor: getStatusColor(slot.displayStatus || slot.status),
         extendedProps: {
           slotData: slot,
         },
@@ -843,8 +843,8 @@ export default function CalendarSlotManagement() {
                     </p>
                     <p>
                       <strong>Current Status:</strong>{" "}
-                      <span style={{ color: getStatusColor(selectedSlot.status) }}>
-                        {selectedSlot.status}
+                      <span style={{ color: getStatusColor(selectedSlot.displayStatus || selectedSlot.status) }}>
+                        {selectedSlot.displayStatus || selectedSlot.status}
                       </span>
                     </p>
                     {selectedSlot.calendar_type && (
