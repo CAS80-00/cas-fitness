@@ -74,6 +74,21 @@
   color: var(--color-neon-orange);
 }
 
+.slotInfo {
+  @apply mb-3 rounded-lg border p-3 text-sm;
+  background-color: #1a1a1a;
+  border-color: #10b981;
+  color: #d1fae5;
+}
+
+.slotInfo p {
+  @apply mb-2;
+}
+
+.slotInfo p:last-child {
+  @apply mb-0;
+}
+
 .formInput {
   @apply w-full rounded border p-2 text-sm text-white;
   background-color: var(--color-charcoal);
