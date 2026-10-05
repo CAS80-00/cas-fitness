@@ -1,0 +1,187 @@
+@reference "./global.css";
+
+/* ==========================================================================
+   Trainer Consolidated Calendar
+   Single unified view for trainers showing availability and bookings
+   ========================================================================== */
+
+.card {
+  @apply space-y-4 rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.header {
+  @apply flex items-center justify-between;
+}
+
+.title {
+  @apply text-xl font-bold text-white;
+}
+
+.loadingText {
+  @apply text-sm text-neutral-400;
+}
+
+.errorText {
+  @apply text-sm text-red-400;
+}
+
+.legend {
+  @apply flex flex-wrap gap-6 rounded-lg border p-3;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-color: #262626;
+}
+
+.legendItem {
+  @apply flex items-center gap-2;
+}
+
+.colorBox {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+/* FullCalendar enhancements */
+:global(.fc) {
+  font-family: inherit;
+}
+
+:global(.fc .fc-toolbar-title) {
+  font-size: 1.25em;
+  font-weight: 700;
+  color: #e5e7eb;
+}
+
+:global(.fc .fc-col-header-cell) {
+  background-color: #0a0a0a;
+  border-color: #262626;
+  color: #e5e7eb;
+  font-weight: 600;
+  padding: 0.75rem 0;
+}
+
+:global(.fc .fc-daygrid-day) {
+  background-color: #0a0a0a;
+  border-color: #262626;
+}
+
+:global(.fc .fc-daygrid-day-number) {
+  padding: 0.5rem;
+  color: #e5e7eb;
+  font-weight: 500;
+}
+
+:global(.fc .fc-daygrid-day-frame) {
+  min-height: 100px;
+}
+
+:global(.fc .fc-button-primary) {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+:global(.fc .fc-button-primary:hover) {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+:global(.fc .fc-button-primary.fc-button-active) {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+:global(.fc .fc-today) {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+:global(.fc .fc-timegrid-slot) {
+  height: 3em;
+}
+
+:global(.fc .fc-timegrid-body) {
+  background-color: #0a0a0a;
+}
+
+:global(.fc .fc-col-time-cell) {
+  background-color: #0a0a0a;
+  border-color: #262626;
+  color: #9ca3af;
+}
+
+:global(.fc .fc-event) {
+  cursor: pointer;
+  border: 2px solid;
+}
+
+:global(.fc .fc-event:hover) {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+/* Modal Styles */
+.modal {
+  @apply fixed inset-0 z-50 flex items-center justify-center;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modalContent {
+  @apply w-full max-w-md rounded-lg border shadow-lg;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.modalHeader {
+  @apply flex items-center justify-between border-b p-4;
+  border-color: #262626;
+}
+
+.modalHeader h3 {
+  @apply text-lg font-bold text-white;
+}
+
+.closeBtn {
+  @apply ml-2 cursor-pointer bg-none p-0 text-lg text-white;
+  border: none;
+  transition: color 0.2s;
+}
+
+.closeBtn:hover {
+  color: #ef4444;
+}
+
+.modalBody {
+  @apply space-y-3 p-4;
+}
+
+.detailRow {
+  @apply flex flex-col gap-1;
+}
+
+.detailRow label {
+  @apply text-sm font-semibold text-neutral-400;
+}
+
+.detailRow span {
+  @apply text-white;
+}
+
+.status {
+  @apply inline-block rounded px-2 py-1 text-xs font-bold;
+  background-color: #10b981;
+  color: white;
+}
+
+.modalFooter {
+  @apply border-t p-4;
+  border-color: #262626;
+}
+
+.closeButtonStyle {
+  @apply w-full rounded bg-blue-600 py-2 font-bold text-white transition;
+}
+
+.closeButtonStyle:hover {
+  background-color: #2563eb;
+}

@@ -642,4 +642,90 @@ router.get("/trainer-consultation-slots-all", async (req, res) => {
   }
 });
 
+// Get trainer's available consultation slots (for trainer's consolidated calendar)
+router.get("/trainer-consultation-slots", authenticateToken, async (req, res) => {
+  const { trainer_id } = req.query;
+
+  if (!trainer_id) {
+    return res.status(400).json({ error: "trainer_id is required" });
+  }
+
+  try {
+    const query = `
+      SELECT 
+        si.id,
+        si.trainer_id,
+        si.slot_date,
+        si.start_time,
+        si.end_time,
+        si.calendar_type,
+        si.status,
+        u.first_name,
+        u.last_name
+      FROM slot_instances si
+      LEFT JOIN users u ON si.trainer_id = u.id
+      WHERE si.trainer_id = $1 
+        AND si.calendar_type = 'CONSULTATION'
+        AND si.status = 'APPROVED'
+      ORDER BY si.slot_date, si.start_time
+    `;
+
+    const result = await db.query(query, [trainer_id]);
+
+    const slots = result.rows.map((slot) => {
+      const slotDate = new Date(slot.slot_date);
+      const startTime = new Date(`${slotDate.toISOString().split('T')[0]}T${slot.start_time}`);
+      const endTime = new Date(`${slotDate.toISOString().split('T')[0]}T${slot.end_time}`);
+
+      return {
+        id: slot.id,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        status: slot.status,
+        calendar_type: slot.calendar_type,
+      };
+    });
+
+    res.json({ data: slots });
+  } catch (err) {
+    console.error("Error fetching trainer consultation slots:", err.message);
+    res.status(500).json({ error: "Failed to fetch trainer consultation slots." });
+  }
+});
+
+// Get trainer's booked consultations (for trainer's consolidated calendar)
+router.get("/trainer-consultations", authenticateToken, async (req, res) => {
+  const { trainer_id } = req.query;
+
+  if (!trainer_id) {
+    return res.status(400).json({ error: "trainer_id is required" });
+  }
+
+  try {
+    const query = `
+      SELECT 
+        ca.id,
+        ca.employee_id,
+        ca.client_name,
+        ca.client_email,
+        ca.client_phone,
+        ca.status,
+        ca.format,
+        ca.start_time,
+        ca.end_time,
+        ca.timezone,
+        ca.created_at
+      FROM consultation_appointments ca
+      WHERE ca.employee_id = $1
+      ORDER BY ca.start_time DESC
+    `;
+
+    const result = await db.query(query, [trainer_id]);
+    res.json({ data: result.rows });
+  } catch (err) {
+    console.error("Error fetching trainer consultations:", err.message);
+    res.status(500).json({ error: "Failed to fetch trainer consultations." });
+  }
+});
+
 module.exports = router;

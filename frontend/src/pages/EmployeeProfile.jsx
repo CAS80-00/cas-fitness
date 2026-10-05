@@ -1,6 +1,4 @@
-import WorkoutCalendar from "../components/WorkoutCalendar";
-import ConsultationCalendar from "../components/ConsultationCalendar";
-import PersonalCalendar from "../components/PersonalCalendar";
+import TrainerConsolidatedCalendar from "../components/TrainerConsolidatedCalendar";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import styles from "../styles/EmployeeProfile.module.css";
@@ -8,8 +6,7 @@ import styles from "../styles/EmployeeProfile.module.css";
 /**
  * EmployeeProfile
  * Login guard blocks SUSPENDED/CANCELLED accounts. Renders the read-only
- * employee panel plus the consultation/workout calendars used by
- * trainers and staff.
+ * employee panel plus consolidated calendar showing availability and bookings.
  */
 export default function EmployeeProfile({ currentUser, onLogout, onNavigate, onAuthenticated }) {
   if (!currentUser || currentUser.status === "SUSPENDED" || currentUser.status === "CANCELLED") {
@@ -56,9 +53,7 @@ export default function EmployeeProfile({ currentUser, onLogout, onNavigate, onA
           <p>Role: Employee</p>
         </div>
 
-        <ConsultationCalendar employeeId={currentUser.id} />
-        <WorkoutCalendar trainerId={currentUser.id} isStudent={false} />
-        <PersonalCalendar />
+        <TrainerConsolidatedCalendar employeeId={currentUser.id} />
       </div>
 
       <SiteFooter isSuperuser={currentUser?.roleId === 1} />
