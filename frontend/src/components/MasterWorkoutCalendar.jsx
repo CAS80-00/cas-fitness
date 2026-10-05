@@ -68,24 +68,43 @@ export default function MasterWorkoutCalendar({ trainers }) {
       .forEach((slot) => {
         // New slots have concrete slot_date and start/end times
         if (slot.slotDate && slot.startTime && slot.endTime) {
-          const [hours, minutes] = slot.startTime.split(":").map(Number);
-          const [endHours, endMinutes] = slot.endTime.split(":").map(Number);
+          try {
+            const [hours, minutes] = slot.startTime.split(":").map(Number);
+            const [endHours, endMinutes] = slot.endTime.split(":").map(Number);
 
-          // Parse slot_date (YYYY-MM-DD format)
-          const [year, month, day] = slot.slotDate.split("-").map(Number);
-          const eventStart = new Date(year, month - 1, day, hours, minutes, 0, 0);
-          const eventEnd = new Date(year, month - 1, day, endHours, endMinutes, 0, 0);
+            // Parse slot_date (YYYY-MM-DD format)
+            const [year, month, day] = slot.slotDate.split("-").map(Number);
+            
+            // Validate parsed values
+            if (!Number.isFinite(hours) || !Number.isFinite(minutes) || 
+                !Number.isFinite(endHours) || !Number.isFinite(endMinutes) ||
+                !Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+              console.warn(`Invalid slot data for slot ${slot.id}:`, slot);
+              return;
+            }
+            
+            const eventStart = new Date(year, month - 1, day, hours, minutes, 0, 0);
+            const eventEnd = new Date(year, month - 1, day, endHours, endMinutes, 0, 0);
 
-          allEvents.push({
-            id: `slot-${slot.id}`,
-            title: `${slot.trainerName} - Available`,
-            start: eventStart.toISOString(),
-            end: eventEnd.toISOString(),
-            backgroundColor: "#10b981",
-            borderColor: "#059669",
-            textColor: "#ffffff",
-            extendedProps: { type: "availability" },
-          });
+            // Validate Date objects
+            if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
+              console.warn(`Invalid date created for slot ${slot.id}:`, { slot, eventStart, eventEnd });
+              return;
+            }
+
+            allEvents.push({
+              id: `slot-${slot.id}`,
+              title: `${slot.trainerName} - Available`,
+              start: eventStart.toISOString(),
+              end: eventEnd.toISOString(),
+              backgroundColor: "#10b981",
+              borderColor: "#059669",
+              textColor: "#ffffff",
+              extendedProps: { type: "availability" },
+            });
+          } catch (err) {
+            console.error(`Error parsing slot ${slot.id}:`, err, slot);
+          }
         }
       });
 
