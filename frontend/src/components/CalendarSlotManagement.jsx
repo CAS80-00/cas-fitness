@@ -84,6 +84,13 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
     }
   }, [employeeId, isEmployee]);
 
+  // Auto-select first employee when in superuser mode and employees are loaded
+  useEffect(() => {
+    if (!isEmployee && employees.length > 0 && !selectedEmployee) {
+      handleSelectEmployee(employees[0]);
+    }
+  }, [employees, isEmployee, selectedEmployee]);
+
   const loadEmployees = async () => {
     try {
       const token = apiToken();
