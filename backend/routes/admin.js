@@ -1565,4 +1565,52 @@ router.delete("/slot-templates/:templateId", async (req, res) => {
   }
 });
 
+// PUT: Change calendar type of a slot (superuser only)
+// Allows moving a slot from WORKOUT to CONSULTATION or vice versa
+router.put("/slot-instances/:slotId/calendar-type", authenticateToken, async (req, res) => {
+  try {
+    const { slotId } = req.params;
+    const { calendarType } = req.body;
+    const isUserSuperuser = req.user.roleId === 1;
+
+    if (!isUserSuperuser) {
+      return res.status(403).json({ error: "Only superusers can change slot calendar type." });
+    }
+
+    if (!calendarType) {
+      return res.status(400).json({ error: "calendarType is required." });
+    }
+
+    const validCalendarTypes = ["WORKOUT", "CONSULTATION"];
+    if (!validCalendarTypes.includes(calendarType)) {
+      return res.status(400).json({ error: `Invalid calendar type. Allowed: ${validCalendarTypes.join(", ")}` });
+    }
+
+    // Update the calendar_type while keeping status as APPROVED
+    const result = await db.query(
+      `UPDATE slot_instances
+       SET calendar_type = $1, approved_by = $2, approved_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [calendarType, req.user.userId, slotId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Slot instance not found." });
+    }
+
+    const slot = result.rows[0];
+    console.log(`[CALENDAR TYPE CHANGE] Slot ${slotId} changed to calendar_type: ${calendarType}`);
+
+    res.json({ 
+      success: true,
+      instance: slot,
+      message: `Slot moved to ${calendarType} calendar.` 
+    });
+  } catch (err) {
+    console.error("Error changing slot calendar type:", err.message);
+    res.status(500).json({ error: "Failed to change slot calendar type: " + err.message });
+  }
+});
+
 module.exports = router;

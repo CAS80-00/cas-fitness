@@ -321,6 +321,39 @@ export default function CalendarSlotManagement() {
       setLoading(false);
     }
   };
+
+  const handleChangeCalendarType = async (newCalendarType) => {
+    if (!selectedSlot) return;
+
+    try {
+      setLoading(true);
+      const token = apiToken();
+      const res = await fetch(`${apiBaseUrl}/admin/slot-instances/${selectedSlot.id}/calendar-type`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ calendarType: newCalendarType }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to change calendar type.");
+      }
+      
+      setMessage(`✓ Slot moved to ${newCalendarType} calendar`);
+      setShowStatusModal(false);
+      setSelectedSlot(null);
+      if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
+    } catch (err) {
+      setMessage(`Error: ${err.message}`);
+      console.error("Error changing calendar type:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleMarkWholDay = async () => {
     const date = wholeDayData.dateType === "single" ? wholeDayData.date : null;
     const startDate = wholeDayData.dateType === "range" ? wholeDayData.startDate : null;
@@ -814,7 +847,37 @@ export default function CalendarSlotManagement() {
                         {selectedSlot.status}
                       </span>
                     </p>
+                    {selectedSlot.calendar_type && (
+                      <p>
+                        <strong>Calendar Type:</strong>{" "}
+                        <span style={{ fontWeight: "bold" }}>
+                          {selectedSlot.calendar_type}
+                        </span>
+                      </p>
+                    )}
                   </div>
+
+                  {isSuperuser && selectedSlot.calendar_type && (
+                    <div className={styles.statusOptions}>
+                      <p className={styles.optionLabel}>Change Calendar Type:</p>
+                      <div style={{ display: "flex", gap: "10px", marginBottom: "1.5rem" }}>
+                        {["WORKOUT", "CONSULTATION"].map((type) => (
+                          <button
+                            key={type}
+                            className={styles.optionBtn}
+                            style={{ 
+                              borderLeftColor: type === "WORKOUT" ? "#10b981" : "#3b82f6",
+                              backgroundColor: selectedSlot.calendar_type === type ? "#f0f9ff" : "#ffffff"
+                            }}
+                            onClick={() => handleChangeCalendarType(type)}
+                            disabled={loading || selectedSlot.calendar_type === type}
+                          >
+                            {type}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className={styles.statusOptions}>
                     <p className={styles.optionLabel}>Select new status:</p>
