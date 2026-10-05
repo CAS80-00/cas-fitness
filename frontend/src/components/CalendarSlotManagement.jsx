@@ -245,6 +245,7 @@ export default function CalendarSlotManagement({ onSlotChanged = () => {} }) {
       // Reload slots after creation
       await new Promise(resolve => setTimeout(resolve, 500)); // Small delay to ensure DB writes
       loadSlotInstances(selectedEmployee.id);
+      onSlotChanged(); // Trigger refresh of all calendars
     } catch (err) {
       setMessage(`Error: ${err.message}`);
       console.error("Error creating slots:", err); // Debug log
