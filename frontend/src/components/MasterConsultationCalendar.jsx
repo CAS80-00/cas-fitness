@@ -10,7 +10,7 @@ import styles from "../styles/MasterCalendar.module.css";
  * with a dropdown to isolate a single staff member's schedule.
  * Displays both booked consultations and trainer consultation availability slots.
  */
-export default function MasterConsultationCalendar({ staff }) {
+export default function MasterConsultationCalendar({ staff, refreshTrigger = 0 }) {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
   const [appointments, setAppointments] = useState([]);
   const [consultationSlots, setConsultationSlots] = useState([]);
@@ -41,7 +41,7 @@ export default function MasterConsultationCalendar({ staff }) {
       }
     };
     load();
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, refreshTrigger]);
 
   const events = useMemo(() => {
     const allEvents = [];

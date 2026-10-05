@@ -32,6 +32,7 @@ export default function SuperuserDashboard({ currentUser, onLogout, onNavigate, 
   const [plans, setPlans] = useState([]);
   const [viewingEmployeeId, setViewingEmployeeId] = useState(null);
   const [viewingMemberId, setViewingMemberId] = useState(null);
+  const [calendarRefreshTrigger, setCalendarRefreshTrigger] = useState(0);
 
   const authHeaders = () => {
     const token = localStorage.getItem("cas_jwt");
@@ -44,6 +45,11 @@ export default function SuperuserDashboard({ currentUser, onLogout, onNavigate, 
     localStorage.removeItem("cas_user");
     onLogout?.();
     onNavigate?.("home");
+  };
+
+  // Trigger refresh of all calendars when slot changes occur
+  const triggerCalendarRefresh = () => {
+    setCalendarRefreshTrigger(prev => prev + 1);
   };
 
   useEffect(() => {
@@ -160,11 +166,11 @@ export default function SuperuserDashboard({ currentUser, onLogout, onNavigate, 
 
         <UserManagementSection type="member" title="Manage Members" statusOptions={MEMBER_STATUS_OPTIONS} onViewMember={(memberId) => setViewingMemberId(memberId)} />
 
-        <MasterConsultationCalendar staff={staff} />
+        <MasterConsultationCalendar staff={staff} refreshTrigger={calendarRefreshTrigger} />
 
-        <MasterWorkoutCalendar trainers={staff} />
+        <MasterWorkoutCalendar trainers={staff} refreshTrigger={calendarRefreshTrigger} />
 
-        <CalendarSlotManagement />
+        <CalendarSlotManagement onSlotChanged={triggerCalendarRefresh} />
 
         <PromoCodesSection plans={plans} onSessionInvalidated={handleSessionInvalidated} />
       </div>

@@ -21,7 +21,7 @@ import {
  * - Member status options: CONSULTATION, TRAINING, BREAK
  * - Superuser status options: SICK, NO_SHOW, VACATION
  */
-export default function CalendarSlotManagement() {
+export default function CalendarSlotManagement({ onSlotChanged = () => {} }) {
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [slotInstances, setSlotInstances] = useState([]);
@@ -346,6 +346,7 @@ export default function CalendarSlotManagement() {
       setShowStatusModal(false);
       setSelectedSlot(null);
       if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
+      onSlotChanged(); // Trigger refresh of all calendars
     } catch (err) {
       setMessage(`Error: ${err.message}`);
       console.error("Error changing calendar type:", err);

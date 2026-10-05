@@ -9,7 +9,7 @@ import styles from "../styles/MasterCalendar.module.css";
  * Read-only combined view of every trainer's workout sessions and availability slots.
  * Displays both booked sessions and trainer availability.
  */
-export default function MasterWorkoutCalendar({ trainers }) {
+export default function MasterWorkoutCalendar({ trainers, refreshTrigger = 0 }) {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
   const [sessions, setSessions] = useState([]);
   const [trainerSlots, setTrainerSlots] = useState([]);
@@ -42,7 +42,7 @@ export default function MasterWorkoutCalendar({ trainers }) {
       }
     };
     load();
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, refreshTrigger]);
 
   const events = useMemo(() => {
     const allEvents = [];
