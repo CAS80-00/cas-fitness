@@ -15,13 +15,14 @@ import {
 /**
  * Comprehensive Calendar Slot Management
  * - Superuser creates recurring slots for employees
+ * - Employees create slots for themselves
  * - Generates continuous hourly slots at the specified minute
  * - Displays slots in a calendar view
  * - Employees/Members approve and manage their slots
  * - Member status options: CONSULTATION, TRAINING, BREAK
  * - Superuser status options: SICK, NO_SHOW, VACATION
  */
-export default function CalendarSlotManagement({ onSlotChanged = () => {} }) {
+export default function CalendarSlotManagement({ employeeId, isEmployee = false, onSlotChanged = () => {} }) {
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [slotInstances, setSlotInstances] = useState([]);
@@ -69,11 +70,19 @@ export default function CalendarSlotManagement({ onSlotChanged = () => {} }) {
   const isSuperuser = currentUserData ? JSON.parse(currentUserData).roleId === 1 : false;
 
   useEffect(() => {
-    loadEmployees();
     if (currentUserData) {
       setCurrentUser(JSON.parse(currentUserData));
     }
-  }, []);
+    
+    // If employee mode, set selectedEmployee to self
+    if (isEmployee && employeeId) {
+      setSelectedEmployee(employeeId);
+      loadSlotInstances(employeeId);
+    } else if (!isEmployee) {
+      // Superuser mode - load all employees
+      loadEmployees();
+    }
+  }, [employeeId, isEmployee]);
 
   const loadEmployees = async () => {
     try {
@@ -210,7 +219,9 @@ export default function CalendarSlotManagement({ onSlotChanged = () => {} }) {
 
       console.log("Creating slots with payload:", payload); // Debug log
 
-      const res = await fetch(`${apiBaseUrl}/admin/slot-templates`, {
+      const endpoint = isEmployee ? `${apiBaseUrl}/calendars/slots/create` : `${apiBaseUrl}/admin/slot-templates`;
+      
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -225,8 +236,9 @@ export default function CalendarSlotManagement({ onSlotChanged = () => {} }) {
       }
 
       const data = await res.json();
-      console.log("Slots created:", data.instancesCount); // Debug log
-      setMessage(`✓ Created ${data.instancesCount} slots for ${selectedEmployee.firstName}`);
+      const slotsCount = data.instancesCount || data.slotsCreated || 0;
+      const employeeName = isEmployee ? "your" : `${selectedEmployee.firstName}'s`;
+      setMessage(`✓ Created ${slotsCount} slots for ${employeeName} calendar`);
       setShowCreateForm(false);
       setFormData({
         calendarType: "WORKOUT",
@@ -493,33 +505,35 @@ export default function CalendarSlotManagement({ onSlotChanged = () => {} }) {
       <h2 className={styles.title}>Calendar Slot Management</h2>
 
       <div className={styles.grid}>
-        {/* Left Panel: Employee Selection */}
-        <div className={styles.panel}>
-          <h3 className={styles.panelTitle}>Select Employee</h3>
-          <div className={styles.employeeList}>
-            {employees.map((emp) => (
-              <button
-                key={emp.id}
-                className={selectedEmployee?.id === emp.id ? styles.employeeButtonActive : styles.employeeButton}
-                onClick={() => handleSelectEmployee(emp)}
-              >
-                <div className={styles.empName}>
-                  {emp.firstName} {emp.lastName}
-                </div>
-                <div className={styles.empRole}>{emp.roleName}</div>
-              </button>
-            ))}
+        {/* Left Panel: Employee Selection - Hidden in employee mode */}
+        {!isEmployee && (
+          <div className={styles.panel}>
+            <h3 className={styles.panelTitle}>Select Employee</h3>
+            <div className={styles.employeeList}>
+              {employees.map((emp) => (
+                <button
+                  key={emp.id}
+                  className={selectedEmployee?.id === emp.id ? styles.employeeButtonActive : styles.employeeButton}
+                  onClick={() => handleSelectEmployee(emp)}
+                >
+                  <div className={styles.empName}>
+                    {emp.firstName} {emp.lastName}
+                  </div>
+                  <div className={styles.empRole}>{emp.roleName}</div>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Right Panel: Slot Management */}
         {selectedEmployee && (
-          <div className={styles.panel}>
+          <div className={styles.panel} style={{gridColumn: isEmployee ? '1 / -1' : 'auto'}}>
             <div className={styles.panelHeader}>
               <h3 className={styles.panelTitle}>
-                Slots for {selectedEmployee.firstName} {selectedEmployee.lastName}
+                {isEmployee ? "My Availability Slots" : `Slots for ${selectedEmployee.firstName || selectedEmployee} ${selectedEmployee.lastName || ''}`}
               </h3>
-              {isSuperuser && (
+              {(isSuperuser || isEmployee) && (
                 <button
                   className={styles.createButton}
                   onClick={() => setShowCreateForm(!showCreateForm)}
@@ -533,7 +547,7 @@ export default function CalendarSlotManagement({ onSlotChanged = () => {} }) {
             {message && <div className={styles.message}>{message}</div>}
 
             {/* Create Slot Form */}
-            {showCreateForm && isSuperuser && (
+            {showCreateForm && (isSuperuser || isEmployee) && (
               <form className={styles.form} onSubmit={handleCreateSlots}>
                 <div className={styles.formRow}>
                   <div className={styles.formGroup}>

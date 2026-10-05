@@ -1,5 +1,5 @@
 import { useState } from "react";
-import EmployeeSlotCreation from "../components/EmployeeSlotCreation";
+import CalendarSlotManagement from "../components/CalendarSlotManagement";
 import TrainerConsolidatedCalendar from "../components/TrainerConsolidatedCalendar";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
@@ -8,8 +8,7 @@ import styles from "../styles/EmployeeProfile.module.css";
 /**
  * EmployeeProfile
  * Login guard blocks SUSPENDED/CANCELLED accounts. Renders the read-only
- * employee panel plus consolidated calendar showing availability and bookings,
- * and slot creation form.
+ * employee panel plus slot creation and consolidated calendar.
  */
 export default function EmployeeProfile({ currentUser, onLogout, onNavigate, onAuthenticated }) {
   const [calendarRefreshTrigger, setCalendarRefreshTrigger] = useState(0);
@@ -32,7 +31,7 @@ export default function EmployeeProfile({ currentUser, onLogout, onNavigate, onA
     );
   }
 
-  const handleSlotCreated = () => {
+  const handleSlotChanged = () => {
     // Increment trigger to refresh calendar
     setCalendarRefreshTrigger(prev => prev + 1);
   };
@@ -63,7 +62,7 @@ export default function EmployeeProfile({ currentUser, onLogout, onNavigate, onA
           <p>Role: Employee</p>
         </div>
 
-        <EmployeeSlotCreation employeeId={currentUser.id} onSlotCreated={handleSlotCreated} />
+        <CalendarSlotManagement employeeId={currentUser.id} isEmployee={true} onSlotChanged={handleSlotChanged} />
 
         <TrainerConsolidatedCalendar employeeId={currentUser.id} refreshTrigger={calendarRefreshTrigger} />
       </div>
