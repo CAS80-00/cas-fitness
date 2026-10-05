@@ -1,0 +1,136 @@
+@reference "./global.css";
+
+/* ==========================================================================
+   Employee Slot Creation
+   Form for employees to create their own availability slots
+   ========================================================================== */
+
+.container {
+  @apply space-y-4 rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.header {
+  @apply flex items-center justify-between;
+}
+
+.title {
+  @apply text-lg font-bold text-white;
+}
+
+.toggleButton {
+  @apply rounded bg-blue-600 px-4 py-2 font-bold text-white transition;
+}
+
+.toggleButton:hover {
+  background-color: #2563eb;
+}
+
+.form {
+  @apply space-y-4 rounded-lg border-t p-4;
+  border-color: #262626;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.formGroup {
+  @apply flex flex-col gap-2;
+}
+
+.formGroup label {
+  @apply text-sm font-semibold text-neutral-300;
+}
+
+.input,
+.select {
+  @apply rounded border px-3 py-2 text-white;
+  background-color: #0a0a0a;
+  border-color: #262626;
+  transition: border-color 0.2s;
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.row {
+  @apply grid gap-4;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.daysContainer {
+  @apply flex flex-col gap-2;
+}
+
+.daysContainer label {
+  @apply text-sm font-semibold text-neutral-300;
+}
+
+.daysGrid {
+  @apply grid gap-3;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.dayCheckbox {
+  @apply flex cursor-pointer items-center gap-2 rounded border p-2;
+  border-color: #262626;
+  background-color: rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
+}
+
+.dayCheckbox:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+}
+
+.dayCheckbox input {
+  cursor: pointer;
+}
+
+.dayCheckbox span {
+  @apply text-sm font-medium text-white;
+}
+
+.dayCheckbox input:checked + span {
+  color: #3b82f6;
+}
+
+.message {
+  @apply rounded border p-3 text-sm font-medium;
+}
+
+.message.success {
+  @apply border-green-600 bg-green-900 text-green-200;
+}
+
+.message.error {
+  @apply border-red-600 bg-red-900 text-red-200;
+}
+
+.submitButton {
+  @apply w-full rounded bg-green-600 py-2 font-bold text-white transition;
+}
+
+.submitButton:hover:not(:disabled) {
+  background-color: #059669;
+}
+
+.submitButton:disabled {
+  background-color: #6b7280;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .daysGrid {
+    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  }
+
+  .row {
+    grid-template-columns: 1fr;
+  }
+}

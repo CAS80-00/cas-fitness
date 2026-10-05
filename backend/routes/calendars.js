@@ -871,4 +871,136 @@ router.get("/trainer-workouts", authenticateToken, async (req, res) => {
   }
 });
 
+// Employee creates their own availability slots (uses same structure as superuser)
+router.post("/slots/create", authenticateToken, async (req, res) => {
+  const {
+    userId,
+    calendarType,
+    startDate,
+    endDate,
+    startHour,
+    startMinute,
+    durationMinutes,
+    endHour,
+    endMinute,
+    locationFormat,
+    daysOfWeek,
+  } = req.body;
+
+  if (!userId || !calendarType || !startDate || !endDate || startHour === undefined || startMinute === undefined || !durationMinutes || !daysOfWeek) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  if (daysOfWeek.length === 0) {
+    return res.status(400).json({ error: "At least one day of week must be selected" });
+  }
+
+  try {
+    // Format start time as HH:MM
+    const startTime = `${String(startHour).padStart(2, "0")}:${String(startMinute).padStart(2, "0")}`;
+    
+    // Create template first (same as superuser flow)
+    const templateResult = await db.query(
+      `
+      INSERT INTO scheduled_slot_templates 
+      (user_id, created_by, calendar_type, start_date, end_date, start_time, duration_minutes, location_format, days_of_week)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *
+      `,
+      [userId, userId, calendarType, startDate, endDate, startTime, durationMinutes, locationFormat || null, daysOfWeek]
+    );
+
+    const template = templateResult.rows[0];
+
+    // Parse dates as local dates
+    const startParts = startDate.split("-");
+    const endParts = endDate.split("-");
+    const startDateObj = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]));
+    const endDateObj = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, parseInt(endParts[2]));
+
+    const [startHours, startMinutes] = startTime.split(":").map(Number);
+    const [endHours, endMinutes] = String(endHour).padStart(2, "0") + ":" + String(endMinute).padStart(2, "0").split(":").map(Number);
+
+    let instancesInserted = 0;
+
+    // Check if published_at column exists
+    const columnRes = await db.query(
+      `SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'slot_instances' AND column_name = 'published_at'
+      )`
+    );
+    const hasPublishedAt = columnRes.rows[0].exists;
+
+    // Generate slot instances for all matching dates in the range
+    for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
+      const dayOfWeek = d.getDay();
+      if (daysOfWeek.includes(dayOfWeek)) {
+        // Format date as YYYY-MM-DD
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const dateStr = `${year}-${month}-${day}`;
+
+        // Generate slots at the specified time interval
+        let currentHour = startHours;
+
+        while (currentHour < endHours || (currentHour === endHours && startMinutes < endMinutes)) {
+          const slotStartStr = `${String(currentHour).padStart(2, "0")}:${String(startMinutes).padStart(2, "0")}`;
+
+          // Calculate slot end time
+          let slotEndHour = currentHour + Math.floor((startMinutes + durationMinutes) / 60);
+          let slotEndMinute = (startMinutes + durationMinutes) % 60;
+
+          // Don't create slot if it goes beyond end time of day
+          if (slotEndHour > endHours || (slotEndHour === endHours && slotEndMinute > endMinutes)) {
+            break;
+          }
+
+          const slotEndStr = `${String(slotEndHour).padStart(2, "0")}:${String(slotEndMinute).padStart(2, "0")}`;
+
+          try {
+            // Insert slot instance
+            if (hasPublishedAt) {
+              await db.query(
+                `
+                INSERT INTO slot_instances (user_id, template_id, calendar_type, slot_date, start_time, end_time, status, published_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+                RETURNING *
+                `,
+                [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, "APPROVED"]
+              );
+            } else {
+              await db.query(
+                `
+                INSERT INTO slot_instances (user_id, template_id, calendar_type, slot_date, start_time, end_time, status)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                RETURNING *
+                `,
+                [userId, template.id, calendarType, dateStr, slotStartStr, slotEndStr, "APPROVED"]
+              );
+            }
+            instancesInserted++;
+          } catch (err) {
+            console.error(`Error inserting slot on ${dateStr}:`, err.message);
+            // Continue with next slot
+          }
+
+          // Move to next hourly slot
+          currentHour++;
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      slotsCreated: instancesInserted,
+      message: `Successfully created ${instancesInserted} slots`,
+    });
+  } catch (err) {
+    console.error("Error creating slots:", err.message);
+    res.status(500).json({ error: "Failed to create slots", details: err.message });
+  }
+});
+
 module.exports = router;
