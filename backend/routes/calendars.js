@@ -494,17 +494,40 @@ router.get("/trainer-slots-all", authenticateToken, async (req, res) => {
 
     const result = await db.query(query);
 
-    const slots = result.rows.map((slot) => ({
-      id: slot.id,
-      trainerId: slot.trainer_id,
-      trainerName: `${slot.first_name} ${slot.last_name}`,
-      slotDate: slot.slot_date,
-      startTime: slot.start_time,
-      endTime: slot.end_time,
-      status: slot.status === 'APPROVED' ? slot.calendar_type : slot.status,
-      calendarType: slot.calendar_type,
-      locationFormat: "IN_PERSON",
-    }));
+    const slots = result.rows.map((slot) => {
+      // Format slot_date to YYYY-MM-DD string (in case PostgreSQL returns it with time)
+      let formattedDate = slot.slot_date;
+      if (typeof slot.slot_date === 'string') {
+        // If it's already a string like "2026-11-06" or "2026-11-06T05:00:00.000Z"
+        formattedDate = slot.slot_date.split('T')[0];
+      } else if (slot.slot_date instanceof Date) {
+        // If it's a Date object, format as YYYY-MM-DD
+        const year = slot.slot_date.getFullYear();
+        const month = String(slot.slot_date.getMonth() + 1).padStart(2, '0');
+        const day = String(slot.slot_date.getDate()).padStart(2, '0');
+        formattedDate = `${year}-${month}-${day}`;
+      }
+
+      // Format start_time and end_time to HH:MM format (in case they have seconds)
+      const formatTime = (timeStr) => {
+        if (typeof timeStr === 'string') {
+          return timeStr.substring(0, 5); // Get HH:MM from HH:MM:SS
+        }
+        return timeStr;
+      };
+
+      return {
+        id: slot.id,
+        trainerId: slot.trainer_id,
+        trainerName: `${slot.first_name} ${slot.last_name}`,
+        slotDate: formattedDate,
+        startTime: formatTime(slot.start_time),
+        endTime: formatTime(slot.end_time),
+        status: slot.status === 'APPROVED' ? slot.calendar_type : slot.status,
+        calendarType: slot.calendar_type,
+        locationFormat: "IN_PERSON",
+      };
+    });
 
     res.json({ slots });
   } catch (err) {
@@ -551,17 +574,40 @@ router.get("/trainer-consultation-slots-all", authenticateToken, async (req, res
 
     const result = await db.query(query);
 
-    const slots = result.rows.map((slot) => ({
-      id: slot.id,
-      trainerId: slot.trainer_id,
-      trainerName: `${slot.first_name} ${slot.last_name}`,
-      slotDate: slot.slot_date,
-      startTime: slot.start_time,
-      endTime: slot.end_time,
-      status: slot.status === 'APPROVED' ? slot.calendar_type : slot.status,
-      calendarType: slot.calendar_type,
-      locationFormat: "IN_PERSON",
-    }));
+    const slots = result.rows.map((slot) => {
+      // Format slot_date to YYYY-MM-DD string (in case PostgreSQL returns it with time)
+      let formattedDate = slot.slot_date;
+      if (typeof slot.slot_date === 'string') {
+        // If it's already a string like "2026-11-06" or "2026-11-06T05:00:00.000Z"
+        formattedDate = slot.slot_date.split('T')[0];
+      } else if (slot.slot_date instanceof Date) {
+        // If it's a Date object, format as YYYY-MM-DD
+        const year = slot.slot_date.getFullYear();
+        const month = String(slot.slot_date.getMonth() + 1).padStart(2, '0');
+        const day = String(slot.slot_date.getDate()).padStart(2, '0');
+        formattedDate = `${year}-${month}-${day}`;
+      }
+
+      // Format start_time and end_time to HH:MM format (in case they have seconds)
+      const formatTime = (timeStr) => {
+        if (typeof timeStr === 'string') {
+          return timeStr.substring(0, 5); // Get HH:MM from HH:MM:SS
+        }
+        return timeStr;
+      };
+
+      return {
+        id: slot.id,
+        trainerId: slot.trainer_id,
+        trainerName: `${slot.first_name} ${slot.last_name}`,
+        slotDate: formattedDate,
+        startTime: formatTime(slot.start_time),
+        endTime: formatTime(slot.end_time),
+        status: slot.status === 'APPROVED' ? slot.calendar_type : slot.status,
+        calendarType: slot.calendar_type,
+        locationFormat: "IN_PERSON",
+      };
+    });
 
     res.json({ slots });
   } catch (err) {
