@@ -103,13 +103,20 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
     try {
       setLoading(true);
       const token = apiToken();
-      const res = await fetch(`${apiBaseUrl}/admin/slot-instances/${userId}`, {
+      
+      // Employees use /my-slots to fetch their own slots
+      // Superusers would use the admin endpoint (but this component is for employees only in slot creation mode)
+      const endpoint = `${apiBaseUrl}/calendars/my-slots`;
+      
+      const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Failed to load slots.");
       const data = await res.json();
-      console.log("Loaded slots:", data.instances); // Debug log
-      setSlotInstances(data.instances || []);
+      
+      const instances = data.instances || [];
+      console.log("Loaded slots:", instances); // Debug log
+      setSlotInstances(instances);
     } catch (err) {
       setMessage(`Error: ${err.message}`);
       console.error("Error loading slots:", err); // Debug log
@@ -196,25 +203,22 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
     try {
       setLoading(true);
       const token = apiToken();
-      const startTime = `${String(formData.startHour).padStart(2, "0")}:${String(formData.startMinute).padStart(2, "0")}`;
-      const endTimeOfDay = `${String(formData.endHour).padStart(2, "0")}:${String(formData.endMinute).padStart(2, "0")}`;
 
-      // Combine publish date and time
-      const publishedAt = formData.publishedAtDate && formData.publishedAtTime 
-        ? new Date(`${formData.publishedAtDate}T${formData.publishedAtTime}:00Z`)
-        : null;
+      // Handle both employee mode (string) and superuser mode (object)
+      const employeeId = typeof selectedEmployee === 'string' ? selectedEmployee : selectedEmployee.id;
 
       const payload = {
-        userId: selectedEmployee.id,
+        userId: employeeId,
         calendarType: formData.calendarType,
         startDate: formData.startDate,
         endDate: formData.endDate,
-        startTime,
+        startHour: formData.startHour,
+        startMinute: formData.startMinute,
         durationMinutes: formData.durationMinutes,
-        endTimeOfDay,
+        endHour: formData.endHour,
+        endMinute: formData.endMinute,
         locationFormat: formData.locationFormat,
         daysOfWeek: formData.daysOfWeek,
-        publishedAt,
       };
 
       console.log("Creating slots with payload:", payload); // Debug log
@@ -256,7 +260,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
       });
       // Reload slots after creation
       await new Promise(resolve => setTimeout(resolve, 500)); // Small delay to ensure DB writes
-      loadSlotInstances(selectedEmployee.id);
+      loadSlotInstances(employeeId);
       onSlotChanged(); // Trigger refresh of all calendars
     } catch (err) {
       setMessage(`Error: ${err.message}`);
@@ -804,45 +808,6 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
               </form>
             )}
 
-            {/* Calendar View of Slots */}
-            {!showCreateForm && (
-              <div className={styles.calendarWrapper}>
-                {/* Whole Day Marking Button */}
-                {isSuperuser && slotEvents.length > 0 && (
-                  <div className={styles.actionButtons}>
-                    <button
-                      className={styles.wholeDayButton}
-                      onClick={() => setShowWholeDayModal(true)}
-                    >
-                      Mark Whole Day...
-                    </button>
-                  </div>
-                )}
-                
-                {loading && <div className={styles.loading}>Loading slots...</div>}
-                {!loading && slotInstances.length === 0 && (
-                  <div className={styles.empty}>No slots found. Create some!</div>
-                )}
-                {!loading && slotEvents.length > 0 && (
-                  <FullCalendar
-                    plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                    initialView="timeGridWeek"
-                    headerToolbar={{
-                      left: "prev,next today",
-                      center: "title",
-                      right: "dayGridMonth,timeGridWeek,timeGridDay",
-                    }}
-                    events={slotEvents}
-                    eventClick={handleSlotClick}
-                    height="auto"
-                    slotDuration="00:30:00"
-                    slotLabelInterval="00:30:00"
-                    scrollTime={scrollTime}
-                  />
-                )}
-              </div>
-            )}
-
             {/* Status Update Modal */}
             {showStatusModal && selectedSlot && (
               <div className={styles.modal}>
@@ -1093,6 +1058,8 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
     </div>
   );
 }
+
+
 
 
 

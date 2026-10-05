@@ -871,6 +871,35 @@ router.get("/trainer-workouts", authenticateToken, async (req, res) => {
   }
 });
 
+// Get employee's own slot instances (for slot management and display)
+router.get("/my-slots", authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+
+  try {
+    const query = `
+      SELECT 
+        si.id,
+        si.user_id,
+        si.template_id,
+        si.calendar_type,
+        TO_CHAR(si.slot_date, 'YYYY-MM-DD') as slot_date,
+        si.start_time,
+        si.end_time,
+        si.status
+      FROM slot_instances si
+      WHERE si.user_id = $1
+      ORDER BY si.slot_date ASC, si.start_time ASC
+    `;
+
+    const result = await db.query(query, [userId]);
+    
+    res.json({ instances: result.rows });
+  } catch (err) {
+    console.error("Error fetching employee slots:", err.message);
+    res.status(500).json({ error: "Failed to fetch employee slots.", details: err.message });
+  }
+});
+
 // Employee creates their own availability slots (uses same structure as superuser)
 router.post("/slots/create", authenticateToken, async (req, res) => {
   const {
@@ -899,6 +928,20 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
     // Format start time as HH:MM
     const startTime = `${String(startHour).padStart(2, "0")}:${String(startMinute).padStart(2, "0")}`;
     
+    console.log("Employee slot creation request:", {
+      userId,
+      calendarType,
+      startDate,
+      endDate,
+      startHour,
+      startMinute,
+      durationMinutes,
+      endHour,
+      endMinute,
+      locationFormat,
+      daysOfWeek,
+    });
+    
     // Create template first (same as superuser flow)
     const templateResult = await db.query(
       `
@@ -923,6 +966,8 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
 
     let instancesInserted = 0;
 
+    console.log("Date range:", { startDateObj, endDateObj, startHours, startMinutes, endHours, endMinutes });
+
     // Check if published_at column exists
     const columnRes = await db.query(
       `SELECT EXISTS (
@@ -933,8 +978,9 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
     const hasPublishedAt = columnRes.rows[0].exists;
 
     // Generate slot instances for all matching dates in the range
-    for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
+    for (let d = new Date(startDateObj.getTime()); d <= endDateObj; d = new Date(d.getTime() + 86400000)) {
       const dayOfWeek = d.getDay();
+      console.log("Checking date:", { dateStr: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, dayOfWeek, daysOfWeek, matches: daysOfWeek.includes(dayOfWeek) });
       if (daysOfWeek.includes(dayOfWeek)) {
         // Format date as YYYY-MM-DD
         const year = d.getFullYear();
@@ -944,6 +990,7 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
 
         // Generate slots at the specified time interval
         let currentHour = startHours;
+        console.log("Creating slots for date:", dateStr, "between", currentHour, startMinutes, "and", endHours, endMinutes);
 
         while (currentHour < endHours || (currentHour === endHours && startMinutes < endMinutes)) {
           const slotStartStr = `${String(currentHour).padStart(2, "0")}:${String(startMinutes).padStart(2, "0")}`;
@@ -992,9 +1039,12 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
       }
     }
 
+    console.log("Slot creation complete:", { instancesInserted, templateId: template.id });
+
     res.json({
       success: true,
       slotsCreated: instancesInserted,
+      instancesCount: instancesInserted,
       message: `Successfully created ${instancesInserted} slots`,
     });
   } catch (err) {
