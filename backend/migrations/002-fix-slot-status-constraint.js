@@ -5,12 +5,12 @@ async function migrate() {
   const db = new Pool({ connectionString: process.env.DATABASE_URL });
 
   try {
-    console.log('Running migration: fix slot_instances status CHECK constraint...');
+    console.log('Running migration: add BOOKED status to slot_instances constraint...');
 
     // First, check for any invalid status values
     const invalidRows = await db.query(`
       SELECT id, status FROM slot_instances 
-      WHERE status NOT IN ('APPROVED', 'CONSULTATION', 'WORKOUT', 'BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'REMOVED')
+      WHERE status NOT IN ('APPROVED', 'CONSULTATION', 'WORKOUT', 'BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'REMOVED', 'BOOKED')
     `);
     
     if (invalidRows.rows.length > 0) {
@@ -19,7 +19,7 @@ async function migrate() {
       await db.query(`
         UPDATE slot_instances 
         SET status = 'APPROVED'
-        WHERE status NOT IN ('APPROVED', 'CONSULTATION', 'WORKOUT', 'BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'REMOVED')
+        WHERE status NOT IN ('APPROVED', 'CONSULTATION', 'WORKOUT', 'BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'REMOVED', 'BOOKED')
       `);
       console.log('✓ Fixed invalid status values');
     }
@@ -31,14 +31,14 @@ async function migrate() {
     `);
     console.log('✓ Dropped old status constraint');
 
-    // Add the correct constraint that includes WORKOUT and CONSULTATION
+    // Add the correct constraint that includes BOOKED status for consultation bookings
     await db.query(`
       ALTER TABLE slot_instances
       ADD CONSTRAINT slot_instances_status_check CHECK (
-        status IN ('APPROVED', 'CONSULTATION', 'WORKOUT', 'BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'REMOVED')
+        status IN ('APPROVED', 'CONSULTATION', 'WORKOUT', 'BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'REMOVED', 'BOOKED')
       );
     `);
-    console.log('✓ Added corrected status constraint with WORKOUT and CONSULTATION');
+    console.log('✓ Added corrected status constraint with BOOKED status');
 
     const count = await db.query('SELECT COUNT(*) FROM slot_instances');
     console.log(`✓ Database migration complete. Total slots: ${count.rows[0].count}`);

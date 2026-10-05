@@ -140,8 +140,29 @@ router.post("/consultations/book", async (req, res) => {
       ],
     );
 
+    // Mark the corresponding slot instance as booked so it doesn't show as available anymore
+    if (employeeId) {
+      const slotDate = new Date(startTime).toISOString().split('T')[0];
+      const startTimeStr = new Date(startTime).toTimeString().substring(0, 5);
+      const endTimeStr = new Date(endTime).toTimeString().substring(0, 5);
+      
+      // Find the slot instance that was booked and mark it as unavailable
+      await db.query(
+        `UPDATE slot_instances
+         SET status = 'BOOKED'
+         WHERE user_id = $1
+           AND TO_CHAR(slot_date, 'YYYY-MM-DD') = $2
+           AND TO_CHAR(start_time, 'HH24:MI') = $3
+           AND TO_CHAR(end_time, 'HH24:MI') = $4
+           AND calendar_type = 'CONSULTATION'
+           AND status NOT IN ('BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'REMOVED')`,
+        [employeeId, slotDate, startTimeStr, endTimeStr]
+      );
+    }
+
     res.status(201).json({ success: true, booking: result.rows[0] });
   } catch (err) {
+    console.error("Error booking consultation:", err);
     res.status(500).json({ error: "Failed to book consultation." });
   }
 });
@@ -552,7 +573,7 @@ router.get("/trainer-consultation-slots-all", async (req, res) => {
     const hasPublishedAt = columnRes.rows[0].exists;
 
     // Get all consultation slots from the new slot_instances table with trainer info
-    // Exclude slots with unavailable statuses (BREAK, LUNCH, SICK, NO_SHOW, VACATION, PERSONAL_TIME, REMOVED)
+    // Exclude slots with unavailable statuses (BREAK, LUNCH, SICK, NO_SHOW, VACATION, PERSONAL_TIME, REMOVED, BOOKED)
     let query = `
       SELECT 
         si.id, 
@@ -567,7 +588,7 @@ router.get("/trainer-consultation-slots-all", async (req, res) => {
       FROM slot_instances si
       JOIN users u ON si.user_id = u.id
       WHERE si.calendar_type = 'CONSULTATION'
-        AND si.status NOT IN ('BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'REMOVED')
+        AND si.status NOT IN ('BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'REMOVED', 'BOOKED')
     `;
 
     // Only filter by published_at if the column exists
