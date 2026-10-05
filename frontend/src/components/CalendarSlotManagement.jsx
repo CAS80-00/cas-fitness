@@ -810,6 +810,33 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
               </form>
             )}
 
+            {/* Calendar Display for viewing and managing slots */}
+            {selectedEmployee && !showCreateForm && (
+              <div className={styles.calendarContainer}>
+                {loading && <div className={styles.loading}>Loading slots...</div>}
+                {!loading && slotEvents.length === 0 && (
+                  <div className={styles.empty}>No slots found. Create some!</div>
+                )}
+                {!loading && slotEvents.length > 0 && (
+                  <FullCalendar
+                    plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                    initialView="timeGridWeek"
+                    headerToolbar={{
+                      left: "prev,next today",
+                      center: "title",
+                      right: "dayGridMonth,timeGridWeek,timeGridDay",
+                    }}
+                    events={slotEvents}
+                    eventClick={handleSlotClick}
+                    height="auto"
+                    slotDuration="00:30:00"
+                    slotLabelInterval="00:30:00"
+                    scrollTime={scrollTime}
+                  />
+                )}
+              </div>
+            )}
+
             {/* Status Update Modal */}
             {showStatusModal && selectedSlot && (
               <div className={styles.modal}>
