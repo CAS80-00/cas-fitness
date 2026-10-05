@@ -12,7 +12,8 @@ const HOLD_SECONDS = 5 * 60;
 /**
  * ConsultationCalendar
  * Member booking flow using real trainer availability from Master Consultation Calendar.
- * Shows available consultation slots from trainers, booked consultations, and allows booking with 5-minute hold.
+ * Shows ONLY available consultation slots from trainers that can be booked.
+ * Does not display booked consultations (those are private and only visible in master calendar).
  */
 export default function ConsultationCalendar({ employeeId }) {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -22,7 +23,6 @@ export default function ConsultationCalendar({ employeeId }) {
     Intl.DateTimeFormat().resolvedOptions().timeZone,
   );
   const [consultationSlots, setConsultationSlots] = useState([]);
-  const [bookedConsultations, setBookedConsultations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [formData, setFormData] = useState({
@@ -42,26 +42,20 @@ export default function ConsultationCalendar({ employeeId }) {
     return () => clearInterval(timer);
   }, [holdTimer]);
 
-  // Load available consultation slots and booked consultations
+  // Load available consultation slots only (not booked consultations)
   useEffect(() => {
     const loadSlots = async () => {
       try {
         setLoading(true);
         
-        // Load available slots
+        // Load only available slots - no booked consultations
         const slotsRes = await fetch(`${apiBaseUrl}/calendars/trainer-consultation-slots-all`);
         const slotsData = await slotsRes.json();
         if (!slotsRes.ok) throw new Error(slotsData.error || "Failed to load available slots.");
         setConsultationSlots(slotsData.slots || []);
-
-        // Load booked consultations (public endpoint, no auth needed)
-        const appointmentsRes = await fetch(`${apiBaseUrl}/calendars/consultations`);
-        const appointmentsData = await appointmentsRes.json();
-        if (!appointmentsRes.ok) throw new Error(appointmentsData.error || "Failed to load booked consultations.");
-        setBookedConsultations(appointmentsData.appointments || []);
       } catch (err) {
         setStatusMessage(`Error loading slots: ${err.message}`);
-        console.error("Error loading consultation data:", err);
+        console.error("Error loading consultation slots:", err);
       } finally {
         setLoading(false);
       }
@@ -69,14 +63,11 @@ export default function ConsultationCalendar({ employeeId }) {
     loadSlots();
   }, [apiBaseUrl, refreshTrigger]);
 
-  // Convert slots and booked consultations to FullCalendar events
+  // Convert slots to FullCalendar events (only available slots, no booked consultations)
   const events = useMemo(() => {
-    const allEvents = [];
-
-    // Add available consultation slots
-    consultationSlots
+    return consultationSlots
       .filter((slot) => !employeeId || slot.trainerId === employeeId)
-      .forEach((slot) => {
+      .map((slot) => {
         try {
           const [hours, minutes] = slot.startTime.split(":").map(Number);
           const [endHours, endMinutes] = slot.endTime.split(":").map(Number);
@@ -86,10 +77,10 @@ export default function ConsultationCalendar({ employeeId }) {
           const eventEnd = new Date(year, month - 1, day, endHours, endMinutes, 0, 0);
 
           if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
-            return;
+            return null;
           }
 
-          allEvents.push({
+          return {
             id: `slot-${slot.id}`,
             title: `${slot.trainerName} - Available`,
             start: eventStart.toISOString(),
@@ -104,30 +95,14 @@ export default function ConsultationCalendar({ employeeId }) {
               trainerName: slot.trainerName,
               slotData: slot,
             },
-          });
+          };
         } catch (err) {
           console.error(`Error parsing slot ${slot.id}:`, err);
+          return null;
         }
-      });
-
-    // Add booked consultations
-    bookedConsultations
-      .filter((appt) => !employeeId || appt.employee_id === employeeId)
-      .forEach((appt) => {
-        allEvents.push({
-          id: `appointment-${appt.id}`,
-          title: `${appt.client_name} - Booked (${appt.status})`,
-          start: appt.start_time,
-          end: appt.end_time,
-          backgroundColor: "#f59e0b",
-          borderColor: "#d97706",
-          textColor: "#ffffff",
-          extendedProps: { type: "booked" },
-        });
-      });
-
-    return allEvents;
-  }, [consultationSlots, bookedConsultations, employeeId]);
+      })
+      .filter(Boolean);
+  }, [consultationSlots, employeeId]);
 
   const handleEventClick = (info) => {
     const slot = info.event.extendedProps.slotData;
@@ -210,20 +185,13 @@ export default function ConsultationCalendar({ employeeId }) {
         <div className={styles.grid}>
           <div className={styles.calendarColumn}>
             <div className={styles.legend} style={{ marginBottom: "1rem" }}>
-              <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <div style={{ width: "20px", height: "20px", backgroundColor: "#10b981", borderRadius: "3px" }}></div>
-                  <span>Available Slot (Click to Book)</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <div style={{ width: "20px", height: "20px", backgroundColor: "#f59e0b", borderRadius: "3px" }}></div>
-                  <span>Booked Consultation</span>
-                </div>
-              </div>
+              <p style={{ margin: 0, fontSize: "0.9rem" }}>
+                <strong>Green slots</strong> are available for booking. Click on any slot to reserve it.
+              </p>
             </div>
             {loading ? (
               <div style={{ padding: "2rem", textAlign: "center" }}>Loading available slots...</div>
-            ) : consultationSlots.length === 0 && bookedConsultations.length === 0 ? (
+            ) : consultationSlots.length === 0 ? (
               <div style={{ padding: "2rem", textAlign: "center", color: "#666" }}>
                 No consultation slots available at this time. Please check back later.
               </div>
