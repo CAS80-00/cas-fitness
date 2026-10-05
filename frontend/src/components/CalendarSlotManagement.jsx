@@ -105,8 +105,10 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
       const token = apiToken();
       
       // Employees use /my-slots to fetch their own slots
-      // Superusers would use the admin endpoint (but this component is for employees only in slot creation mode)
-      const endpoint = `${apiBaseUrl}/calendars/my-slots`;
+      // Superusers use /admin/slot-instances/:userId to fetch any employee's slots
+      const endpoint = isEmployee 
+        ? `${apiBaseUrl}/calendars/my-slots`
+        : `${apiBaseUrl}/admin/slot-instances/${userId}`;
       
       const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
