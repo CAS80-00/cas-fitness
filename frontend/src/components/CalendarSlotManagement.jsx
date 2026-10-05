@@ -866,7 +866,7 @@ export default function CalendarSlotManagement() {
                             key={type}
                             className={styles.optionBtn}
                             style={{ 
-                              borderLeftColor: type === "WORKOUT" ? "#10b981" : "#3b82f6",
+                              borderLeftColor: type === "WORKOUT" ? "#3b82f6" : "#10b981",
                               backgroundColor: selectedSlot.calendar_type === type ? "#f0f9ff" : "#ffffff"
                             }}
                             onClick={() => handleChangeCalendarType(type)}
