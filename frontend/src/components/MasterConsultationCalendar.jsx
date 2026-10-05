@@ -16,6 +16,8 @@ export default function MasterConsultationCalendar({ staff, refreshTrigger = 0 }
   const [consultationSlots, setConsultationSlots] = useState([]);
   const [selectedStaffId, setSelectedStaffId] = useState("");
   const [error, setError] = useState("");
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -43,6 +45,18 @@ export default function MasterConsultationCalendar({ staff, refreshTrigger = 0 }
     load();
   }, [apiBaseUrl, refreshTrigger]);
 
+  const handleEventClick = (info) => {
+    if (info.event.extendedProps.type === "booked") {
+      // Find the appointment details
+      const appointmentId = parseInt(info.event.id.split("-")[1]);
+      const appointment = appointments.find(a => a.id === appointmentId);
+      if (appointment) {
+        setSelectedBooking(appointment);
+        setShowDetailsModal(true);
+      }
+    }
+  };
+
   const events = useMemo(() => {
     const allEvents = [];
 
@@ -57,6 +71,8 @@ export default function MasterConsultationCalendar({ staff, refreshTrigger = 0 }
           end: appt.end_time,
           backgroundColor: "#f59e0b",
           borderColor: "#d97706",
+          textColor: "#ffffff",
+          extendedProps: { type: "booked", appointmentData: appt },
         });
       });
 
@@ -145,6 +161,7 @@ export default function MasterConsultationCalendar({ staff, refreshTrigger = 0 }
         initialView="dayGridMonth"
         headerToolbar={{ left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek" }}
         events={events}
+        eventClick={handleEventClick}
         height="auto"
         showNonCurrentDates={true}
         fixedWeekCount={false}
@@ -157,6 +174,78 @@ export default function MasterConsultationCalendar({ staff, refreshTrigger = 0 }
           }
         }}
       />
+
+      {showDetailsModal && selectedBooking && (
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3>Consultation Booking Details</h3>
+              <button
+                className={styles.closeBtn}
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setSelectedBooking(null);
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={styles.modalBody}>
+              <div className={styles.detailRow}>
+                <label>Client Name:</label>
+                <span>{selectedBooking.client_name}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <label>Email:</label>
+                <span>{selectedBooking.client_email}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <label>Phone:</label>
+                <span>{selectedBooking.client_phone || "N/A"}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <label>Status:</label>
+                <span className={styles.status}>{selectedBooking.status}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <label>Format:</label>
+                <span>{selectedBooking.format === "IN_PERSON" ? "In-Person" : "Video Consultation"}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <label>Start Time:</label>
+                <span>{new Date(selectedBooking.start_time).toLocaleString()}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <label>End Time:</label>
+                <span>{new Date(selectedBooking.end_time).toLocaleString()}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <label>Consent Given:</label>
+                <span>{selectedBooking.consent_given ? "Yes" : "No"}</span>
+              </div>
+              {selectedBooking.timezone && (
+                <div className={styles.detailRow}>
+                  <label>Timezone:</label>
+                  <span>{selectedBooking.timezone}</span>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button
+                className={styles.closeButtonStyle}
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setSelectedBooking(null);
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

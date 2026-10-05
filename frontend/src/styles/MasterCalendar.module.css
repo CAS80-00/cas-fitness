@@ -92,3 +92,69 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+/* Modal Styles for Booking Details */
+.modal {
+  @apply fixed inset-0 z-50 flex items-center justify-center;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modalContent {
+  @apply w-full max-w-md rounded-lg border shadow-lg;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.modalHeader {
+  @apply flex items-center justify-between border-b p-4;
+  border-color: #262626;
+}
+
+.modalHeader h3 {
+  @apply text-lg font-bold;
+}
+
+.closeBtn {
+  @apply ml-2 cursor-pointer bg-none p-0 text-lg text-white;
+  border: none;
+  transition: color 0.2s;
+}
+
+.closeBtn:hover {
+  color: #ef4444;
+}
+
+.modalBody {
+  @apply space-y-3 p-4;
+}
+
+.detailRow {
+  @apply flex flex-col gap-1;
+}
+
+.detailRow label {
+  @apply text-sm font-semibold text-neutral-400;
+}
+
+.detailRow span {
+  @apply text-white;
+}
+
+.status {
+  @apply inline-block rounded px-2 py-1 text-xs font-bold;
+  background-color: #10b981;
+  color: white;
+}
+
+.modalFooter {
+  @apply border-t p-4;
+  border-color: #262626;
+}
+
+.closeButtonStyle {
+  @apply w-full rounded bg-blue-600 py-2 font-bold text-white transition;
+}
+
+.closeButtonStyle:hover {
+  background-color: #2563eb;
+}
