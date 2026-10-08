@@ -39,8 +39,10 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
           throw new Error(data.error || "Failed to load available trainers");
         }
         const data = await res.json();
+        console.log(`[Calendar] Loaded ${data.length} available trainers`);
         setTrainers(data);
-        if (data.length > 0) {
+        if (data.length > 0 && !selectedTrainer) {
+          console.log(`[Calendar] Auto-selecting first trainer: ${data[0].id}`);
           setSelectedTrainer(data[0].id);
         }
       } catch (err) {
@@ -63,6 +65,8 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
         const startDate = new Date(sessionPackage.start_date).toISOString().split('T')[0];
         const endDate = new Date(sessionPackage.expiration_date).toISOString().split('T')[0];
 
+        console.log(`[Calendar] Loading slots for trainer ${selectedTrainer} from ${startDate} to ${endDate}`);
+
         const res = await fetch(
           `${apiBaseUrl}/trainer-sessions/trainer-schedule/${selectedTrainer}?startDate=${startDate}&endDate=${endDate}`,
           { headers: authHeaders() }
@@ -74,6 +78,8 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
         }
 
         const data = await res.json();
+        console.log(`[Calendar] Received data:`, data);
+        
         const trainerInfo = data.trainer;
         
         // Convert slots to calendar events
@@ -94,6 +100,7 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
           },
         }));
 
+        console.log(`[Calendar] Created ${calendarEvents.length} calendar events`);
         setEvents(calendarEvents);
       } catch (err) {
         setError(err.message);
@@ -176,7 +183,6 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
       ) : events && events.length > 0 ? (
         <div className={styles.calendarWrapper}>
           <FullCalendar
-            key={calendarView}
             plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
             initialView={calendarView}
             headerToolbar={{
