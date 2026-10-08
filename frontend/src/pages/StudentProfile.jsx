@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import AccessQRCode from "../components/AccessQRCode";
-import WorkoutCalendar from "../components/WorkoutCalendar";
 import TrainerSessionScheduler from "../components/TrainerSessionScheduler";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
@@ -176,7 +175,6 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
           </div>
 
           <div className={styles.calendarColumn}>
-            <WorkoutCalendar trainerId="trainer-demo-1" isStudent />
           </div>
         </div>
 
