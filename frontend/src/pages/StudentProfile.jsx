@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import AccessQRCode from "../components/AccessQRCode";
 import TrainerSessionScheduler from "../components/TrainerSessionScheduler";
+import MasterWorkoutCalendar from "../components/MasterWorkoutCalendar";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import styles from "../styles/StudentProfile.module.css";
@@ -18,6 +19,8 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
   const [statusMessage, setStatusMessage] = useState("");
   const [trainerSessions, setTrainerSessions] = useState([]);
   const [showScheduler, setShowScheduler] = useState(false);
+  const [masterCalendarRefresh, setMasterCalendarRefresh] = useState(0);
+  const masterCalendarRef = useRef(null);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 
   useEffect(() => {
@@ -182,6 +185,11 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
           </div>
 
           <div className={styles.calendarColumn}>
+            <MasterWorkoutCalendar 
+              ref={masterCalendarRef}
+              trainers={[]}
+              refreshTrigger={masterCalendarRefresh}
+            />
           </div>
         </div>
 
@@ -225,6 +233,11 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
                   trainerSessions={trainerSessions}
                   onSessionBooked={() => {
                     setShowScheduler(false);
+                    // Refresh the master calendar
+                    setMasterCalendarRefresh(prev => prev + 1);
+                    if (masterCalendarRef.current) {
+                      masterCalendarRef.current.refreshCalendar();
+                    }
                     // Reload trainer sessions after booking
                     const loadTrainerSessions = async () => {
                       if (!currentUser?.id) return;

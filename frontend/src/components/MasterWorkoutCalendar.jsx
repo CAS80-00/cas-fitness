@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback, forwardRef, useImperativeHandle, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -9,40 +9,57 @@ import styles from "../styles/MasterCalendar.module.css";
  * Read-only combined view of every trainer's workout sessions and availability slots.
  * Displays both booked sessions and trainer availability.
  */
-export default function MasterWorkoutCalendar({ trainers, refreshTrigger = 0 }) {
+const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref) => {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
   const [sessions, setSessions] = useState([]);
   const [trainerSlots, setTrainerSlots] = useState([]);
   const [selectedTrainerId, setSelectedTrainerId] = useState("");
   const [error, setError] = useState("");
   const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
+  const loadDataRef = useRef(null);
+
+  // Expose refresh function via ref
+  useImperativeHandle(ref, () => ({
+    refreshCalendar: () => {
+      console.log("[MasterCalendar] Manual refresh triggered");
+      if (loadDataRef.current) {
+        loadDataRef.current();
+      }
+    }
+  }));
+
+  const loadData = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("cas_jwt");
+      
+      // Load booked workout sessions
+      const sessionRes = await fetch(`${apiBaseUrl}/calendars/workouts`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const sessionData = await sessionRes.json();
+      if (!sessionRes.ok) throw new Error(sessionData.error || "Failed to load workout sessions.");
+      setSessions(sessionData.sessions || []);
+
+      // Load trainer availability slots
+      const slotsRes = await fetch(`${apiBaseUrl}/calendars/trainer-slots-all`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const slotsData = await slotsRes.json();
+      if (!slotsRes.ok) throw new Error(slotsData.error || "Failed to load trainer slots.");
+      setTrainerSlots(slotsData.slots || []);
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [apiBaseUrl]);
+
+  // Store the loadData function in ref so it can be called externally
+  useEffect(() => {
+    loadDataRef.current = loadData;
+  }, [loadData]);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const token = localStorage.getItem("cas_jwt");
-        
-        // Load booked workout sessions
-        const sessionRes = await fetch(`${apiBaseUrl}/calendars/workouts`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const sessionData = await sessionRes.json();
-        if (!sessionRes.ok) throw new Error(sessionData.error || "Failed to load workout sessions.");
-        setSessions(sessionData.sessions || []);
-
-        // Load trainer availability slots
-        const slotsRes = await fetch(`${apiBaseUrl}/calendars/trainer-slots-all`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const slotsData = await slotsRes.json();
-        if (!slotsRes.ok) throw new Error(slotsData.error || "Failed to load trainer slots.");
-        setTrainerSlots(slotsData.slots || []);
-      } catch (err) {
-        setError(err.message);
-      }
-    };
-    load();
-  }, [apiBaseUrl, refreshTrigger]);
+    loadData();
+  }, [apiBaseUrl, refreshTrigger, loadData]);
 
   const events = useMemo(() => {
     const allEvents = [];
@@ -204,4 +221,8 @@ export default function MasterWorkoutCalendar({ trainers, refreshTrigger = 0 }) 
       />
     </div>
   );
-}
+});
+
+MasterWorkoutCalendar.displayName = "MasterWorkoutCalendar";
+
+export default MasterWorkoutCalendar;
