@@ -3,9 +3,6 @@ import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import "@fullcalendar/core/dist/index.global.css";
-import "@fullcalendar/daygrid/dist/index.global.css";
-import "@fullcalendar/timegrid/dist/index.global.css";
 import styles from "../styles/TrainerAvailabilityCalendar.module.css";
 
 /**
