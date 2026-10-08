@@ -83,22 +83,31 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
         const trainerInfo = data.trainer;
         
         // Convert slots to calendar events
-        const calendarEvents = data.availableSlots.map((slot) => ({
-          id: String(slot.id),
-          title: `${trainerInfo.firstName} ${trainerInfo.lastName}`,
-          start: `${slot.date}T${slot.startTime}`,
-          end: `${slot.date}T${slot.endTime}`,
-          backgroundColor: "#dc2626",
-          borderColor: "#991b1b",
-          extendedProps: {
-            trainerId: selectedTrainer,
-            trainerName: `${trainerInfo.firstName} ${trainerInfo.lastName}`,
-            slotId: slot.id,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            date: slot.date,
-          },
-        }));
+        const calendarEvents = data.availableSlots.map((slot) => {
+          // Ensure date is in YYYY-MM-DD format
+          let dateStr = slot.date;
+          if (dateStr.includes('T')) {
+            // If it's a full ISO string, extract just the date part
+            dateStr = dateStr.split('T')[0];
+          }
+          
+          return {
+            id: String(slot.id),
+            title: `${trainerInfo.firstName} ${trainerInfo.lastName}`,
+            start: `${dateStr}T${slot.startTime}`,
+            end: `${dateStr}T${slot.endTime}`,
+            backgroundColor: "#dc2626",
+            borderColor: "#991b1b",
+            extendedProps: {
+              trainerId: selectedTrainer,
+              trainerName: `${trainerInfo.firstName} ${trainerInfo.lastName}`,
+              slotId: slot.id,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              date: dateStr,
+            },
+          };
+        });
 
         console.log(`[Calendar] Created ${calendarEvents.length} calendar events`);
         if (calendarEvents.length > 0) {
