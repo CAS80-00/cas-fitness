@@ -96,8 +96,8 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
             title: `${trainerInfo.firstName} ${trainerInfo.lastName}`,
             start: `${dateStr}T${slot.startTime}`,
             end: `${dateStr}T${slot.endTime}`,
-            backgroundColor: "#dc2626",
-            borderColor: "#991b1b",
+            backgroundColor: "#10b981",
+            borderColor: "#059669",
             extendedProps: {
               trainerId: selectedTrainer,
               trainerName: `${trainerInfo.firstName} ${trainerInfo.lastName}`,
