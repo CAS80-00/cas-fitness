@@ -11,20 +11,25 @@ const authenticateToken = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Verify session_version against DB to enforce invalidation
-    const userRes = await db.query(
-      "SELECT session_version, status FROM users WHERE id = $1",
-      [decoded.userId],
-    );
-    if (userRes.rows.length === 0)
-      return res.status(403).json({ error: "Invalid user account" });
+    try {
+      const userRes = await db.query(
+        "SELECT session_version, status FROM users WHERE id = $1",
+        [decoded.userId],
+      );
+      if (userRes.rows.length === 0)
+        return res.status(403).json({ error: "Invalid user account" });
 
-    const user = userRes.rows[0];
-    if (user.status !== "ACTIVE")
-      return res.status(403).json({ error: "Account suspended or inactive" });
-    if (user.session_version !== decoded.sessionVersion) {
-      return res
-        .status(401)
-        .json({ error: "Session invalidated across devices" });
+      const user = userRes.rows[0];
+      if (user.status !== "ACTIVE")
+        return res.status(403).json({ error: "Account suspended or inactive" });
+      if (user.session_version !== decoded.sessionVersion) {
+        return res
+          .status(401)
+          .json({ error: "Session invalidated across devices" });
+      }
+    } catch (dbErr) {
+      console.error("[AUTH] Database error in authenticateToken:", dbErr.message);
+      return res.status(500).json({ error: "Authentication service error" });
     }
 
     req.user = decoded;

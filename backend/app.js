@@ -20,23 +20,32 @@ const trainerSessionsRoutes = require("./routes/trainerSessions");
 
 const app = express();
 
+console.log("[APP.JS] Starting express app configuration");
+process.stderr.write("[APP.JS] Starting express app configuration\n");
+
+
 // Security Hardening & Headers Configuration. Cross-Origin-Resource-Policy is
 // relaxed so uploaded carousel images (served below) can be embedded by the
 // frontend's dev origin.
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors({ origin: true, credentials: true }));
+app.use((req, res, next) => {
+  process.stderr.write(`[CORS-CHECK] ${req.method} ${req.path}\n`);
+  next();
+});
 app.use(express.json());
 
 // Request logging middleware
 app.use((req, res, next) => {
-  if (req.path.includes('/slot-instances')) {
-    console.log(`[REQUEST] ${req.method} ${req.path} - ${new Date().toISOString()}`);
+  try {
+    if (req.path.includes('/trainer-sessions')) {
+      console.log(`[TRAINER-SESSIONS] ${req.method} ${req.path}`);
+    }
+    next();
+  } catch (e) {
+    console.error('[MIDDLEWARE] Error:', e.message);
+    next();
   }
-  // Log ALL trainer-sessions requests
-  if (req.path.includes('/trainer-sessions')) {
-    console.log(`[TRAINER-SESSIONS] ${req.method} ${req.path} - Body:`, req.body);
-  }
-  next();
 });
 
 // Serves locally stored Object Storage uploads (see services/objectStorage.js).
@@ -57,6 +66,12 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/promotions", promotionsRoutes);
 app.use("/api/plans", plansRoutes);
 app.use("/api/trainer-sessions", trainerSessionsRoutes);
+
+// Catch-all 404 handler
+app.use((req, res) => {
+  console.log(`[APP.JS] 404: ${req.method} ${req.path}`);
+  res.status(404).json({ error: "Route not found" });
+});
 
 // Global Error Handler
 app.use((err, req, res, next) => {
