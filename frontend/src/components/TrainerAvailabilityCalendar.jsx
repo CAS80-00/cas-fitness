@@ -91,13 +91,20 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
             dateStr = dateStr.split('T')[0];
           }
           
+          const isBooked = slot.isBooked || slot.status === 'BOOKED';
+          const title = isBooked 
+            ? `BOOKED - ${slot.bookedBy}` 
+            : `${trainerInfo.firstName} ${trainerInfo.lastName}`;
+          const backgroundColor = isBooked ? "#6b7280" : "#10b981"; // gray for booked, green for available
+          const borderColor = isBooked ? "#4b5563" : "#059669";
+          
           return {
             id: String(slot.id),
-            title: `${trainerInfo.firstName} ${trainerInfo.lastName}`,
+            title,
             start: `${dateStr}T${slot.startTime}`,
             end: `${dateStr}T${slot.endTime}`,
-            backgroundColor: "#10b981",
-            borderColor: "#059669",
+            backgroundColor,
+            borderColor,
             extendedProps: {
               trainerId: selectedTrainer,
               trainerName: `${trainerInfo.firstName} ${trainerInfo.lastName}`,
@@ -105,6 +112,9 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
               startTime: slot.startTime,
               endTime: slot.endTime,
               date: dateStr,
+              isBooked,
+              bookedBy: slot.bookedBy,
+              sessionId: slot.sessionId,
             },
           };
         });
@@ -128,6 +138,13 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
 
   const handleSelectEvent = (info) => {
     const event = info.event;
+    
+    // Don't allow selecting booked slots
+    if (event.extendedProps.isBooked) {
+      alert(`This slot is already booked by ${event.extendedProps.bookedBy}`);
+      return;
+    }
+    
     const slot = {
       id: event.extendedProps.slotId,
       date: event.extendedProps.date,
