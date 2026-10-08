@@ -571,6 +571,8 @@ router.post('/book-session', authenticateToken, async (req, res) => {
   const { sessionPackageId, trainerId, slotInstanceId } = req.body;
   const studentId = req.user.userId;
 
+  console.log('[TRAINER-SESSIONS] Book session request:', { sessionPackageId, trainerId, slotInstanceId, studentId });
+
   if (!sessionPackageId || !trainerId || !slotInstanceId) {
     return res.status(400).json({ error: 'Missing required fields: sessionPackageId, trainerId, slotInstanceId' });
   }
@@ -595,7 +597,7 @@ router.post('/book-session', authenticateToken, async (req, res) => {
 
     // Verify the slot instance exists and is available (from master calendar)
     const slotResult = await db.query(`
-      SELECT si.id, si.slot_date, si.start_time, si.end_time, si.user_id
+      SELECT si.id, si.slot_date, si.start_time::TEXT as start_time, si.end_time, si.user_id
       FROM slot_instances si
       WHERE si.id = $1
         AND si.user_id = $2
@@ -619,6 +621,12 @@ router.post('/book-session', authenticateToken, async (req, res) => {
     }
 
     // Create session log
+    // Parse slot_date (ISO string like "2026-10-07T04:00:00.000Z") to just date part
+    const slotDatePart = slot.slot_date.split('T')[0];
+    const scheduledDateTime = `${slotDatePart} ${slot.start_time}`;
+    
+    console.log('[TRAINER-SESSIONS] Creating log with scheduledDateTime:', scheduledDateTime);
+
     const logResult = await db.query(`
       INSERT INTO student_trainer_session_logs (
         student_trainer_session_id, session_number, scheduled_date, location_format, status
@@ -633,7 +641,7 @@ router.post('/book-session', authenticateToken, async (req, res) => {
         'SCHEDULED'
       )
       RETURNING id, session_number, status, scheduled_date
-    `, [sessionPackageId, sessionPackage.remaining_sessions, `${slot.slot_date} ${slot.start_time}`]);
+    `, [sessionPackageId, sessionPackage.remaining_sessions, scheduledDateTime]);
 
     // Update remaining sessions
     await db.query(`
@@ -654,6 +662,7 @@ router.post('/book-session', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error('[TRAINER-SESSIONS] Error booking session:', err.message);
+    console.error('[TRAINER-SESSIONS] Full error:', err);
     res.status(500).json({ error: 'Failed to book session' });
   }
 });
