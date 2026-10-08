@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -10,7 +10,7 @@ import styles from "../styles/TrainerAvailabilityCalendar.module.css";
  * Displays all trainers' workout availability in a calendar view
  * Shows which trainers are available on which dates/times
  */
-export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPackage }) {
+const TrainerAvailabilityCalendar = forwardRef(({ onSelectSlot, sessionPackage }, ref) => {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
   const [events, setEvents] = useState([]);
   const [trainers, setTrainers] = useState([]);
@@ -18,6 +18,7 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
   const [error, setError] = useState("");
   const [selectedTrainer, setSelectedTrainer] = useState(null);
   const [calendarView, setCalendarView] = useState("timeGridWeek"); // timeGridWeek, dayGridMonth
+  const loadScheduleRef = useRef(null);
 
   const getToken = () => localStorage.getItem("cas_jwt");
 
@@ -25,6 +26,16 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
     Authorization: `Bearer ${getToken()}`,
     "Content-Type": "application/json",
   });
+
+  // Expose refresh function via ref
+  useImperativeHandle(ref, () => ({
+    refreshCalendar: () => {
+      console.log("[Calendar] Manual refresh triggered");
+      if (loadScheduleRef.current) {
+        loadScheduleRef.current();
+      }
+    }
+  }));
 
   // Load available trainers
   useEffect(() => {
@@ -53,88 +64,94 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
     loadTrainers();
   }, []);
 
-  // Load trainer schedule when trainer or date range changes
-  useEffect(() => {
+  // Define loadSchedule as a callback so it can be called from ref
+  const loadSchedule = useCallback(async () => {
     if (!selectedTrainer || !sessionPackage) return;
 
-    const loadSchedule = async () => {
-      try {
-        setLoading(true);
-        setError("");
+    try {
+      setLoading(true);
+      setError("");
 
-        const startDate = new Date(sessionPackage.start_date).toISOString().split('T')[0];
-        const endDate = new Date(sessionPackage.expiration_date).toISOString().split('T')[0];
+      const startDate = new Date(sessionPackage.start_date).toISOString().split('T')[0];
+      const endDate = new Date(sessionPackage.expiration_date).toISOString().split('T')[0];
 
-        console.log(`[Calendar] Loading slots for trainer ${selectedTrainer} from ${startDate} to ${endDate}`);
+      console.log(`[Calendar] Loading slots for trainer ${selectedTrainer} from ${startDate} to ${endDate}`);
 
-        const res = await fetch(
-          `${apiBaseUrl}/trainer-sessions/trainer-schedule/${selectedTrainer}?startDate=${startDate}&endDate=${endDate}`,
-          { headers: authHeaders() }
-        );
+      const res = await fetch(
+        `${apiBaseUrl}/trainer-sessions/trainer-schedule/${selectedTrainer}?startDate=${startDate}&endDate=${endDate}`,
+        { headers: authHeaders() }
+      );
 
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || "Failed to load trainer schedule");
-        }
-
+      if (!res.ok) {
         const data = await res.json();
-        console.log(`[Calendar] Received data:`, data);
-        
-        const trainerInfo = data.trainer;
-        
-        // Convert slots to calendar events
-        const calendarEvents = data.availableSlots.map((slot) => {
-          // Ensure date is in YYYY-MM-DD format
-          let dateStr = slot.date;
-          if (dateStr.includes('T')) {
-            // If it's a full ISO string, extract just the date part
-            dateStr = dateStr.split('T')[0];
-          }
-          
-          const isBooked = slot.isBooked || slot.status === 'BOOKED';
-          const title = isBooked 
-            ? `BOOKED - ${slot.bookedBy}` 
-            : `${trainerInfo.firstName} ${trainerInfo.lastName}`;
-          const backgroundColor = isBooked ? "#6b7280" : "#10b981"; // gray for booked, green for available
-          const borderColor = isBooked ? "#4b5563" : "#059669";
-          
-          return {
-            id: String(slot.id),
-            title,
-            start: `${dateStr}T${slot.startTime}`,
-            end: `${dateStr}T${slot.endTime}`,
-            backgroundColor,
-            borderColor,
-            extendedProps: {
-              trainerId: selectedTrainer,
-              trainerName: `${trainerInfo.firstName} ${trainerInfo.lastName}`,
-              slotId: slot.id,
-              startTime: slot.startTime,
-              endTime: slot.endTime,
-              date: dateStr,
-              isBooked,
-              bookedBy: slot.bookedBy,
-              sessionId: slot.sessionId,
-            },
-          };
-        });
-
-        console.log(`[Calendar] Created ${calendarEvents.length} calendar events`);
-        if (calendarEvents.length > 0) {
-          console.log(`[Calendar] First event:`, calendarEvents[0]);
-        }
-        setEvents(calendarEvents);
-      } catch (err) {
-        setError(err.message);
-        console.error("Error loading schedule:", err);
-        setEvents([]);
-      } finally {
-        setLoading(false);
+        throw new Error(data.error || "Failed to load trainer schedule");
       }
-    };
 
+      const data = await res.json();
+      console.log(`[Calendar] Received data:`, data);
+      
+      const trainerInfo = data.trainer;
+      
+      // Convert slots to calendar events
+      const calendarEvents = data.availableSlots.map((slot) => {
+        // Ensure date is in YYYY-MM-DD format
+        let dateStr = slot.date;
+        if (dateStr.includes('T')) {
+          // If it's a full ISO string, extract just the date part
+          dateStr = dateStr.split('T')[0];
+        }
+        
+        const isBooked = slot.isBooked || slot.status === 'BOOKED';
+        const title = isBooked 
+          ? `BOOKED - ${slot.bookedBy}` 
+          : `${trainerInfo.firstName} ${trainerInfo.lastName}`;
+        const backgroundColor = isBooked ? "#6b7280" : "#10b981"; // gray for booked, green for available
+        const borderColor = isBooked ? "#4b5563" : "#059669";
+        
+        return {
+          id: String(slot.id),
+          title,
+          start: `${dateStr}T${slot.startTime}`,
+          end: `${dateStr}T${slot.endTime}`,
+          backgroundColor,
+          borderColor,
+          extendedProps: {
+            trainerId: selectedTrainer,
+            trainerName: `${trainerInfo.firstName} ${trainerInfo.lastName}`,
+            slotId: slot.id,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            date: dateStr,
+            isBooked,
+            bookedBy: slot.bookedBy,
+            sessionId: slot.sessionId,
+          },
+        };
+      });
+
+      console.log(`[Calendar] Created ${calendarEvents.length} calendar events`);
+      if (calendarEvents.length > 0) {
+        console.log(`[Calendar] First event:`, calendarEvents[0]);
+      }
+      setEvents(calendarEvents);
+    } catch (err) {
+      setError(err.message);
+      console.error("Error loading schedule:", err);
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedTrainer, sessionPackage, apiBaseUrl]);
+
+  // Store loadSchedule in ref so it can be called externally
+  useEffect(() => {
+    loadScheduleRef.current = loadSchedule;
+  }, [loadSchedule]);
+
+  // Load trainer schedule when trainer or date range changes
+  useEffect(() => {
     loadSchedule();
-  }, [selectedTrainer, sessionPackage]);
+  }, [loadSchedule]);
 
   const handleSelectEvent = (info) => {
     const event = info.event;
@@ -243,4 +260,8 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
       </div>
     </div>
   );
-}
+});
+
+TrainerAvailabilityCalendar.displayName = "TrainerAvailabilityCalendar";
+
+export default TrainerAvailabilityCalendar;

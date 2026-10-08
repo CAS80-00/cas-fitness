@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import TrainerAvailabilityCalendar from "./TrainerAvailabilityCalendar";
 import styles from "../styles/TrainerSessionScheduler.module.css";
 
@@ -11,6 +11,7 @@ import styles from "../styles/TrainerSessionScheduler.module.css";
  */
 export default function TrainerSessionScheduler({ studentId, trainerSessions, onSessionBooked }) {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
+  const calendarRef = useRef(null);
 
   const [step, setStep] = useState("select-session"); // 'select-session', 'select-trainer', 'select-slot', 'confirm', 'calendar'
   const [viewMode, setViewMode] = useState("list"); // 'list' or 'calendar'
@@ -143,6 +144,11 @@ export default function TrainerSessionScheduler({ studentId, trainerSessions, on
       const result = await res.json();
       setSuccess("Session booked successfully!");
       
+      // Refresh the calendar to show the booked slot
+      if (calendarRef.current) {
+        calendarRef.current.refreshCalendar();
+      }
+      
       // Callback to parent to refresh session list
       if (onSessionBooked) {
         onSessionBooked(selectedSession.id, result.sessionLog);
@@ -243,6 +249,7 @@ export default function TrainerSessionScheduler({ studentId, trainerSessions, on
           ) : (
             <>
               <TrainerAvailabilityCalendar 
+                ref={calendarRef}
                 sessionPackage={selectedSession}
                 onSelectSlot={handleCalendarSlotSelect}
               />
