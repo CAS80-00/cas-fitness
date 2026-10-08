@@ -487,10 +487,16 @@ router.get('/trainer-schedule/:trainerId', authenticateToken, async (req, res) =
 
     const trainer = trainerResult.rows[0];
 
+    console.log(`[TRAINER-SESSIONS] Fetching slots for trainer ${trainerId} from ${startDate} to ${endDate}`);
+
     // Get WORKOUT slots for the date range from master calendar
     const slotsResult = await db.query(`
       SELECT 
-        id, slot_date, start_time, end_time, status
+        id, 
+        slot_date, 
+        start_time::TEXT as start_time, 
+        end_time::TEXT as end_time, 
+        status
       FROM slot_instances
       WHERE user_id = $1
         AND calendar_type = 'WORKOUT'
@@ -498,6 +504,8 @@ router.get('/trainer-schedule/:trainerId', authenticateToken, async (req, res) =
         AND slot_date BETWEEN $2 AND $3
       ORDER BY slot_date, start_time
     `, [trainerId, startDate, endDate]);
+
+    console.log(`[TRAINER-SESSIONS] Found ${slotsResult.rows.length} slots for trainer ${trainerId}`);
 
     res.json({
       trainer: {
@@ -508,10 +516,10 @@ router.get('/trainer-schedule/:trainerId', authenticateToken, async (req, res) =
         phone: trainer.phone
       },
       availableSlots: slotsResult.rows.map(row => ({
-        id: row.id,
+        id: String(row.id),
         date: row.slot_date,
-        startTime: row.start_time,
-        endTime: row.end_time,
+        startTime: String(row.start_time).substring(0, 5),
+        endTime: String(row.end_time).substring(0, 5),
         status: row.status
       }))
     });
