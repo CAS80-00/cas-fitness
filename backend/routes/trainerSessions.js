@@ -526,18 +526,26 @@ router.get('/trainer-schedule/:trainerId', authenticateToken, async (req, res) =
 
     console.log(`[TRAINER-SESSIONS] Fetching slots for trainer ${trainerId} from ${startDate} to ${endDate}`);
 
-    // Get WORKOUT slots for the date range from master calendar
+    // Get WORKOUT and BOOKED slots for the date range from master calendar
+    // Available slots (WORKOUT, APPROVED) show as available
+    // BOOKED slots show as occupied with student details
     const slotsResult = await db.query(`
       SELECT 
-        id, 
-        slot_date, 
-        start_time::TEXT as start_time, 
-        end_time::TEXT as end_time, 
-        status
-      FROM slot_instances
-      WHERE user_id = $1
-        AND calendar_type = 'WORKOUT'
-        AND status IN ('WORKOUT', 'APPROVED')
+        si.id, 
+        si.slot_date, 
+        si.start_time::TEXT as start_time, 
+        si.end_time::TEXT as end_time, 
+        si.status,
+        stsl.student_trainer_session_id,
+        u_student.first_name as student_first_name,
+        u_student.last_name as student_last_name
+      FROM slot_instances si
+      LEFT JOIN student_trainer_session_logs stsl ON si.id = stsl.slot_instance_id
+      LEFT JOIN student_trainer_sessions sts ON stsl.student_trainer_session_id = sts.id
+      LEFT JOIN users u_student ON sts.student_id = u_student.id
+      WHERE si.user_id = $1
+        AND si.calendar_type = 'WORKOUT'
+        AND si.status IN ('WORKOUT', 'APPROVED', 'BOOKED')
         AND slot_date BETWEEN $2 AND $3
       ORDER BY slot_date, start_time
     `, [trainerId, startDate, endDate]);
@@ -557,7 +565,10 @@ router.get('/trainer-schedule/:trainerId', authenticateToken, async (req, res) =
         date: row.slot_date,
         startTime: String(row.start_time).substring(0, 5),
         endTime: String(row.end_time).substring(0, 5),
-        status: row.status
+        status: row.status,
+        isBooked: row.status === 'BOOKED',
+        bookedBy: row.status === 'BOOKED' ? `${row.student_first_name} ${row.student_last_name}` : null,
+        sessionId: row.student_trainer_session_id
       }))
     });
   } catch (err) {
@@ -645,11 +656,13 @@ router.post('/book-session', authenticateToken, async (req, res) => {
     
     console.log('[TRAINER-SESSIONS] Creating log with scheduledDateTime:', scheduledDateTime);
 
+    // Create session log with slot_instance_id link
     const logResult = await db.query(`
       INSERT INTO student_trainer_session_logs (
-        student_trainer_session_id, session_number, scheduled_date, location_format, status
+        student_trainer_session_id, slot_instance_id, session_number, scheduled_date, location_format, status
       ) VALUES (
         $1, 
+        $4,
         ($2 - (
           SELECT COUNT(*) FROM student_trainer_session_logs 
           WHERE student_trainer_session_id = $1
@@ -659,7 +672,14 @@ router.post('/book-session', authenticateToken, async (req, res) => {
         'SCHEDULED'
       )
       RETURNING id, session_number, status, scheduled_date
-    `, [sessionPackageId, sessionPackage.remaining_sessions, scheduledDateTime]);
+    `, [sessionPackageId, sessionPackage.remaining_sessions, scheduledDateTime, slotInstanceId]);
+
+    // Mark the slot as BOOKED in the master calendar
+    await db.query(`
+      UPDATE slot_instances
+      SET status = 'BOOKED', modified_by = $2, modified_at = NOW()
+      WHERE id = $1
+    `, [slotInstanceId, studentId]);
 
     // Update remaining sessions
     await db.query(`

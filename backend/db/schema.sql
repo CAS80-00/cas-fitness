@@ -234,7 +234,7 @@ CREATE TABLE IF NOT EXISTS slot_instances (
     -- BREAK/LUNCH = unavailable (shows as break/lunch to public)
     -- SICK/NO_SHOW/VACATION/PERSONAL_TIME = unavailable (shows as unavailable except VACATION shows as "Vacation")
     -- REMOVED = hidden completely
-    status VARCHAR(50) DEFAULT 'APPROVED' CHECK (status IN ('APPROVED', 'CONSULTATION', 'WORKOUT', 'BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'REMOVED')),
+    status VARCHAR(50) DEFAULT 'APPROVED' CHECK (status IN ('APPROVED', 'CONSULTATION', 'WORKOUT', 'BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'BOOKED', 'REMOVED')),
     -- Publish date/time: slot is hidden until this time
     published_at TIMESTAMPTZ,
     -- For member-made changes (CONSULTATION, WORKOUT, BREAK, LUNCH)
@@ -295,6 +295,7 @@ CREATE TABLE IF NOT EXISTS student_trainer_sessions (
 CREATE TABLE IF NOT EXISTS student_trainer_session_logs (
     id SERIAL PRIMARY KEY,
     student_trainer_session_id INT NOT NULL REFERENCES student_trainer_sessions(id) ON DELETE CASCADE,
+    slot_instance_id INT REFERENCES slot_instances(id) ON DELETE SET NULL,
     session_number INT NOT NULL,
     scheduled_date TIMESTAMPTZ,
     completed_date TIMESTAMPTZ,
