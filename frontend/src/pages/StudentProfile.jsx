@@ -139,11 +139,15 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
                     <div key={session.id} className={styles.sessionItem}>
                       <div className={styles.sessionRow}>
                         <span>Purchased:</span>
-                        <span className={styles.sessionValue}>{session.total_sessions}</span>
+                        <span className={styles.sessionValue}>{session.purchased_sessions || session.total_sessions}</span>
                       </div>
                       <div className={styles.sessionRow}>
                         <span>Used:</span>
-                        <span className={styles.sessionValue}>{session.total_sessions - (session.remaining_sessions || 0)}</span>
+                        <span className={styles.sessionValue}>{session.used_sessions || 0}</span>
+                      </div>
+                      <div className={styles.sessionRow}>
+                        <span>Scheduled:</span>
+                        <span className={styles.sessionValue}>{session.scheduled_sessions || 0}</span>
                       </div>
                       <div className={styles.sessionRow}>
                         <span>Remaining:</span>

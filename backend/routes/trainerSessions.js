@@ -225,8 +225,18 @@ router.get('/session/:sessionId', authenticateToken, async (req, res) => {
       ORDER BY session_number ASC
     `, [sessionId]);
 
+    // Count sessions by status
+    const scheduled = logsResult.rows.filter(log => log.status === 'SCHEDULED').length;
+    const used = logsResult.rows.filter(log => log.status === 'COMPLETED').length;
+    const purchased = sessionResult.rows[0].total_sessions;
+    const remaining = purchased - scheduled - used;
+
     res.json({
       ...sessionResult.rows[0],
+      scheduled_sessions: scheduled,
+      used_sessions: used,
+      remaining_sessions: remaining,
+      purchased_sessions: purchased,
       session_logs: logsResult.rows
     });
   } catch (err) {
