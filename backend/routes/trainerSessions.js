@@ -434,11 +434,28 @@ router.get('/available-trainers', authenticateToken, async (req, res) => {
       WHERE r.role_name = 'TRAINER'
         AND u.status = 'ACTIVE'
         AND si.calendar_type = 'WORKOUT'
-        AND si.status = 'WORKOUT'
+        AND si.status IN ('WORKOUT', 'APPROVED')
         AND si.slot_date >= CURRENT_DATE
       GROUP BY u.id, u.first_name, u.last_name, u.email, u.phone, u.status
       ORDER BY u.first_name, u.last_name
     `);
+    
+    console.log(`[TRAINER-SESSIONS] Available trainers query returned ${result.rows.length} trainers`);
+    
+    if (result.rows.length === 0) {
+      console.log('[TRAINER-SESSIONS] DEBUG: No trainers found. Checking database:');
+      
+      // Debug: Check if there are any trainers at all
+      const allTrainers = await db.query(`
+        SELECT u.id, u.first_name, COUNT(si.id) as slot_count, COUNT(si.id) FILTER (WHERE si.status = 'WORKOUT') as workout_slots, COUNT(si.id) FILTER (WHERE si.status = 'APPROVED') as approved_slots
+        FROM users u
+        LEFT JOIN roles r ON u.role_id = r.id
+        LEFT JOIN slot_instances si ON u.id = si.user_id AND si.calendar_type = 'WORKOUT' AND si.slot_date >= CURRENT_DATE
+        WHERE r.role_name = 'TRAINER'
+        GROUP BY u.id, u.first_name
+      `);
+      console.log('[TRAINER-SESSIONS] All trainers with WORKOUT slot count:', allTrainers.rows);
+    }
     
     res.json(result.rows.map(row => ({
       id: row.id,
@@ -500,7 +517,7 @@ router.get('/trainer-schedule/:trainerId', authenticateToken, async (req, res) =
       FROM slot_instances
       WHERE user_id = $1
         AND calendar_type = 'WORKOUT'
-        AND status = 'WORKOUT'
+        AND status IN ('WORKOUT', 'APPROVED')
         AND slot_date BETWEEN $2 AND $3
       ORDER BY slot_date, start_time
     `, [trainerId, startDate, endDate]);
@@ -563,7 +580,7 @@ router.post('/book-session', authenticateToken, async (req, res) => {
       WHERE si.id = $1
         AND si.user_id = $2
         AND si.calendar_type = 'WORKOUT'
-        AND si.status = 'WORKOUT'
+        AND si.status IN ('WORKOUT', 'APPROVED')
     `, [slotInstanceId, trainerId]);
 
     if (slotResult.rows.length === 0) {
