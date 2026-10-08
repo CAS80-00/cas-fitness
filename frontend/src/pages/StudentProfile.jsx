@@ -136,7 +136,10 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
                 <h2 className={styles.infoTitle}>Trainer Sessions</h2>
                 <div className={styles.sessionsList}>
                   {trainerSessions.map((session) => (
-                    <div key={session.id} className={styles.sessionItem}>
+                    <div key={session.id} className={`${styles.sessionItem} ${session.is_expired ? styles.sessionExpired : ''}`}>
+                      {session.is_expired && (
+                        <div className={styles.expiredBadge}>EXPIRED</div>
+                      )}
                       <div className={styles.sessionRow}>
                         <span>Purchased:</span>
                         <span className={styles.sessionValue}>{session.purchased_sessions || session.total_sessions}</span>
@@ -151,11 +154,11 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
                       </div>
                       <div className={styles.sessionRow}>
                         <span>Remaining:</span>
-                        <span className={styles.sessionValue}>{session.remaining_sessions || 0}</span>
+                        <span className={`${styles.sessionValue} ${session.is_expired ? styles.sessionValueZero : ''}`}>{session.remaining_sessions || 0}</span>
                       </div>
                       <div className={styles.sessionRow}>
                         <span>Expires:</span>
-                        <span className={styles.expiryDate}>
+                        <span className={`${styles.expiryDate} ${session.is_expired ? styles.expiryDatePassed : ''}`}>
                           {new Date(session.expiration_date).toLocaleDateString()}
                         </span>
                       </div>

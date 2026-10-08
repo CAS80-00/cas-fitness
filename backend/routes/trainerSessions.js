@@ -229,7 +229,16 @@ router.get('/session/:sessionId', authenticateToken, async (req, res) => {
     const scheduled = logsResult.rows.filter(log => log.status === 'SCHEDULED').length;
     const used = logsResult.rows.filter(log => log.status === 'COMPLETED').length;
     const purchased = sessionResult.rows[0].total_sessions;
-    const remaining = purchased - scheduled - used;
+    
+    // Check if package has expired
+    const expirationDate = new Date(sessionResult.rows[0].expiration_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    expirationDate.setHours(0, 0, 0, 0);
+    const isExpired = today > expirationDate;
+    
+    // If expired, remaining is 0; otherwise calculate it
+    const remaining = isExpired ? 0 : (purchased - scheduled - used);
 
     res.json({
       ...sessionResult.rows[0],
@@ -237,6 +246,7 @@ router.get('/session/:sessionId', authenticateToken, async (req, res) => {
       used_sessions: used,
       remaining_sessions: remaining,
       purchased_sessions: purchased,
+      is_expired: isExpired,
       session_logs: logsResult.rows
     });
   } catch (err) {
