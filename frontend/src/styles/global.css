@@ -6,9 +6,6 @@
    truth for the brand palette.
    ========================================================================== */
 @import "tailwindcss";
-@import "@fullcalendar/core/style.css";
-@import "@fullcalendar/daygrid/style.css";
-@import "@fullcalendar/timegrid/style.css";
 
 :root {
   /* Base Canvas */

@@ -631,8 +631,16 @@ router.post('/book-session', authenticateToken, async (req, res) => {
     }
 
     // Create session log
-    // Parse slot_date (ISO string like "2026-10-07T04:00:00.000Z") to just date part
-    const slotDatePart = slot.slot_date.split('T')[0];
+    // Parse slot_date - it could be a Date or ISO string
+    let slotDatePart;
+    if (typeof slot.slot_date === 'string') {
+      slotDatePart = slot.slot_date.split('T')[0];
+    } else if (slot.slot_date instanceof Date) {
+      slotDatePart = slot.slot_date.toISOString().split('T')[0];
+    } else {
+      slotDatePart = new Date(slot.slot_date).toISOString().split('T')[0];
+    }
+    
     const scheduledDateTime = `${slotDatePart} ${slot.start_time}`;
     
     console.log('[TRAINER-SESSIONS] Creating log with scheduledDateTime:', scheduledDateTime);
