@@ -101,6 +101,9 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
         }));
 
         console.log(`[Calendar] Created ${calendarEvents.length} calendar events`);
+        if (calendarEvents.length > 0) {
+          console.log(`[Calendar] First event:`, calendarEvents[0]);
+        }
         setEvents(calendarEvents);
       } catch (err) {
         setError(err.message);
