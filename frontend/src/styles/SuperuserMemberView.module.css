@@ -241,3 +241,19 @@
     @apply w-full;
   }
 }
+
+/* Trainer Session Section */
+.sectionSeparator {
+  @apply border-t pt-4;
+  border-color: #262626;
+}
+
+.expandButton {
+  @apply rounded px-4 py-2 text-sm font-semibold text-white transition;
+  background-color: var(--color-electric-blue);
+  width: 100%;
+  text-align: left;
+}
+.expandButton:hover {
+  background-color: var(--color-electric-blue-hover);
+}

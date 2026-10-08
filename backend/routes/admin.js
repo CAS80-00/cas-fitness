@@ -353,6 +353,28 @@ router.patch("/users/:id/status", async (req, res) => {
   }
 });
 
+/* ============================ TRAINERS ============================ */
+
+// Get all trainers (users with TRAINER role)
+router.get("/trainers", async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT 
+        u.id, u.first_name, u.last_name, u.email, u.phone, u.status, 
+        u.created_at, r.role_name
+      FROM users u
+      LEFT JOIN roles r ON u.role_id = r.id
+      WHERE r.role_name = 'TRAINER'
+      ORDER BY u.first_name, u.last_name
+    `);
+    
+    res.json(result.rows.map(row => toUserResponse({ ...row, role_name: row.role_name })));
+  } catch (err) {
+    console.error("Error fetching trainers:", err.message);
+    res.status(500).json({ error: "Failed to fetch trainers." });
+  }
+});
+
 /* ============================ PROMOTIONS ============================ */
 
 function toPromotionResponse(row) {

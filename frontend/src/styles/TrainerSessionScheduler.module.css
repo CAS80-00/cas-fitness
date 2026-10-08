@@ -1,0 +1,393 @@
+.scheduler {
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+.errorMessage {
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+}
+
+.successMessage {
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+}
+
+.step {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.backButton {
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+  transition: all 0.2s;
+}
+
+.backButton:hover {
+  background-color: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.stepTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 20px;
+}
+
+/* Session Selection */
+.sessionList {
+  display: grid;
+  gap: 12px;
+}
+
+.sessionCard {
+  padding: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sessionCard:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1);
+  transform: translateY(-2px);
+}
+
+.sessionInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.packageName {
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.sessionDetails {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.expiryDate {
+  font-size: 13px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* Trainer Selection */
+.trainerList {
+  display: grid;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.trainerCard {
+  padding: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.trainerCard:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1);
+  transform: translateY(-2px);
+}
+
+.trainerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trainerName {
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.trainerEmail {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.trainerPhone {
+  font-size: 13px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.availabilityCount {
+  font-size: 13px;
+  color: #3b82f6;
+  margin: 0;
+  font-weight: 500;
+}
+
+.loadingText {
+  text-align: center;
+  color: #6b7280;
+  padding: 20px;
+}
+
+/* Time Selection */
+.availabilitySection {
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 12px;
+  margin-top: 0;
+}
+
+.availabilityGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.availabilitySlot {
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: white;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.availabilitySlot:hover {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.availabilitySlot.selected {
+  border-color: #3b82f6;
+  background-color: #dbeafe;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.dayOfWeek {
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 4px 0;
+  font-size: 14px;
+}
+
+.timeRange {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 4px 0;
+}
+
+.locationFormat {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 0;
+  font-style: italic;
+}
+
+.noSlots {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #6b7280;
+  padding: 20px;
+}
+
+/* Date Selection */
+.dateSelectionSection {
+  margin-bottom: 20px;
+  padding: 16px;
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+}
+
+.dateInput {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.dateInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.errorText {
+  color: #dc2626;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.locationSection {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.locationOptions {
+  display: flex;
+  gap: 16px;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+}
+
+.radioLabel input[type="radio"] {
+  cursor: pointer;
+}
+
+.proceedButton {
+  width: 100%;
+  padding: 10px 16px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 12px;
+}
+
+.proceedButton:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.proceedButton:disabled {
+  background-color: #d1d5db;
+  cursor: not-allowed;
+  color: #9ca3af;
+}
+
+/* Confirmation */
+.confirmationCard {
+  padding: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: white;
+  margin-bottom: 16px;
+}
+
+.confirmRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.confirmRow:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.value {
+  color: #111827;
+  font-weight: 500;
+  text-align: right;
+  flex: 1;
+  margin-left: 12px;
+}
+
+.confirmButton {
+  width: 100%;
+  padding: 12px 16px;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.confirmButton:hover:not(:disabled) {
+  background-color: #059669;
+}
+
+.confirmButton:disabled {
+  background-color: #d1d5db;
+  cursor: not-allowed;
+  color: #9ca3af;
+}
+
+@media (max-width: 640px) {
+  .availabilityGrid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+
+  .confirmRow {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .value {
+    text-align: left;
+    margin-left: 0;
+  }
+}

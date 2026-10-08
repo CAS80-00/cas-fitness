@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import PhoneInputWithCountryCode from "./PhoneInputWithCountryCode";
 import MemberSubscriptionManager from "./MemberSubscriptionManager";
+import TrainerSessionManagement from "./TrainerSessionManagement";
 import styles from "../styles/SuperuserMemberView.module.css";
 
 /**
@@ -22,6 +23,7 @@ export default function SuperuserMemberView({
   const [success, setSuccess] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [subscription, setSubscription] = useState({ status: "ACTIVE" });
+  const [showTrainerSessions, setShowTrainerSessions] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -358,6 +360,25 @@ export default function SuperuserMemberView({
               // Optionally refresh member data or other state
             }}
           />
+        )}
+
+        {/* Trainer Session Management */}
+        {member && (
+          <div className={styles.sectionSeparator}>
+            {!showTrainerSessions ? (
+              <button 
+                onClick={() => setShowTrainerSessions(true)} 
+                className={styles.expandButton}
+              >
+                + Manage Trainer Sessions
+              </button>
+            ) : (
+              <TrainerSessionManagement 
+                studentId={memberId} 
+                onClose={() => setShowTrainerSessions(false)}
+              />
+            )}
+          </div>
         )}
       </div>
     </div>

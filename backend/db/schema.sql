@@ -258,3 +258,58 @@ CREATE INDEX IF NOT EXISTS idx_scheduled_slot_templates_status ON scheduled_slot
 CREATE INDEX IF NOT EXISTS idx_slot_instances_user_date ON slot_instances(user_id, slot_date);
 CREATE INDEX IF NOT EXISTS idx_slot_instances_status_published ON slot_instances(status, published_at);
 CREATE INDEX IF NOT EXISTS idx_slot_instances_status ON slot_instances(status);
+
+-- Trainer Session Management Tables
+-- Package templates for trainer sessions (created by superuser or staff)
+CREATE TABLE IF NOT EXISTS trainer_session_packages (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    description TEXT,
+    session_count INT NOT NULL CHECK (session_count > 0),
+    duration_minutes INT NOT NULL DEFAULT 60 CHECK (duration_minutes > 0),
+    price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
+    created_by UUID NOT NULL REFERENCES users(id),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Student trainer session assignments (links a student to a trainer for a set of sessions)
+CREATE TABLE IF NOT EXISTS student_trainer_sessions (
+    id SERIAL PRIMARY KEY,
+    student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    trainer_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    package_id INT REFERENCES trainer_session_packages(id) ON DELETE SET NULL,
+    total_sessions INT NOT NULL CHECK (total_sessions > 0),
+    remaining_sessions INT NOT NULL CHECK (remaining_sessions >= 0),
+    start_date TIMESTAMPTZ NOT NULL,
+    expiration_date TIMESTAMPTZ NOT NULL,
+    status VARCHAR(50) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'EXPIRED', 'COMPLETED', 'CANCELLED')),
+    assigned_by UUID NOT NULL REFERENCES users(id),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Individual session logs for each student-trainer session package
+CREATE TABLE IF NOT EXISTS student_trainer_session_logs (
+    id SERIAL PRIMARY KEY,
+    student_trainer_session_id INT NOT NULL REFERENCES student_trainer_sessions(id) ON DELETE CASCADE,
+    session_number INT NOT NULL,
+    scheduled_date TIMESTAMPTZ,
+    completed_date TIMESTAMPTZ,
+    status VARCHAR(50) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'RESCHEDULED', 'NO_SHOW')),
+    location_format VARCHAR(30) CHECK (location_format IN ('IN_PERSON', 'VIDEO')),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_trainer_session_packages_created_by ON trainer_session_packages(created_by);
+CREATE INDEX IF NOT EXISTS idx_trainer_session_packages_active ON trainer_session_packages(is_active);
+CREATE INDEX IF NOT EXISTS idx_student_trainer_sessions_student ON student_trainer_sessions(student_id);
+CREATE INDEX IF NOT EXISTS idx_student_trainer_sessions_trainer ON student_trainer_sessions(trainer_id);
+CREATE INDEX IF NOT EXISTS idx_student_trainer_sessions_status ON student_trainer_sessions(status);
+CREATE INDEX IF NOT EXISTS idx_student_trainer_sessions_dates ON student_trainer_sessions(start_date, expiration_date);
+CREATE INDEX IF NOT EXISTS idx_student_trainer_session_logs_session ON student_trainer_session_logs(student_trainer_session_id);
+CREATE INDEX IF NOT EXISTS idx_student_trainer_session_logs_status ON student_trainer_session_logs(status);

@@ -16,6 +16,7 @@ const aboutusRoutes = require("./routes/aboutus");
 const adminRoutes = require("./routes/admin");
 const promotionsRoutes = require("./routes/promotions");
 const plansRoutes = require("./routes/plans");
+const trainerSessionsRoutes = require("./routes/trainerSessions");
 
 const app = express();
 
@@ -30,6 +31,10 @@ app.use(express.json());
 app.use((req, res, next) => {
   if (req.path.includes('/slot-instances')) {
     console.log(`[REQUEST] ${req.method} ${req.path} - ${new Date().toISOString()}`);
+  }
+  // Log ALL trainer-sessions requests
+  if (req.path.includes('/trainer-sessions')) {
+    console.log(`[TRAINER-SESSIONS] ${req.method} ${req.path} - Body:`, req.body);
   }
   next();
 });
@@ -51,6 +56,7 @@ app.use("/api/aboutus", aboutusRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/promotions", promotionsRoutes);
 app.use("/api/plans", plansRoutes);
+app.use("/api/trainer-sessions", trainerSessionsRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

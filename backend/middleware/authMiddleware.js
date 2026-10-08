@@ -45,4 +45,39 @@ const requireSuperuser = (req, res, next) => {
   next();
 };
 
-module.exports = { authenticateToken, requireSuperuser };
+// Middleware to require specific roles (can pass array of role names)
+// Usage: requireRole(['SUPERUSER', 'STAFF', 'TRAINER'])
+const requireRole = (allowedRoles) => {
+  return async (req, res, next) => {
+    if (!req.user) {
+      return res.status(403).json({ error: "Authentication required." });
+    }
+
+    try {
+      // Fetch the role name from database using roleId from JWT
+      const roleRes = await db.query(
+        "SELECT role_name FROM roles WHERE id = $1",
+        [req.user.roleId]
+      );
+
+      if (roleRes.rows.length === 0) {
+        return res.status(403).json({ error: "User role not found." });
+      }
+
+      const roleName = roleRes.rows[0].role_name;
+      
+      if (!allowedRoles.includes(roleName)) {
+        return res.status(403).json({ 
+          error: `Requires one of the following roles: ${allowedRoles.join(", ")}` 
+        });
+      }
+
+      next();
+    } catch (err) {
+      console.error("Error checking user role:", err);
+      return res.status(500).json({ error: "Failed to verify user role." });
+    }
+  };
+};
+
+module.exports = { authenticateToken, requireSuperuser, requireRole };
