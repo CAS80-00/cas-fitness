@@ -314,3 +314,10 @@ CREATE INDEX IF NOT EXISTS idx_student_trainer_sessions_status ON student_traine
 CREATE INDEX IF NOT EXISTS idx_student_trainer_sessions_dates ON student_trainer_sessions(start_date, expiration_date);
 CREATE INDEX IF NOT EXISTS idx_student_trainer_session_logs_session ON student_trainer_session_logs(student_trainer_session_id);
 CREATE INDEX IF NOT EXISTS idx_student_trainer_session_logs_status ON student_trainer_session_logs(status);
+
+-- Add missing columns to existing tables
+ALTER TABLE student_trainer_session_logs ADD COLUMN IF NOT EXISTS slot_instance_id INT REFERENCES slot_instances(id) ON DELETE SET NULL;
+
+-- Ensure BOOKED status exists in slot_instances
+ALTER TABLE slot_instances DROP CONSTRAINT IF EXISTS slot_instances_status_check;
+ALTER TABLE slot_instances ADD CONSTRAINT slot_instances_status_check CHECK (status IN ('APPROVED', 'CONSULTATION', 'WORKOUT', 'BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'BOOKED', 'REMOVED'));

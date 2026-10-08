@@ -21,18 +21,18 @@ const trainerSessionsRoutes = require("./routes/trainerSessions");
 const app = express();
 
 console.log("[APP.JS] Starting express app configuration");
-process.stderr.write("[APP.JS] Starting express app configuration\n");
 
+try {
+  // Placeholder for any initialization logic
+} catch (e) {
+  console.error("[APP.JS] Error during app initialization:", e.message, e.stack);
+}
 
 // Security Hardening & Headers Configuration. Cross-Origin-Resource-Policy is
 // relaxed so uploaded carousel images (served below) can be embedded by the
 // frontend's dev origin.
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors({ origin: true, credentials: true }));
-app.use((req, res, next) => {
-  process.stderr.write(`[CORS-CHECK] ${req.method} ${req.path}\n`);
-  next();
-});
 app.use(express.json());
 
 // Request logging middleware

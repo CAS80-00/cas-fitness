@@ -494,7 +494,6 @@ router.get('/available-trainers', authenticateToken, async (req, res) => {
 
 // Get trainer's published workout schedule for a specific date range
 router.get('/trainer-schedule/:trainerId', authenticateToken, async (req, res) => {
-  console.log(`[ENDPOINT] trainer-schedule called`);
   const { trainerId } = req.params;
   const { startDate, endDate } = req.query;
   
