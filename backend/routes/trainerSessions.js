@@ -420,17 +420,22 @@ router.put('/session/:sessionId/logs-status', authenticateToken, requireRole(['S
 // STUDENT BOOKING FLOW - View Available Trainers and Schedule Sessions
 // ============================================================================
 
-// Get available trainers for student booking (trainers with active availability)
+// Get available trainers for student booking (trainers with WORKOUT slots in calendar)
 router.get('/available-trainers', authenticateToken, async (req, res) => {
   try {
+    // Get trainers who have at least one WORKOUT slot in the master calendar
     const result = await db.query(`
       SELECT DISTINCT
         u.id, u.first_name, u.last_name, u.email, u.phone, u.status,
-        COUNT(DISTINCT ta.id) as availability_count
+        COUNT(DISTINCT si.id) as available_slots
       FROM users u
-      LEFT JOIN roles r ON u.role_id = r.id
-      LEFT JOIN trainer_availability ta ON u.id = ta.trainer_id
-      WHERE r.role_name = 'TRAINER' AND u.status = 'ACTIVE'
+      INNER JOIN roles r ON u.role_id = r.id
+      INNER JOIN slot_instances si ON u.id = si.user_id
+      WHERE r.role_name = 'TRAINER'
+        AND u.status = 'ACTIVE'
+        AND si.calendar_type = 'WORKOUT'
+        AND si.status = 'WORKOUT'
+        AND si.slot_date >= CURRENT_DATE
       GROUP BY u.id, u.first_name, u.last_name, u.email, u.phone, u.status
       ORDER BY u.first_name, u.last_name
     `);
@@ -442,136 +447,168 @@ router.get('/available-trainers', authenticateToken, async (req, res) => {
       email: row.email,
       phone: row.phone,
       status: row.status,
-      availabilityCount: parseInt(row.availability_count) || 0
+      availableSlots: parseInt(row.available_slots) || 0
     })));
   } catch (err) {
-    console.error('Error fetching available trainers:', err.message);
+    console.error('[TRAINER-SESSIONS] Error fetching available trainers:', err.message);
     res.status(500).json({ error: 'Failed to fetch available trainers.' });
   }
 });
 
-// Get trainer availability schedule for student booking
+// Get trainer's published workout schedule for a specific date range
 router.get('/trainer-schedule/:trainerId', authenticateToken, async (req, res) => {
   const { trainerId } = req.params;
+  const { startDate, endDate } = req.query;
   
   try {
-    const availabilityResult = await db.query(`
-      SELECT 
-        id, trainer_id, day_of_week, start_time, end_time, location_format
-      FROM trainer_availability
-      WHERE trainer_id = $1
-      ORDER BY day_of_week, start_time
-    `, [trainerId]);
+    // Validate dates
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: 'startDate and endDate query parameters required' });
+    }
 
-    const vacationsResult = await db.query(`
-      SELECT start_date, end_date
-      FROM trainer_vacations
-      WHERE trainer_id = $1
-      ORDER BY start_date
-    `, [trainerId]);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
+    }
 
+    // Get trainer info
     const trainerResult = await db.query(`
       SELECT u.id, u.first_name, u.last_name, u.email, u.phone
       FROM users u
-      WHERE u.id = $1
+      INNER JOIN roles r ON u.role_id = r.id
+      WHERE u.id = $1 AND r.role_name = 'TRAINER' AND u.status = 'ACTIVE'
     `, [trainerId]);
 
     if (trainerResult.rows.length === 0) {
       return res.status(404).json({ error: 'Trainer not found' });
     }
 
+    const trainer = trainerResult.rows[0];
+
+    // Get WORKOUT slots for the date range from master calendar
+    const slotsResult = await db.query(`
+      SELECT 
+        id, slot_date, start_time, end_time, status
+      FROM slot_instances
+      WHERE user_id = $1
+        AND calendar_type = 'WORKOUT'
+        AND status = 'WORKOUT'
+        AND slot_date BETWEEN $2 AND $3
+      ORDER BY slot_date, start_time
+    `, [trainerId, startDate, endDate]);
+
     res.json({
       trainer: {
-        id: trainerResult.rows[0].id,
-        firstName: trainerResult.rows[0].first_name,
-        lastName: trainerResult.rows[0].last_name,
-        email: trainerResult.rows[0].email,
-        phone: trainerResult.rows[0].phone
+        id: trainer.id,
+        firstName: trainer.first_name,
+        lastName: trainer.last_name,
+        email: trainer.email,
+        phone: trainer.phone
       },
-      availability: availabilityResult.rows.map(row => ({
+      availableSlots: slotsResult.rows.map(row => ({
         id: row.id,
-        dayOfWeek: row.day_of_week,
+        date: row.slot_date,
         startTime: row.start_time,
         endTime: row.end_time,
-        locationFormat: row.location_format
-      })),
-      vacations: vacationsResult.rows.map(row => ({
-        startDate: row.start_date,
-        endDate: row.end_date
+        status: row.status
       }))
     });
   } catch (err) {
-    console.error('Error fetching trainer schedule:', err.message);
-    res.status(500).json({ error: 'Failed to fetch trainer schedule.' });
+    console.error('[TRAINER-SESSIONS] Error fetching trainer schedule:', err.message);
+    res.status(500).json({ error: 'Failed to fetch trainer schedule' });
   }
 });
 
-// Student books a session - creates/updates session log
+// Student books a session slot - creates session log entry
 router.post('/book-session', authenticateToken, async (req, res) => {
-  const { sessionId, sessionLogId, trainerId, scheduledDate, locationFormat } = req.body;
+  const { sessionPackageId, trainerId, slotInstanceId } = req.body;
   const studentId = req.user.userId;
 
-  if (!sessionId || !sessionLogId || !trainerId || !scheduledDate || !locationFormat) {
-    return res.status(400).json({ 
-      error: 'Missing required fields: sessionId, sessionLogId, trainerId, scheduledDate, locationFormat' 
-    });
-  }
-
-  if (!['IN_PERSON', 'VIDEO'].includes(locationFormat)) {
-    return res.status(400).json({ error: 'Invalid location format' });
+  if (!sessionPackageId || !trainerId || !slotInstanceId) {
+    return res.status(400).json({ error: 'Missing required fields: sessionPackageId, trainerId, slotInstanceId' });
   }
 
   try {
-    // Verify the session belongs to the student
-    const sessionCheck = await db.query(`
-      SELECT id, student_id, remaining_sessions, expiration_date, status
-      FROM student_trainer_sessions
-      WHERE id = $1 AND student_id = $2
-    `, [sessionId, studentId]);
+    // Verify the student has an active session package
+    const packageResult = await db.query(`
+      SELECT sts.id, sts.remaining_sessions, sts.expiration_date, sts.start_date
+      FROM student_trainer_sessions sts
+      WHERE sts.id = $1 
+        AND sts.student_id = $2 
+        AND sts.status = 'ACTIVE'
+        AND sts.remaining_sessions > 0
+        AND NOW() BETWEEN sts.start_date AND sts.expiration_date
+    `, [sessionPackageId, studentId]);
 
-    if (sessionCheck.rows.length === 0) {
-      return res.status(403).json({ error: 'Session not found or does not belong to this student' });
+    if (packageResult.rows.length === 0) {
+      return res.status(403).json({ error: 'No active session package found for this student' });
     }
 
-    const session = sessionCheck.rows[0];
-    if (session.status !== 'ACTIVE') {
-      return res.status(400).json({ error: 'Session is not active' });
+    const sessionPackage = packageResult.rows[0];
+
+    // Verify the slot instance exists and is available (from master calendar)
+    const slotResult = await db.query(`
+      SELECT si.id, si.slot_date, si.start_time, si.end_time, si.user_id
+      FROM slot_instances si
+      WHERE si.id = $1
+        AND si.user_id = $2
+        AND si.calendar_type = 'WORKOUT'
+        AND si.status = 'WORKOUT'
+    `, [slotInstanceId, trainerId]);
+
+    if (slotResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Slot instance not found or not available' });
     }
 
-    if (session.remaining_sessions <= 0) {
-      return res.status(400).json({ error: 'No remaining sessions available' });
+    const slot = slotResult.rows[0];
+
+    // Verify slot date is within session package validity
+    const slotDate = new Date(slot.slot_date);
+    const startDate = new Date(sessionPackage.start_date);
+    const expirationDate = new Date(sessionPackage.expiration_date);
+
+    if (slotDate < startDate || slotDate > expirationDate) {
+      return res.status(400).json({ error: 'Slot date is outside your session package validity period' });
     }
 
-    // Check if scheduled date is before expiration
-    const scheduledDateTime = new Date(scheduledDate);
-    const expirationDate = new Date(session.expiration_date);
-    if (scheduledDateTime > expirationDate) {
-      return res.status(400).json({ error: 'Scheduled date is after session expiration date' });
-    }
-
-    // Update the session log
+    // Create session log
     const logResult = await db.query(`
-      UPDATE student_trainer_session_logs
-      SET 
-        scheduled_date = $1,
-        location_format = $2,
-        status = 'SCHEDULED',
-        updated_at = NOW()
-      WHERE id = $3 AND student_trainer_session_id = $4
-      RETURNING id, session_number, scheduled_date, location_format, status
-    `, [scheduledDate, locationFormat, sessionLogId, sessionId]);
+      INSERT INTO student_trainer_session_logs (
+        student_trainer_session_id, session_number, scheduled_date, location_format, status
+      ) VALUES (
+        $1, 
+        ($2 - (
+          SELECT COUNT(*) FROM student_trainer_session_logs 
+          WHERE student_trainer_session_id = $1
+        )),
+        $3,
+        'IN_PERSON',
+        'SCHEDULED'
+      )
+      RETURNING id, session_number, status, scheduled_date
+    `, [sessionPackageId, sessionPackage.remaining_sessions, `${slot.slot_date} ${slot.start_time}`]);
 
-    if (logResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Session log not found' });
-    }
+    // Update remaining sessions
+    await db.query(`
+      UPDATE student_trainer_sessions
+      SET remaining_sessions = remaining_sessions - 1, updated_at = NOW()
+      WHERE id = $1
+    `, [sessionPackageId]);
 
-    res.status(200).json({
+    res.json({
       success: true,
       message: 'Session booked successfully',
-      sessionLog: logResult.rows[0]
+      sessionLog: {
+        id: logResult.rows[0].id,
+        sessionNumber: logResult.rows[0].session_number,
+        status: logResult.rows[0].status,
+        scheduledDate: logResult.rows[0].scheduled_date
+      }
     });
   } catch (err) {
-    console.error('Error booking session:', err);
+    console.error('[TRAINER-SESSIONS] Error booking session:', err.message);
     res.status(500).json({ error: 'Failed to book session' });
   }
 });

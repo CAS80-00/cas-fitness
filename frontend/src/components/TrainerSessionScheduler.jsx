@@ -4,22 +4,19 @@ import styles from "../styles/TrainerSessionScheduler.module.css";
 /**
  * TrainerSessionScheduler
  * Allows students with available trainer sessions to:
- * - View list of available trainers
- * - See trainer availability (days/times)
- * - Book specific sessions
+ * - View list of available trainers from the master calendar
+ * - See trainer availability (calendar slots)
+ * - Book specific sessions from available WORKOUT slots
  */
 export default function TrainerSessionScheduler({ studentId, trainerSessions, onSessionBooked }) {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 
-  const [step, setStep] = useState("select-session"); // 'select-session', 'select-trainer', 'select-time', 'confirm'
+  const [step, setStep] = useState("select-session"); // 'select-session', 'select-trainer', 'select-slot', 'confirm'
   const [trainers, setTrainers] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [selectedTrainer, setSelectedTrainer] = useState(null);
-  const [trainerSchedule, setTrainerSchedule] = useState(null);
-  const [selectedAvailability, setSelectedAvailability] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedLocationFormat, setSelectedLocationFormat] = useState("IN_PERSON");
-  const [selectedSessionLog, setSelectedSessionLog] = useState(null);
+  const [trainerSlots, setTrainerSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -41,191 +38,163 @@ export default function TrainerSessionScheduler({ studentId, trainerSessions, on
           headers: authHeaders(),
         });
         if (!res.ok) {
-          throw new Error("Failed to load available trainers");
+          const data = await res.json();
+          throw new Error(data.error || "Failed to load available trainers");
         }
         const data = await res.json();
         setTrainers(data);
       } catch (err) {
         setError(err.message);
+        console.error("Error loading trainers:", err);
       }
     };
     loadTrainers();
-  }, [apiBaseUrl]);
+  }, []);
+
+  // Load trainer schedule when trainer is selected
+  useEffect(() => {
+    if (!selectedTrainer || !selectedSession) return;
+
+    const loadSchedule = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        // Get date range from selected session
+        const startDate = new Date(selectedSession.start_date).toISOString().split('T')[0];
+        const endDate = new Date(selectedSession.expiration_date).toISOString().split('T')[0];
+
+        const res = await fetch(
+          `${apiBaseUrl}/trainer-sessions/trainer-schedule/${selectedTrainer.id}?startDate=${startDate}&endDate=${endDate}`,
+          { headers: authHeaders() }
+        );
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Failed to load trainer schedule");
+        }
+
+        const data = await res.json();
+        setTrainerSlots(data.availableSlots || []);
+      } catch (err) {
+        setError(err.message);
+        console.error("Error loading schedule:", err);
+        setTrainerSlots([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSchedule();
+  }, [selectedTrainer, selectedSession]);
 
   const handleSelectSession = (session) => {
     setSelectedSession(session);
+    setSelectedTrainer(null);
+    setTrainerSlots([]);
+    setSelectedSlot(null);
     setStep("select-trainer");
-    setError("");
   };
 
-  const handleSelectTrainer = async (trainer) => {
-    setLoading(true);
-    try {
-      setError("");
-      const res = await fetch(
-        `${apiBaseUrl}/trainer-sessions/trainer-schedule/${trainer.id}`,
-        { headers: authHeaders() }
-      );
-      if (!res.ok) {
-        throw new Error("Failed to load trainer schedule");
-      }
-      const data = await res.json();
-      setSelectedTrainer(trainer);
-      setTrainerSchedule(data);
-      setStep("select-time");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  const handleSelectTrainer = (trainer) => {
+    setSelectedTrainer(trainer);
+    setStep("select-slot");
   };
 
-  const handleSelectTimeSlot = (availability) => {
-    setSelectedAvailability(availability);
-    setSelectedDate(null);
-    setSelectedLocationFormat(availability.locationFormat === "STUDENT_CHOICE" ? "IN_PERSON" : availability.locationFormat);
-  };
-
-  const handleDateChange = (e) => {
-    setSelectedDate(e.target.value);
-  };
-
-  const isDateWithinRange = (date) => {
-    if (!date || !selectedSession) return false;
-    const selectedDateTime = new Date(date);
-    const startDate = new Date(selectedSession.start_date);
-    const expirationDate = new Date(selectedSession.expiration_date);
-    return selectedDateTime >= startDate && selectedDateTime <= expirationDate;
-  };
-
-  const isDateAvailable = (date) => {
-    if (!date || !selectedAvailability) return false;
-    const selectedDateTime = new Date(date);
-    const dayOfWeek = selectedDateTime.getDay();
-    return dayOfWeek === selectedAvailability.dayOfWeek;
-  };
-
-  const handleProceedToConfirm = () => {
-    if (!selectedDate) {
-      setError("Please select a date");
-      return;
-    }
-
-    // Find the first pending session log for this session
-    const pendingLog = selectedSession.session_logs?.find(log => log.status === 'PENDING');
-    if (!pendingLog) {
-      setError("No pending sessions available to book");
-      return;
-    }
-
-    setSelectedSessionLog(pendingLog);
+  const handleSelectSlot = (slot) => {
+    setSelectedSlot(slot);
     setStep("confirm");
   };
 
   const handleConfirmBooking = async () => {
-    if (!selectedSessionLog || !selectedDate || !selectedTrainer) {
-      setError("Missing required booking information");
+    if (!selectedSession || !selectedTrainer || !selectedSlot) {
+      setError("Missing required information");
       return;
     }
 
-    setLoading(true);
     try {
+      setLoading(true);
       setError("");
+
       const res = await fetch(`${apiBaseUrl}/trainer-sessions/book-session`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
-          sessionId: selectedSession.id,
-          sessionLogId: selectedSessionLog.id,
+          sessionPackageId: selectedSession.id,
           trainerId: selectedTrainer.id,
-          scheduledDate: selectedDate,
-          locationFormat: selectedLocationFormat,
+          slotInstanceId: selectedSlot.id,
         }),
       });
 
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to book session");
+        const data = await res.json();
+        throw new Error(data.error || "Failed to book session");
       }
 
+      const result = await res.json();
       setSuccess("Session booked successfully!");
+      
+      // Callback to parent to refresh session list
+      if (onSessionBooked) {
+        onSessionBooked(selectedSession.id, result.sessionLog);
+      }
+
+      // Reset for next booking
       setTimeout(() => {
-        if (onSessionBooked) {
-          onSessionBooked();
-        }
-        resetForm();
+        setStep("select-session");
+        setSelectedSession(null);
+        setSelectedTrainer(null);
+        setTrainerSlots([]);
+        setSelectedSlot(null);
+        setSuccess("");
       }, 1500);
     } catch (err) {
       setError(err.message);
+      console.error("Error booking session:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setStep("select-session");
-    setSelectedSession(null);
-    setSelectedTrainer(null);
-    setTrainerSchedule(null);
-    setSelectedAvailability(null);
-    setSelectedDate(null);
-    setSelectedLocationFormat("IN_PERSON");
-    setSelectedSessionLog(null);
-    setSuccess("");
-  };
-
-  const availablePendingSessions = trainerSessions.filter(
-    (session) => session.status === "ACTIVE" && session.remaining_sessions > 0 && 
-                 (new Date(session.expiration_date) > new Date())
-  );
-
-  if (availablePendingSessions.length === 0) {
-    return (
-      <div className={styles.emptyState}>
-        <p>No available trainer sessions to book at this time.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className={styles.scheduler}>
+    <div className={styles.schedulerContainer}>
+      <h3>Schedule Trainer Session</h3>
+
       {error && <div className={styles.errorMessage}>{error}</div>}
       {success && <div className={styles.successMessage}>{success}</div>}
 
+      {/* Step 1: Select Session Package */}
       {step === "select-session" && (
         <div className={styles.step}>
-          <h3 className={styles.stepTitle}>Select a Session Package</h3>
-          <div className={styles.sessionList}>
-            {availablePendingSessions.map((session) => (
-              <div
-                key={session.id}
-                className={styles.sessionCard}
-                onClick={() => handleSelectSession(session)}
-              >
-                <div className={styles.sessionInfo}>
-                  <p className={styles.packageName}>{session.package_name || "Trainer Sessions"}</p>
-                  <p className={styles.sessionDetails}>
-                    Remaining: <strong>{session.remaining_sessions}/{session.total_sessions}</strong>
-                  </p>
-                  <p className={styles.expiryDate}>
-                    Expires: {new Date(session.expiration_date).toLocaleDateString()}
-                  </p>
+          <h4>Select a Session Package</h4>
+          {trainerSessions && trainerSessions.length > 0 ? (
+            <div className={styles.sessionList}>
+              {trainerSessions.map((session) => (
+                <div
+                  key={session.id}
+                  className={styles.sessionCard}
+                  onClick={() => handleSelectSession(session)}
+                >
+                  <div className={styles.sessionInfo}>
+                    <strong>{session.package_name || "Trainer Sessions"}</strong>
+                    <p>Sessions: {session.remaining_sessions} remaining</p>
+                    <p>Valid: {new Date(session.start_date).toLocaleDateString()} - {new Date(session.expiration_date).toLocaleDateString()}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p>No active trainer sessions available</p>
+          )}
         </div>
       )}
 
+      {/* Step 2: Select Trainer */}
       {step === "select-trainer" && selectedSession && (
         <div className={styles.step}>
-          <button className={styles.backButton} onClick={() => setStep("select-session")}>
-            ← Back
-          </button>
-          <h3 className={styles.stepTitle}>Select a Trainer</h3>
-          {loading ? (
-            <p className={styles.loadingText}>Loading trainers...</p>
-          ) : (
+          <button className={styles.backButton} onClick={() => setStep("select-session")}>← Back</button>
+          <h4>Select a Trainer</h4>
+          {trainers && trainers.length > 0 ? (
             <div className={styles.trainerList}>
               {trainers.map((trainer) => (
                 <div
@@ -233,163 +202,66 @@ export default function TrainerSessionScheduler({ studentId, trainerSessions, on
                   className={styles.trainerCard}
                   onClick={() => handleSelectTrainer(trainer)}
                 >
-                  <div className={styles.trainerInfo}>
-                    <p className={styles.trainerName}>
-                      {trainer.firstName} {trainer.lastName}
-                    </p>
-                    <p className={styles.trainerEmail}>{trainer.email}</p>
-                    {trainer.phone && <p className={styles.trainerPhone}>{trainer.phone}</p>}
-                    <p className={styles.availabilityCount}>
-                      {trainer.availabilityCount} availability slots
-                    </p>
+                  <strong>{trainer.firstName} {trainer.lastName}</strong>
+                  <p>{trainer.email}</p>
+                  <p className={styles.availabilityBadge}>{trainer.availableSlots} available slots</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>No trainers available</p>
+          )}
+        </div>
+      )}
+
+      {/* Step 3: Select Time Slot */}
+      {step === "select-slot" && selectedTrainer && (
+        <div className={styles.step}>
+          <button className={styles.backButton} onClick={() => setStep("select-trainer")}>← Back</button>
+          <h4>Select Available Time</h4>
+          <p className={styles.trainerName}>{selectedTrainer.firstName} {selectedTrainer.lastName}</p>
+          
+          {loading ? (
+            <p>Loading availability...</p>
+          ) : trainerSlots && trainerSlots.length > 0 ? (
+            <div className={styles.slotList}>
+              {trainerSlots.map((slot) => (
+                <div
+                  key={slot.id}
+                  className={styles.slotCard}
+                  onClick={() => handleSelectSlot(slot)}
+                >
+                  <div className={styles.slotDate}>
+                    {new Date(slot.date).toLocaleDateString()}
+                  </div>
+                  <div className={styles.slotTime}>
+                    {slot.startTime} - {slot.endTime}
                   </div>
                 </div>
               ))}
             </div>
+          ) : (
+            <p>No available time slots for this trainer during your session period</p>
           )}
         </div>
       )}
 
-      {step === "select-time" && selectedTrainer && trainerSchedule && (
+      {/* Step 4: Confirm Booking */}
+      {step === "confirm" && selectedSlot && (
         <div className={styles.step}>
-          <button className={styles.backButton} onClick={() => setStep("select-trainer")}>
-            ← Back
-          </button>
-          <h3 className={styles.stepTitle}>
-            Select Time with {selectedTrainer.firstName} {selectedTrainer.lastName}
-          </h3>
-
-          <div className={styles.availabilitySection}>
-            <h4 className={styles.sectionTitle}>Available Time Slots</h4>
-            <div className={styles.availabilityGrid}>
-              {trainerSchedule.availability.length > 0 ? (
-                trainerSchedule.availability.map((slot) => (
-                  <div
-                    key={slot.id}
-                    className={`${styles.availabilitySlot} ${
-                      selectedAvailability?.id === slot.id ? styles.selected : ""
-                    }`}
-                    onClick={() => handleSelectTimeSlot(slot)}
-                  >
-                    <p className={styles.dayOfWeek}>
-                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][slot.dayOfWeek]}
-                    </p>
-                    <p className={styles.timeRange}>
-                      {slot.startTime} - {slot.endTime}
-                    </p>
-                    <p className={styles.locationFormat}>
-                      {slot.locationFormat === "STUDENT_CHOICE"
-                        ? "Your Choice"
-                        : slot.locationFormat}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <p className={styles.noSlots}>No availability slots found</p>
-              )}
+          <button className={styles.backButton} onClick={() => setStep("select-slot")}>← Back</button>
+          <h4>Confirm Booking</h4>
+          <div className={styles.confirmDetails}>
+            <div>
+              <strong>Trainer:</strong> {selectedTrainer?.firstName} {selectedTrainer?.lastName}
+            </div>
+            <div>
+              <strong>Date:</strong> {new Date(selectedSlot.date).toLocaleDateString()}
+            </div>
+            <div>
+              <strong>Time:</strong> {selectedSlot.startTime} - {selectedSlot.endTime}
             </div>
           </div>
-
-          {selectedAvailability && (
-            <div className={styles.dateSelectionSection}>
-              <h4 className={styles.sectionTitle}>Select Date</h4>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={handleDateChange}
-                min={new Date().toISOString().split("T")[0]}
-                max={new Date(selectedSession.expiration_date).toISOString().split("T")[0]}
-                className={styles.dateInput}
-              />
-              {selectedDate && !isDateWithinRange(selectedDate) && (
-                <p className={styles.errorText}>Date is outside session validity period</p>
-              )}
-              {selectedDate && !isDateAvailable(selectedDate) && (
-                <p className={styles.errorText}>
-                  Date is not a {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][selectedAvailability.dayOfWeek]}
-                </p>
-              )}
-
-              {selectedAvailability.locationFormat === "STUDENT_CHOICE" && (
-                <div className={styles.locationSection}>
-                  <h4 className={styles.sectionTitle}>Session Format</h4>
-                  <div className={styles.locationOptions}>
-                    <label className={styles.radioLabel}>
-                      <input
-                        type="radio"
-                        name="locationFormat"
-                        value="IN_PERSON"
-                        checked={selectedLocationFormat === "IN_PERSON"}
-                        onChange={(e) => setSelectedLocationFormat(e.target.value)}
-                      />
-                      In-Person
-                    </label>
-                    <label className={styles.radioLabel}>
-                      <input
-                        type="radio"
-                        name="locationFormat"
-                        value="VIDEO"
-                        checked={selectedLocationFormat === "VIDEO"}
-                        onChange={(e) => setSelectedLocationFormat(e.target.value)}
-                      />
-                      Video
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              <button
-                className={styles.proceedButton}
-                onClick={handleProceedToConfirm}
-                disabled={!selectedDate || !isDateWithinRange(selectedDate) || !isDateAvailable(selectedDate)}
-              >
-                Proceed to Confirm
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {step === "confirm" && selectedSession && selectedTrainer && selectedSessionLog && (
-        <div className={styles.step}>
-          <button className={styles.backButton} onClick={() => setStep("select-time")}>
-            ← Back
-          </button>
-          <h3 className={styles.stepTitle}>Confirm Your Booking</h3>
-
-          <div className={styles.confirmationCard}>
-            <div className={styles.confirmRow}>
-              <span className={styles.label}>Session Package:</span>
-              <span className={styles.value}>{selectedSession.package_name || "Trainer Sessions"}</span>
-            </div>
-            <div className={styles.confirmRow}>
-              <span className={styles.label}>Trainer:</span>
-              <span className={styles.value}>
-                {selectedTrainer.firstName} {selectedTrainer.lastName}
-              </span>
-            </div>
-            <div className={styles.confirmRow}>
-              <span className={styles.label}>Session Date:</span>
-              <span className={styles.value}>
-                {new Date(selectedDate).toLocaleDateString()}
-              </span>
-            </div>
-            <div className={styles.confirmRow}>
-              <span className={styles.label}>Time:</span>
-              <span className={styles.value}>
-                {selectedAvailability.startTime} - {selectedAvailability.endTime}
-              </span>
-            </div>
-            <div className={styles.confirmRow}>
-              <span className={styles.label}>Format:</span>
-              <span className={styles.value}>{selectedLocationFormat}</span>
-            </div>
-            <div className={styles.confirmRow}>
-              <span className={styles.label}>Session Number:</span>
-              <span className={styles.value}>{selectedSessionLog.session_number}</span>
-            </div>
-          </div>
-
           <button
             className={styles.confirmButton}
             onClick={handleConfirmBooking}
