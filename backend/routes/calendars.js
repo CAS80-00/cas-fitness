@@ -559,76 +559,6 @@ router.get("/trainer-slots-all", authenticateToken, async (req, res) => {
   }
 });
 
-// Get All Trainer Slots Including Blocked Status (for master workout calendar)
-// Returns all slots with their complete status (WORKOUT, BREAK, LUNCH, SICK, NO_SHOW, VACATION, PERSONAL_TIME, BOOKED, etc.)
-router.get("/trainer-slots-all-full", authenticateToken, async (req, res) => {
-  try {
-    // Get ALL slots from all trainers (including blocked/unavailable times) with trainer info
-    const query = `
-      SELECT 
-        si.id, 
-        si.user_id as trainer_id, 
-        si.slot_date,
-        si.start_time, 
-        si.end_time, 
-        si.status,
-        si.calendar_type,
-        u.first_name,
-        u.last_name
-      FROM slot_instances si
-      JOIN users u ON si.user_id = u.id
-      WHERE u.role_id = (SELECT id FROM roles WHERE role_name = 'TRAINER')
-        AND si.status NOT IN ('REMOVED')
-      ORDER BY si.user_id, si.slot_date, si.start_time
-    `;
-
-    const result = await db.query(query);
-
-    const slots = result.rows.map((slot) => {
-      // Format slot_date to YYYY-MM-DD string
-      let formattedDate = slot.slot_date;
-      if (typeof slot.slot_date === 'string') {
-        formattedDate = slot.slot_date.split('T')[0];
-      } else if (slot.slot_date instanceof Date) {
-        const year = slot.slot_date.getFullYear();
-        const month = String(slot.slot_date.getMonth() + 1).padStart(2, '0');
-        const day = String(slot.slot_date.getDate()).padStart(2, '0');
-        formattedDate = `${year}-${month}-${day}`;
-      }
-
-      // Format start_time and end_time to HH:MM format
-      const formatTime = (timeStr) => {
-        if (typeof timeStr === 'string') {
-          return timeStr.substring(0, 5);
-        }
-        return timeStr;
-      };
-
-      // Map status for display: if status is APPROVED, use calendar_type; otherwise use status
-      let displayStatus = slot.status === 'APPROVED' ? slot.calendar_type : slot.status;
-
-      return {
-        id: slot.id,
-        trainerId: slot.trainer_id,
-        trainerName: `${slot.first_name} ${slot.last_name}`,
-        slotDate: formattedDate,
-        startTime: formatTime(slot.start_time),
-        endTime: formatTime(slot.end_time),
-        status: displayStatus,
-        calendarType: slot.calendar_type,
-        isBooked: slot.status === 'BOOKED',
-        isAvailable: slot.status === 'WORKOUT' || slot.status === 'APPROVED',
-        isBlocked: ['BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME'].includes(displayStatus),
-      };
-    });
-
-    res.json({ slots });
-  } catch (err) {
-    console.error("Error fetching full trainer slots:", err.message);
-    res.status(500).json({ error: "Failed to fetch trainer slots." });
-  }
-});
-
 // 12. Get All Trainer Consultation Availability Slots (for calendar display)
 // Public endpoint - no authentication required for booking from Plans page
 router.get("/trainer-consultation-slots-all", async (req, res) => {
@@ -1129,6 +1059,75 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
   } catch (err) {
     console.error("Error creating slots:", err.message);
     res.status(500).json({ error: "Failed to create slots", details: err.message });
+  }
+});
+
+
+// Master Calendar Endpoint - Get all trainer slots including blocked times
+router.get("/master-calendar-slots", async (req, res) => {
+  console.log("[MASTER-CALENDAR-SLOTS] Endpoint hit!");
+  try {
+    // Get ALL slots from all trainers (including blocked/unavailable times)
+    const query = `
+      SELECT 
+        si.id, 
+        si.user_id as trainer_id, 
+        si.slot_date,
+        si.start_time, 
+        si.end_time, 
+        si.status,
+        si.calendar_type,
+        u.first_name,
+        u.last_name
+      FROM slot_instances si
+      JOIN users u ON si.user_id = u.id
+      WHERE u.role_id = (SELECT id FROM roles WHERE role_name = 'TRAINER')
+        AND si.status != 'REMOVED'
+      ORDER BY si.user_id, si.slot_date, si.start_time
+    `;
+
+    const result = await db.query(query);
+    console.log("[MASTER-CALENDAR-SLOTS] Query returned", result.rows.length, "rows");
+
+    const slots = result.rows.map((slot) => {
+      // Format dates and times
+      let formattedDate = slot.slot_date;
+      if (typeof slot.slot_date === 'string') {
+        formattedDate = slot.slot_date.split('T')[0];
+      } else if (slot.slot_date instanceof Date) {
+        const year = slot.slot_date.getFullYear();
+        const month = String(slot.slot_date.getMonth() + 1).padStart(2, '0');
+        const day = String(slot.slot_date.getDate()).padStart(2, '0');
+        formattedDate = `${year}-${month}-${day}`;
+      }
+
+      const formatTime = (timeStr) => {
+        if (typeof timeStr === 'string') {
+          return timeStr.substring(0, 5);
+        }
+        return timeStr;
+      };
+
+      // Map status for display
+      const displayStatus = slot.status === 'APPROVED' ? slot.calendar_type : slot.status;
+
+      return {
+        id: slot.id,
+        trainerId: slot.trainer_id,
+        trainerName: `${slot.first_name} ${slot.last_name}`,
+        slotDate: formattedDate,
+        startTime: formatTime(slot.start_time),
+        endTime: formatTime(slot.end_time),
+        status: displayStatus,
+        calendarType: slot.calendar_type,
+      };
+    });
+
+    console.log("[MASTER-CALENDAR-SLOTS] Mapped", slots.length, "slots");
+    res.json({ slots });
+  } catch (err) {
+    console.error("Error fetching master calendar slots:", err.message);
+    res.status(500).json({ error: "Failed to fetch trainer slots." });
   }
 });
 

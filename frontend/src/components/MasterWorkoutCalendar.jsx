@@ -33,7 +33,7 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
       const token = localStorage.getItem("cas_jwt");
       
       // Load all trainer slots including blocked times (BREAK, LUNCH, SICK, etc.)
-      const slotsRes = await fetch(`${apiBaseUrl}/calendars/trainer-slots-all-full`, {
+      const slotsRes = await fetch(`${apiBaseUrl}/calendars/master-calendar-slots`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const slotsData = await slotsRes.json();
@@ -321,3 +321,6 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
 MasterWorkoutCalendar.displayName = "MasterWorkoutCalendar";
 
 export default MasterWorkoutCalendar;
+
+
+
