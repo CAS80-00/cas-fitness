@@ -589,6 +589,11 @@ router.post('/book-session', authenticateToken, async (req, res) => {
         AND NOW() BETWEEN sts.start_date AND sts.expiration_date
     `, [sessionPackageId, studentId]);
 
+    console.log('[TRAINER-SESSIONS] Package check result:', packageResult.rows.length, 'found');
+    if (packageResult.rows.length > 0) {
+      console.log('[TRAINER-SESSIONS] Package details:', packageResult.rows[0]);
+    }
+
     if (packageResult.rows.length === 0) {
       return res.status(403).json({ error: 'No active session package found for this student' });
     }
@@ -604,6 +609,11 @@ router.post('/book-session', authenticateToken, async (req, res) => {
         AND si.calendar_type = 'WORKOUT'
         AND si.status IN ('WORKOUT', 'APPROVED')
     `, [slotInstanceId, trainerId]);
+
+    console.log('[TRAINER-SESSIONS] Slot check result:', slotResult.rows.length, 'found for slotInstanceId:', slotInstanceId, 'trainerId:', trainerId);
+    if (slotResult.rows.length > 0) {
+      console.log('[TRAINER-SESSIONS] Slot details:', slotResult.rows[0]);
+    }
 
     if (slotResult.rows.length === 0) {
       return res.status(404).json({ error: 'Slot instance not found or not available' });
@@ -662,8 +672,8 @@ router.post('/book-session', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error('[TRAINER-SESSIONS] Error booking session:', err.message);
-    console.error('[TRAINER-SESSIONS] Full error:', err);
-    res.status(500).json({ error: 'Failed to book session' });
+    console.error('[TRAINER-SESSIONS] Full error:', err.stack);
+    res.status(500).json({ error: `Failed to book session: ${err.message}` });
   }
 });
 
