@@ -1,0 +1,280 @@
+.container {
+  padding: 20px;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-crimson-red) 85%, var(--color-matte-black)) 0%,
+    color-mix(in srgb, var(--color-crimson-red) 60%, var(--color-matte-black)) 50%,
+    var(--color-matte-black) 100%
+  );
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.2);
+  margin: 20px 0;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.container h3 {
+  margin: 0 0 20px 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.errorMessage {
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background-color: rgba(220, 38, 38, 0.2);
+  color: #fecaca;
+  border: 1px solid rgba(220, 38, 38, 0.5);
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.controls {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.trainerSelect {
+  flex: 1;
+  min-width: 250px;
+}
+
+.trainerSelect label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f5f5f0;
+}
+
+.select {
+  width: 100%;
+  padding: 10px 12px;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.select:hover,
+.select:focus {
+  border-color: #fca5a5;
+  background-color: rgba(0, 0, 0, 0.6);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+}
+
+.select option {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+.viewToggle {
+  display: flex;
+  gap: 8px;
+}
+
+.viewButton {
+  padding: 10px 16px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #f5f5f0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.viewButton:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.viewButton.active {
+  background-color: rgba(220, 38, 38, 0.6);
+  border-color: #fca5a5;
+  color: #ffffff;
+}
+
+.loading {
+  text-align: center;
+  color: #d1d5db;
+  padding: 20px;
+  font-weight: 500;
+}
+
+.calendarWrapper {
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+
+/* FullCalendar custom styling */
+:global(.fc) {
+  color: #d1d5db;
+  font-family: inherit;
+}
+
+:global(.fc .fc-button-primary) {
+  background-color: rgba(220, 38, 38, 0.6);
+  border-color: rgba(220, 38, 38, 0.6);
+  color: #ffffff;
+}
+
+:global(.fc .fc-button-primary:hover) {
+  background-color: rgba(220, 38, 38, 0.8);
+  border-color: rgba(220, 38, 38, 0.8);
+}
+
+:global(.fc .fc-button-primary.fc-button-active) {
+  background-color: #dc2626;
+  border-color: #dc2626;
+}
+
+:global(.fc .fc-button-primary:disabled) {
+  background-color: rgba(220, 38, 38, 0.3);
+  border-color: rgba(220, 38, 38, 0.3);
+  color: #9ca3af;
+}
+
+:global(.fc .fc-button-primary:not(:disabled):hover) {
+  background-color: #b91c1c;
+  border-color: #b91c1c;
+}
+
+:global(.fc .fc-col-header) {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-color: rgba(220, 38, 38, 0.2);
+}
+
+:global(.fc .fc-col-header-cell) {
+  color: #f5f5f0;
+  font-weight: 600;
+  padding: 12px 2px;
+}
+
+:global(.fc .fc-daygrid-day) {
+  background-color: rgba(0, 0, 0, 0.15);
+  border-color: rgba(220, 38, 38, 0.15);
+}
+
+:global(.fc .fc-daygrid-day:hover) {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+:global(.fc .fc-daygrid-day-number) {
+  color: #d1d5db;
+  padding: 8px 4px;
+}
+
+:global(.fc .fc-daygrid-day.fc-day-other) {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+:global(.fc .fc-daygrid-day.fc-day-today) {
+  background-color: rgba(220, 38, 38, 0.15);
+  border-color: rgba(220, 38, 38, 0.5);
+}
+
+:global(.fc .fc-event) {
+  background-color: rgba(220, 38, 38, 0.7);
+  border-color: #dc2626;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+:global(.fc .fc-event:hover) {
+  background-color: #dc2626;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+}
+
+:global(.fc .fc-event-title) {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 2px 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+:global(.fc .fc-timegrid-slot) {
+  height: 2.5em;
+  border-color: rgba(220, 38, 38, 0.1);
+}
+
+:global(.fc .fc-timegrid-slot:first-child) {
+  border-color: rgba(220, 38, 38, 0.2);
+}
+
+:global(.fc .fc-col-time-cell) {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+:global(.fc .fc-day-other .fc-daygrid-day-frame) {
+  opacity: 0.5;
+}
+
+:global(.fc .fc-toolbar-title) {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f5f5f0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+:global(.fc .fc-daygrid-day-frame) {
+  min-height: 100px;
+}
+
+.info {
+  text-align: center;
+  color: #d1d5db;
+  font-size: 13px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .trainerSelect {
+    min-width: 100%;
+  }
+
+  .calendarWrapper {
+    padding: 8px;
+  }
+
+  :global(.fc .fc-toolbar) {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  :global(.fc .fc-toolbar-chunk) {
+    width: 100%;
+  }
+
+  :global(.fc .fc-button-group) {
+    width: 100%;
+  }
+
+  :global(.fc .fc-button) {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}

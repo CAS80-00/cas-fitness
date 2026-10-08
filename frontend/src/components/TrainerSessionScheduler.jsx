@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import TrainerAvailabilityCalendar from "./TrainerAvailabilityCalendar";
 import styles from "../styles/TrainerSessionScheduler.module.css";
 
 /**
@@ -11,7 +12,8 @@ import styles from "../styles/TrainerSessionScheduler.module.css";
 export default function TrainerSessionScheduler({ studentId, trainerSessions, onSessionBooked }) {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 
-  const [step, setStep] = useState("select-session"); // 'select-session', 'select-trainer', 'select-slot', 'confirm'
+  const [step, setStep] = useState("select-session"); // 'select-session', 'select-trainer', 'select-slot', 'confirm', 'calendar'
+  const [viewMode, setViewMode] = useState("list"); // 'list' or 'calendar'
   const [trainers, setTrainers] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [selectedTrainer, setSelectedTrainer] = useState(null);
@@ -106,6 +108,13 @@ export default function TrainerSessionScheduler({ studentId, trainerSessions, on
     setStep("confirm");
   };
 
+  const handleCalendarSlotSelect = (slot) => {
+    // Set the trainer from the calendar slot
+    setSelectedTrainer({ id: slot.trainerId, firstName: slot.trainerName.split(" ")[0], lastName: slot.trainerName.split(" ")[1] || "" });
+    setSelectedSlot(slot);
+    setStep("confirm");
+  };
+
   const handleConfirmBooking = async () => {
     if (!selectedSession || !selectedTrainer || !selectedSlot) {
       setError("Missing required information");
@@ -193,23 +202,51 @@ export default function TrainerSessionScheduler({ studentId, trainerSessions, on
       {step === "select-trainer" && selectedSession && (
         <div className={styles.step}>
           <button className={styles.backButton} onClick={() => setStep("select-session")}>← Back</button>
-          <h4>Select a Trainer</h4>
-          {trainers && trainers.length > 0 ? (
-            <div className={styles.trainerList}>
-              {trainers.map((trainer) => (
-                <div
-                  key={trainer.id}
-                  className={styles.trainerCard}
-                  onClick={() => handleSelectTrainer(trainer)}
-                >
-                  <strong>{trainer.firstName} {trainer.lastName}</strong>
-                  <p>{trainer.email}</p>
-                  <p className={styles.availabilityBadge}>{trainer.availableSlots} available slots</p>
+          <h4>Select a Trainer - View Mode</h4>
+          
+          <div className={styles.viewToggleButtons}>
+            <button 
+              className={`${styles.viewToggleBtn} ${viewMode === "list" ? styles.active : ""}`}
+              onClick={() => setViewMode("list")}
+            >
+              List View
+            </button>
+            <button 
+              className={`${styles.viewToggleBtn} ${viewMode === "calendar" ? styles.active : ""}`}
+              onClick={() => setViewMode("calendar")}
+            >
+              Calendar View
+            </button>
+          </div>
+
+          {viewMode === "list" ? (
+            <>
+              <h4>Available Trainers</h4>
+              {trainers && trainers.length > 0 ? (
+                <div className={styles.trainerList}>
+                  {trainers.map((trainer) => (
+                    <div
+                      key={trainer.id}
+                      className={styles.trainerCard}
+                      onClick={() => handleSelectTrainer(trainer)}
+                    >
+                      <strong>{trainer.firstName} {trainer.lastName}</strong>
+                      <p>{trainer.email}</p>
+                      <p className={styles.availabilityBadge}>{trainer.availableSlots} available slots</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              ) : (
+                <p>No trainers available</p>
+              )}
+            </>
           ) : (
-            <p>No trainers available</p>
+            <>
+              <TrainerAvailabilityCalendar 
+                sessionPackage={selectedSession}
+                onSelectSlot={handleCalendarSlotSelect}
+              />
+            </>
           )}
         </div>
       )}

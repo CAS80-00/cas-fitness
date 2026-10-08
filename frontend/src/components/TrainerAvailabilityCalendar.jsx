@@ -1,0 +1,206 @@
+import { useCallback, useEffect, useState } from "react";
+import FullCalendar from "@fullcalendar/react";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import styles from "../styles/TrainerAvailabilityCalendar.module.css";
+
+/**
+ * TrainerAvailabilityCalendar
+ * Displays all trainers' workout availability in a calendar view
+ * Shows which trainers are available on which dates/times
+ */
+export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPackage }) {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
+  const [events, setEvents] = useState([]);
+  const [trainers, setTrainers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [selectedTrainer, setSelectedTrainer] = useState(null);
+  const [calendarView, setCalendarView] = useState("timeGridWeek"); // timeGridWeek, dayGridMonth
+
+  const getToken = () => localStorage.getItem("cas_jwt");
+
+  const authHeaders = () => ({
+    Authorization: `Bearer ${getToken()}`,
+    "Content-Type": "application/json",
+  });
+
+  // Load available trainers
+  useEffect(() => {
+    const loadTrainers = async () => {
+      try {
+        setError("");
+        const res = await fetch(`${apiBaseUrl}/trainer-sessions/available-trainers`, {
+          headers: authHeaders(),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Failed to load available trainers");
+        }
+        const data = await res.json();
+        setTrainers(data);
+        if (data.length > 0) {
+          setSelectedTrainer(data[0].id);
+        }
+      } catch (err) {
+        setError(err.message);
+        console.error("Error loading trainers:", err);
+      }
+    };
+    loadTrainers();
+  }, []);
+
+  // Load trainer schedule when trainer or date range changes
+  useEffect(() => {
+    if (!selectedTrainer || !sessionPackage) return;
+
+    const loadSchedule = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const startDate = new Date(sessionPackage.start_date).toISOString().split('T')[0];
+        const endDate = new Date(sessionPackage.expiration_date).toISOString().split('T')[0];
+
+        const res = await fetch(
+          `${apiBaseUrl}/trainer-sessions/trainer-schedule/${selectedTrainer}?startDate=${startDate}&endDate=${endDate}`,
+          { headers: authHeaders() }
+        );
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Failed to load trainer schedule");
+        }
+
+        const data = await res.json();
+        const trainerInfo = data.trainer;
+        
+        // Convert slots to calendar events
+        const calendarEvents = data.availableSlots.map((slot) => ({
+          id: String(slot.id),
+          title: `${trainerInfo.firstName} ${trainerInfo.lastName}`,
+          start: `${slot.date}T${slot.startTime}`,
+          end: `${slot.date}T${slot.endTime}`,
+          backgroundColor: "#dc2626",
+          borderColor: "#991b1b",
+          extendedProps: {
+            trainerId: selectedTrainer,
+            trainerName: `${trainerInfo.firstName} ${trainerInfo.lastName}`,
+            slotId: slot.id,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            date: slot.date,
+          },
+        }));
+
+        setEvents(calendarEvents);
+      } catch (err) {
+        setError(err.message);
+        console.error("Error loading schedule:", err);
+        setEvents([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSchedule();
+  }, [selectedTrainer, sessionPackage]);
+
+  const handleSelectEvent = (info) => {
+    const event = info.event;
+    const slot = {
+      id: event.extendedProps.slotId,
+      date: event.extendedProps.date,
+      startTime: event.extendedProps.startTime,
+      endTime: event.extendedProps.endTime,
+      trainerId: event.extendedProps.trainerId,
+      trainerName: event.extendedProps.trainerName,
+    };
+
+    if (onSelectSlot) {
+      onSelectSlot(slot);
+    }
+  };
+
+  if (!sessionPackage) {
+    return (
+      <div className={styles.container}>
+        <p>Please select a session package first</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.container}>
+      <h3>Trainer Availability Calendar</h3>
+
+      {error && <div className={styles.errorMessage}>{error}</div>}
+
+      <div className={styles.controls}>
+        <div className={styles.trainerSelect}>
+          <label htmlFor="trainer-select">Select Trainer:</label>
+          <select
+            id="trainer-select"
+            value={selectedTrainer || ""}
+            onChange={(e) => setSelectedTrainer(e.target.value)}
+            className={styles.select}
+          >
+            <option value="">All Trainers</option>
+            {trainers.map((trainer) => (
+              <option key={trainer.id} value={trainer.id}>
+                {trainer.firstName} {trainer.lastName} ({trainer.availableSlots} slots)
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className={styles.viewToggle}>
+          <button
+            className={`${styles.viewButton} ${calendarView === "timeGridWeek" ? styles.active : ""}`}
+            onClick={() => setCalendarView("timeGridWeek")}
+          >
+            Week
+          </button>
+          <button
+            className={`${styles.viewButton} ${calendarView === "dayGridMonth" ? styles.active : ""}`}
+            onClick={() => setCalendarView("dayGridMonth")}
+          >
+            Month
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <p className={styles.loading}>Loading availability...</p>
+      ) : (
+        <div className={styles.calendarWrapper}>
+          <FullCalendar
+            plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
+            initialView={calendarView}
+            headerToolbar={{
+              left: "prev,next today",
+              center: "title",
+              right: "timeGridWeek,dayGridMonth",
+            }}
+            events={events}
+            eventClick={handleSelectEvent}
+            height="auto"
+            contentHeight="auto"
+            slotLabelFormat={{
+              hour: "numeric",
+              minute: "2-digit",
+              meridiem: "short",
+            }}
+            slotDuration="00:30:00"
+            snapDuration="00:15:00"
+          />
+        </div>
+      )}
+
+      <div className={styles.info}>
+        <p>Click on any availability slot to book it</p>
+      </div>
+    </div>
+  );
+}
