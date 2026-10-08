@@ -112,6 +112,16 @@
   font-weight: 500;
 }
 
+.noAvailability {
+  text-align: center;
+  color: #d1d5db;
+  padding: 40px 20px;
+  font-weight: 500;
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 8px;
+}
+
 .calendarWrapper {
   background-color: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(220, 38, 38, 0.2);

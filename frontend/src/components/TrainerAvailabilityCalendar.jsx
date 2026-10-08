@@ -3,6 +3,9 @@ import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import "@fullcalendar/core/dist/index.global.css";
+import "@fullcalendar/daygrid/dist/index.global.css";
+import "@fullcalendar/timegrid/dist/index.global.css";
 import styles from "../styles/TrainerAvailabilityCalendar.module.css";
 
 /**
@@ -173,9 +176,10 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
 
       {loading ? (
         <p className={styles.loading}>Loading availability...</p>
-      ) : (
+      ) : events && events.length > 0 ? (
         <div className={styles.calendarWrapper}>
           <FullCalendar
+            key={calendarView}
             plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
             initialView={calendarView}
             headerToolbar={{
@@ -194,8 +198,12 @@ export default function TrainerAvailabilityCalendar({ onSelectSlot, sessionPacka
             }}
             slotDuration="00:30:00"
             snapDuration="00:15:00"
+            editable={false}
+            selectable={false}
           />
         </div>
+      ) : (
+        <p className={styles.noAvailability}>No availability found for the selected trainer during this period</p>
       )}
 
       <div className={styles.info}>
