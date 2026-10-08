@@ -32,16 +32,8 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
     try {
       const token = localStorage.getItem("cas_jwt");
       
-      // Load booked workout sessions
-      const sessionRes = await fetch(`${apiBaseUrl}/calendars/workouts`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const sessionData = await sessionRes.json();
-      if (!sessionRes.ok) throw new Error(sessionData.error || "Failed to load workout sessions.");
-      setSessions(sessionData.sessions || []);
-
-      // Load trainer availability slots
-      const slotsRes = await fetch(`${apiBaseUrl}/calendars/trainer-slots-all`, {
+      // Load all trainer slots including blocked times (BREAK, LUNCH, SICK, etc.)
+      const slotsRes = await fetch(`${apiBaseUrl}/calendars/trainer-slots-all-full`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const slotsData = await slotsRes.json();
@@ -64,26 +56,11 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
   const events = useMemo(() => {
     const allEvents = [];
 
-    // Add booked sessions
-    sessions
-      .filter((session) => !selectedTrainerId || session.trainer_id === selectedTrainerId)
-      .forEach((session) => {
-        allEvents.push({
-          id: `session-${session.id}`,
-          title: `${session.status}`,
-          start: session.start_time,
-          end: session.end_time,
-          backgroundColor: getSessionColor(session.status),
-          borderColor: getSessionColor(session.status),
-          extendedProps: { type: "session" },
-        });
-      });
-
-    // Add trainer availability slots from new slot_instances table
+    // Add trainer slots from new slot_instances table
     trainerSlots
       .filter((slot) => !selectedTrainerId || slot.trainerId === selectedTrainerId)
       .forEach((slot) => {
-        // New slots have concrete slot_date and start/end times
+        // Slots have concrete slot_date and start/end times
         if (slot.slotDate && slot.startTime && slot.endTime) {
           try {
             const [hours, minutes] = slot.startTime.split(":").map(Number);
@@ -109,15 +86,80 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
               return;
             }
 
+            // Determine title and color based on status
+            let title, backgroundColor, borderColor, textColor;
+            
+            switch (slot.status) {
+              case "WORKOUT":
+              case "APPROVED":
+                title = `${slot.trainerName} - Available`;
+                backgroundColor = "#10b981"; // green
+                borderColor = "#059669";
+                textColor = "#ffffff";
+                break;
+              case "BOOKED":
+                title = `${slot.trainerName} - Booked`;
+                backgroundColor = "#6b7280"; // gray
+                borderColor = "#4b5563";
+                textColor = "#ffffff";
+                break;
+              case "BREAK":
+                title = `${slot.trainerName} - Break`;
+                backgroundColor = "#f59e0b"; // amber
+                borderColor = "#d97706";
+                textColor = "#000000";
+                break;
+              case "LUNCH":
+                title = `${slot.trainerName} - Lunch`;
+                backgroundColor = "#ec4899"; // pink
+                borderColor = "#be185d";
+                textColor = "#ffffff";
+                break;
+              case "SICK":
+                title = `${slot.trainerName} - Sick`;
+                backgroundColor = "#ef4444"; // red
+                borderColor = "#b91c1c";
+                textColor = "#ffffff";
+                break;
+              case "NO_SHOW":
+                title = `${slot.trainerName} - No Show`;
+                backgroundColor = "#8b5cf6"; // purple
+                borderColor = "#6d28d9";
+                textColor = "#ffffff";
+                break;
+              case "VACATION":
+                title = `${slot.trainerName} - Vacation`;
+                backgroundColor = "#3b82f6"; // blue
+                borderColor = "#1d4ed8";
+                textColor = "#ffffff";
+                break;
+              case "PERSONAL_TIME":
+                title = `${slot.trainerName} - Personal Time`;
+                backgroundColor = "#14b8a6"; // teal
+                borderColor = "#0d9488";
+                textColor = "#ffffff";
+                break;
+              default:
+                title = `${slot.trainerName} - ${slot.status}`;
+                backgroundColor = "#6b7280"; // gray
+                borderColor = "#4b5563";
+                textColor = "#ffffff";
+            }
+
             allEvents.push({
               id: `slot-${slot.id}`,
-              title: `${slot.trainerName} - Available`,
+              title,
               start: eventStart.toISOString(),
               end: eventEnd.toISOString(),
-              backgroundColor: "#10b981",
-              borderColor: "#059669",
-              textColor: "#ffffff",
-              extendedProps: { type: "availability" },
+              backgroundColor,
+              borderColor,
+              textColor,
+              extendedProps: { 
+                type: "slot",
+                status: slot.status,
+                trainerId: slot.trainerId,
+                trainerName: slot.trainerName,
+              },
             });
           } catch (err) {
             console.error(`Error parsing slot ${slot.id}:`, err, slot);
@@ -126,22 +168,7 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
       });
 
     return allEvents;
-  }, [sessions, trainerSlots, selectedTrainerId, currentWeekStart]);
-
-  const getSessionColor = (status) => {
-    switch (status) {
-      case "SCHEDULED":
-        return "#3b82f6";
-      case "COMPLETED":
-        return "#8b5cf6";
-      case "FAILED":
-        return "#ef4444";
-      case "ABSENT":
-        return "#f97316";
-      default:
-        return "#6b7280";
-    }
-  };
+  }, [trainerSlots, selectedTrainerId]);
 
   return (
     <div className={styles.card}>
@@ -162,45 +189,113 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
       </div>
       {error && <p className={styles.errorText}>{error}</p>}
       <div style={{ marginBottom: "1rem", fontSize: "0.875rem", color: "#888" }}>
-        <span style={{ display: "inline-block", marginRight: "1.5rem" }}>
-          <span
-            style={{
-              display: "inline-block",
-              width: "12px",
-              height: "12px",
-              backgroundColor: "#3b82f6",
-              marginRight: "0.5rem",
-              borderRadius: "2px",
-            }}
-          />
-          Scheduled
-        </span>
-        <span style={{ display: "inline-block", marginRight: "1.5rem" }}>
-          <span
-            style={{
-              display: "inline-block",
-              width: "12px",
-              height: "12px",
-              backgroundColor: "#8b5cf6",
-              marginRight: "0.5rem",
-              borderRadius: "2px",
-            }}
-          />
-          Completed
-        </span>
-        <span style={{ display: "inline-block", marginRight: "1.5rem" }}>
-          <span
-            style={{
-              display: "inline-block",
-              width: "12px",
-              height: "12px",
-              backgroundColor: "#10b981",
-              marginRight: "0.5rem",
-              borderRadius: "2px",
-            }}
-          />
-          Trainer Available
-        </span>
+        <div style={{ marginBottom: "0.75rem", fontWeight: "600" }}>Trainer Calendar Status:</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "0.75rem" }}>
+          {/* Available */}
+          <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span
+              style={{
+                display: "inline-block",
+                width: "12px",
+                height: "12px",
+                backgroundColor: "#10b981",
+                borderRadius: "2px",
+              }}
+            />
+            <span>Available</span>
+          </span>
+          {/* Booked */}
+          <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span
+              style={{
+                display: "inline-block",
+                width: "12px",
+                height: "12px",
+                backgroundColor: "#6b7280",
+                borderRadius: "2px",
+              }}
+            />
+            <span>Booked</span>
+          </span>
+          {/* Break */}
+          <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span
+              style={{
+                display: "inline-block",
+                width: "12px",
+                height: "12px",
+                backgroundColor: "#f59e0b",
+                borderRadius: "2px",
+              }}
+            />
+            <span>Break</span>
+          </span>
+          {/* Lunch */}
+          <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span
+              style={{
+                display: "inline-block",
+                width: "12px",
+                height: "12px",
+                backgroundColor: "#ec4899",
+                borderRadius: "2px",
+              }}
+            />
+            <span>Lunch</span>
+          </span>
+          {/* Sick */}
+          <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span
+              style={{
+                display: "inline-block",
+                width: "12px",
+                height: "12px",
+                backgroundColor: "#ef4444",
+                borderRadius: "2px",
+              }}
+            />
+            <span>Sick</span>
+          </span>
+          {/* No Show */}
+          <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span
+              style={{
+                display: "inline-block",
+                width: "12px",
+                height: "12px",
+                backgroundColor: "#8b5cf6",
+                borderRadius: "2px",
+              }}
+            />
+            <span>No Show</span>
+          </span>
+          {/* Vacation */}
+          <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span
+              style={{
+                display: "inline-block",
+                width: "12px",
+                height: "12px",
+                backgroundColor: "#3b82f6",
+                borderRadius: "2px",
+              }}
+            />
+            <span>Vacation</span>
+          </span>
+          {/* Personal Time */}
+          <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span
+              style={{
+                display: "inline-block",
+                width: "12px",
+                height: "12px",
+                backgroundColor: "#14b8a6",
+                borderRadius: "2px",
+              }}
+            />
+            <span>Personal Time</span>
+          </span>
+        </div>
       </div>
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin]}
