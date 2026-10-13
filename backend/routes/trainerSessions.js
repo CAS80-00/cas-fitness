@@ -591,7 +591,7 @@ router.post('/book-session', authenticateToken, async (req, res) => {
   try {
     // Verify the student has an active session package
     const packageResult = await db.query(`
-      SELECT sts.id, sts.remaining_sessions, sts.expiration_date, sts.start_date
+      SELECT sts.id, sts.trainer_id, sts.remaining_sessions, sts.expiration_date, sts.start_date
       FROM student_trainer_sessions sts
       WHERE sts.id = $1 
         AND sts.student_id = $2 
@@ -606,6 +606,17 @@ router.post('/book-session', authenticateToken, async (req, res) => {
     }
 
     const sessionPackage = packageResult.rows[0];
+
+    // Update session package with trainer_id if not already set
+    if (!sessionPackage.trainer_id) {
+      await db.query(`
+        UPDATE student_trainer_sessions
+        SET trainer_id = $1
+        WHERE id = $2
+      `, [trainerId, sessionPackageId]);
+      
+      console.log('[TRAINER-SESSIONS] Updated session package with trainer_id:', trainerId);
+    }
 
     // Verify the slot instance exists and is available (from master calendar)
     const slotResult = await db.query(`
