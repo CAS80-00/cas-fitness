@@ -680,16 +680,18 @@ router.post('/book-session', authenticateToken, async (req, res) => {
         'IN_PERSON',
         'SCHEDULED'
       )
-      RETURNING id, session_number, status, scheduled_date
+      RETURNING id, session_number, status, scheduled_date, slot_instance_id
     `, [sessionPackageId, sessionPackage.remaining_sessions, utcDateString, slotInstanceId]);
 
     // Log what was actually stored in the database
     const storedDate = logResult.rows[0].scheduled_date;
-    console.log('[TRAINER-SESSIONS] Stored scheduled_date from DB:', storedDate);
-    console.log('[TRAINER-SESSIONS] Type of scheduled_date:', typeof storedDate);
-    if (storedDate) {
-      console.log('[TRAINER-SESSIONS] ISO String:', storedDate.toISOString ? storedDate.toISOString() : String(storedDate));
-    }
+    const storedSlotId = logResult.rows[0].slot_instance_id;
+    console.log('[TRAINER-SESSIONS] Stored session log:', {
+      id: logResult.rows[0].id,
+      slot_instance_id: storedSlotId,
+      scheduled_date: storedDate,
+      sessionNumber: logResult.rows[0].session_number
+    });
 
     // Mark the slot as BOOKED in the master calendar
     await db.query(`
@@ -744,6 +746,15 @@ router.post('/session-log/:logId/cancel', authenticateToken, async (req, res) =>
     }
 
     const log = logResult.rows[0];
+    
+    console.log('[TRAINER-SESSIONS] Cancellation request details:', {
+      logId: logId,
+      status: log.status,
+      slotInstanceId: log.slot_instance_id,
+      trainerId: log.trainer_id,
+      studentId: log.student_id,
+      scheduledDate: log.scheduled_date
+    });
 
     // Verify this is the student's session
     if (log.student_id !== studentId) {
