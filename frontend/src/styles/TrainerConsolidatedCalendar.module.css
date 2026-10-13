@@ -185,3 +185,52 @@
 .closeButtonStyle:hover {
   background-color: #2563eb;
 }
+
+/* Action Buttons Styles */
+.actionButtons {
+  @apply border-t p-4;
+  border-color: #262626;
+}
+
+.actionLabel {
+  @apply mb-3 text-xs font-semibold text-neutral-400;
+}
+
+.buttonGroup {
+  @apply mb-3 grid grid-cols-2 gap-2;
+}
+
+.actionButton {
+  @apply rounded px-3 py-2 text-xs font-medium text-white transition;
+  cursor: pointer;
+  border: none;
+}
+
+.actionButton.complete {
+  background-color: #10b981;
+}
+
+.actionButton.complete:hover {
+  background-color: #059669;
+}
+
+.actionButton.absent {
+  background-color: #f97316;
+}
+
+.actionButton.absent:hover {
+  background-color: #ea580c;
+}
+
+.actionButton.cancel {
+  @apply w-full;
+  background-color: #ef4444;
+}
+
+.actionButton.cancel:hover {
+  background-color: #dc2626;
+}
+
+.cancelDisabled {
+  @apply w-full rounded bg-gray-600 px-3 py-2 text-center text-xs text-gray-300;
+}

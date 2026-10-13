@@ -187,6 +187,53 @@ export default function EmployeeConsolidatedCalendar({ employeeId, refreshTrigge
     }
   };
 
+  const handleManageSessionStatus = async (newStatus) => {
+    if (!selectedEvent?.data?.id) return;
+
+    const token = apiToken();
+    try {
+      const res = await fetch(
+        `${apiBaseUrl}/trainer-sessions/session-log/${selectedEvent.data.id}/manage-status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ newStatus }),
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update session status.");
+
+      setShowDetailsModal(false);
+      setSelectedEvent(null);
+      // Reload calendar data
+      if (employeeId) {
+        setTimeout(() => loadCalendarData(), 500);
+      }
+    } catch (error) {
+      alert(`Error: ${error.message}`);
+    }
+  };
+
+  const canCancelSession = () => {
+    if (!selectedEvent?.data?.start_time) return false;
+    
+    const scheduledTime = new Date(selectedEvent.data.start_time);
+    const currentTime = new Date();
+    const hoursDifference = (scheduledTime - currentTime) / (1000 * 60 * 60);
+    return hoursDifference >= 24;
+  };
+
+  const getHoursUntilSession = () => {
+    if (!selectedEvent?.data?.start_time) return 0;
+    const scheduledTime = new Date(selectedEvent.data.start_time);
+    const currentTime = new Date();
+    return (scheduledTime - currentTime) / (1000 * 60 * 60);
+  };
+
   return (
     <div className={styles.card}>
       <div className={styles.header}>
@@ -282,6 +329,41 @@ export default function EmployeeConsolidatedCalendar({ employeeId, refreshTrigge
                 </div>
               )}
             </div>
+
+            {selectedEvent.type === "workout-booked" && selectedEvent.data.status === "SCHEDULED" && (
+              <div className={styles.actionButtons}>
+                <p className={styles.actionLabel}>Manage Session:</p>
+                
+                <div className={styles.buttonGroup}>
+                  <button
+                    onClick={() => handleManageSessionStatus('COMPLETE')}
+                    className={`${styles.actionButton} ${styles.complete}`}
+                  >
+                    Mark Complete
+                  </button>
+                  
+                  <button
+                    onClick={() => handleManageSessionStatus('ABSENT')}
+                    className={`${styles.actionButton} ${styles.absent}`}
+                  >
+                    Mark Absent
+                  </button>
+                </div>
+
+                {canCancelSession() ? (
+                  <button
+                    onClick={() => handleManageSessionStatus('CANCELLED')}
+                    className={`${styles.actionButton} ${styles.cancel}`}
+                  >
+                    Cancel Session
+                  </button>
+                ) : (
+                  <div className={styles.cancelDisabled}>
+                    Can only cancel {Math.ceil(getHoursUntilSession())} hours before session
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className={styles.modalFooter}>
               <button
