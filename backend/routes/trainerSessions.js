@@ -851,4 +851,113 @@ router.post('/session-log/:logId/cancel', authenticateToken, async (req, res) =>
   }
 });
 
+// ============================================================================
+// TRAINER/SUPERUSER SESSION MANAGEMENT - Update Session Status
+// ============================================================================
+
+// Update trainer session status (COMPLETE, ABSENT, or CANCEL)
+router.put('/session-log/:logId/manage-status', authenticateToken, async (req, res) => {
+  const { logId } = req.params;
+  const { newStatus } = req.body;
+  const userId = req.user.userId;
+  const userRole = req.user.role;
+
+  // Validate status
+  if (!['COMPLETE', 'ABSENT', 'CANCELLED'].includes(newStatus)) {
+    return res.status(400).json({ error: 'Invalid status. Must be COMPLETE, ABSENT, or CANCELLED.' });
+  }
+
+  try {
+    // Get session log and related data
+    const logResult = await db.query(`
+      SELECT 
+        stsl.id, stsl.scheduled_date, stsl.status,
+        sts.student_id, sts.trainer_id, sts.remaining_sessions,
+        si.id as slot_instance_id
+      FROM student_trainer_session_logs stsl
+      JOIN student_trainer_sessions sts ON stsl.student_trainer_session_id = sts.id
+      LEFT JOIN slot_instances si ON stsl.slot_instance_id = si.id
+      WHERE stsl.id = $1
+    `, [logId]);
+
+    if (logResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Session log not found' });
+    }
+
+    const log = logResult.rows[0];
+
+    // Permission check: only trainer, superuser, or staff can manage sessions
+    const isTrainer = userRole === 'TRAINER' && log.trainer_id === userId;
+    const isSuperuserOrStaff = userRole === 'SUPERUSER' || userRole === 'STAFF';
+
+    if (!isTrainer && !isSuperuserOrStaff) {
+      return res.status(403).json({ error: 'You do not have permission to manage this session.' });
+    }
+
+    // For trainers, check if CANCEL is within 24-hour window
+    if (newStatus === 'CANCELLED' && isTrainer && !isSuperuserOrStaff) {
+      const scheduledTime = new Date(log.scheduled_date);
+      const currentTime = new Date();
+      const hoursDifference = (scheduledTime - currentTime) / (1000 * 60 * 60);
+
+      if (hoursDifference < 24) {
+        return res.status(403).json({ 
+          error: 'Trainers can only cancel sessions more than 24 hours in advance.' 
+        });
+      }
+    }
+
+    // Update the session status
+    const updateResult = await db.query(`
+      UPDATE student_trainer_session_logs
+      SET status = $1, updated_at = NOW()
+      WHERE id = $2
+      RETURNING id, status, scheduled_date
+    `, [newStatus, logId]);
+
+    // If status is COMPLETE or ABSENT, decrement remaining_sessions
+    if ((newStatus === 'COMPLETE' || newStatus === 'ABSENT') && log.remaining_sessions > 0) {
+      await db.query(`
+        UPDATE student_trainer_sessions
+        SET remaining_sessions = remaining_sessions - 1
+        WHERE id = $1
+      `, [log.student_trainer_session_id]);
+    }
+
+    // If status is CANCELLED, restore the slot and remaining sessions
+    if (newStatus === 'CANCELLED' && log.slot_instance_id) {
+      await db.query(`
+        UPDATE slot_instances
+        SET status = 'WORKOUT'
+        WHERE id = $1
+      `, [log.slot_instance_id]);
+
+      await db.query(`
+        UPDATE student_trainer_sessions
+        SET remaining_sessions = remaining_sessions + 1
+        WHERE id = $1
+      `, [log.student_trainer_session_id]);
+    }
+
+    const updatedLog = updateResult.rows[0];
+
+    console.log(`[TRAINER-SESSIONS] Session status updated by ${userRole}:`, {
+      logId: logId,
+      newStatus: newStatus,
+      userId: userId,
+      trainerId: log.trainer_id,
+      studentId: log.student_id
+    });
+
+    res.json({
+      success: true,
+      message: `Session marked as ${newStatus}`,
+      sessionLog: updatedLog
+    });
+  } catch (err) {
+    console.error('[TRAINER-SESSIONS] Error updating session status:', err.message);
+    res.status(500).json({ error: `Failed to update session status: ${err.message}` });
+  }
+});
+
 module.exports = router;

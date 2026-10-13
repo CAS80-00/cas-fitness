@@ -189,15 +189,10 @@ export default function WorkoutCalendar({
   const handleEventClick = (info) => {
     const session = info.event.extendedProps.originalSession;
     
-    // Show booking details modal for booked sessions (when student_id exists)
+    // Show booking details modal for all roles when student is booked
     if (session.student_id) {
       setSelectedBookingDetails(session);
       setShowDetailsModal(true);
-    }
-    // Show status modal for trainers to update session status
-    else if (isTrainer && session.student_id) {
-      setSelectedSession(session);
-      setShowStatusModal(true);
     }
   };
 
@@ -229,6 +224,60 @@ export default function WorkoutCalendar({
     } catch (error) {
       setErrorMessage(error.message);
     }
+  };
+
+  const handleManageSessionStatus = async (newStatus) => {
+    if (!selectedBookingDetails) return;
+
+    const token = getToken();
+    try {
+      const res = await fetch(
+        `${apiBaseUrl}/trainer-sessions/session-log/${selectedBookingDetails.id}/manage-status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ newStatus }),
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update session status.");
+
+      setStatusMessage(`Session marked as ${newStatus}`);
+      setErrorMessage("");
+      setShowDetailsModal(false);
+      setSelectedBookingDetails(null);
+      loadSessions();
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  };
+
+  const canCancelSession = () => {
+    if (!selectedBookingDetails) return false;
+    
+    if (!isTrainer && !isSuperuser && userRole !== 'STAFF') return false;
+    
+    if (isSuperuser || userRole === 'STAFF') return true;
+    
+    if (isTrainer) {
+      const scheduledTime = new Date(selectedBookingDetails.start_time);
+      const currentTime = new Date();
+      const hoursDifference = (scheduledTime - currentTime) / (1000 * 60 * 60);
+      return hoursDifference >= 24;
+    }
+    
+    return false;
+  };
+
+  const getHoursUntilSession = () => {
+    if (!selectedBookingDetails) return 0;
+    const scheduledTime = new Date(selectedBookingDetails.start_time);
+    const currentTime = new Date();
+    return (scheduledTime - currentTime) / (1000 * 60 * 60);
   };
 
   const handleAddAvailability = async (dayOfWeek, startTime, endTime, format) => {
@@ -635,15 +684,58 @@ export default function WorkoutCalendar({
               )}
             </div>
 
-            <button
-              onClick={() => {
-                setShowDetailsModal(false);
-                setSelectedBookingDetails(null);
-              }}
-              className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-white hover:bg-gray-600 mt-4"
-            >
-              Close
-            </button>
+            {(isTrainer || isSuperuser || userRole === 'STAFF') && selectedBookingDetails.status === 'SCHEDULED' && (
+              <div className="space-y-2 mt-4 pt-4 border-t border-gray-700">
+                <p className="text-xs text-gray-400 mb-3">Manage Session:</p>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleManageSessionStatus('COMPLETE')}
+                    className="rounded bg-green-600 px-3 py-2 text-xs text-white hover:bg-green-700 font-medium"
+                  >
+                    Mark Complete
+                  </button>
+                  
+                  <button
+                    onClick={() => handleManageSessionStatus('ABSENT')}
+                    className="rounded bg-orange-600 px-3 py-2 text-xs text-white hover:bg-orange-700 font-medium"
+                  >
+                    Mark Absent
+                  </button>
+                </div>
+
+                {canCancelSession() ? (
+                  <button
+                    onClick={() => handleManageSessionStatus('CANCELLED')}
+                    className="w-full rounded bg-red-600 px-3 py-2 text-xs text-white hover:bg-red-700 font-medium mt-2"
+                  >
+                    Cancel Session
+                  </button>
+                ) : isTrainer && !isSuperuser && selectedBookingDetails.start_time ? (
+                  <div className="w-full rounded bg-gray-600 px-3 py-2 text-xs text-gray-300 mt-2 text-center">
+                    Can only cancel {Math.ceil(getHoursUntilSession())} hours before session
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            <div className="space-y-2 mt-4">
+              {errorMessage && (
+                <p className="text-xs text-red-400">{errorMessage}</p>
+              )}
+              {statusMessage && (
+                <p className="text-xs text-green-400">{statusMessage}</p>
+              )}
+              <button
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setSelectedBookingDetails(null);
+                }}
+                className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-white hover:bg-gray-600"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
