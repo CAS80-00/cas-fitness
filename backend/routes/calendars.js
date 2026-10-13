@@ -253,6 +253,7 @@ router.get("/workouts", authenticateToken, async (req, res) => {
     ];
 
     console.log(`[/workouts] Returning ${sessions.length} sessions (${result.rows.length} workout sessions + ${trainerBookings.rows.length} trainer sessions)`);
+    console.log('[/workouts] Sample response:', JSON.stringify(sessions.slice(0, 1), null, 2));
     res.json({ sessions });
   } catch (err) {
     console.error("[/workouts] Error:", err);

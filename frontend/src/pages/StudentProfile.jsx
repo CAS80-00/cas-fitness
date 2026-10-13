@@ -227,11 +227,6 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
                   trainerSessions={trainerSessions}
                   onSessionBooked={() => {
                     setShowScheduler(false);
-                    // Refresh the master calendar
-                    setMasterCalendarRefresh(prev => prev + 1);
-                    if (masterCalendarRef.current) {
-                      masterCalendarRef.current.refreshCalendar();
-                    }
                     // Reload trainer sessions after booking
                     const loadTrainerSessions = async () => {
                       if (!currentUser?.id) return;
