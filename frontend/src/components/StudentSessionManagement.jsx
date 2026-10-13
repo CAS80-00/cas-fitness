@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import styles from '../styles/StudentSessionManagement.module.css';
 
-const StudentSessionManagement = ({ onSessionCancelled }) => {
+const StudentSessionManagement = () => {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,11 +68,6 @@ const StudentSessionManagement = ({ onSessionCancelled }) => {
       setSuccessMessage('Session cancelled successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
       loadSessions();
-      
-      // Notify parent component to refresh calendar
-      if (onSessionCancelled) {
-        onSessionCancelled();
-      }
     } catch (err) {
       setError(err.message);
     } finally {

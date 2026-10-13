@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import AccessQRCode from "../components/AccessQRCode";
 import TrainerSessionScheduler from "../components/TrainerSessionScheduler";
-import MasterWorkoutCalendar from "../components/MasterWorkoutCalendar";
 import StudentSessionManagement from "../components/StudentSessionManagement";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
@@ -20,8 +19,6 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
   const [statusMessage, setStatusMessage] = useState("");
   const [trainerSessions, setTrainerSessions] = useState([]);
   const [showScheduler, setShowScheduler] = useState(false);
-  const [masterCalendarRefresh, setMasterCalendarRefresh] = useState(0);
-  const masterCalendarRef = useRef(null);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 
   useEffect(() => {
@@ -186,11 +183,7 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
           </div>
 
           <div className={styles.calendarColumn}>
-            <MasterWorkoutCalendar 
-              ref={masterCalendarRef}
-              trainers={[]}
-              refreshTrigger={masterCalendarRefresh}
-            />
+            <StudentSessionManagement />
           </div>
         </div>
 
@@ -278,18 +271,6 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
             </div>
           </div>
         )}
-      </div>
-
-      <div className={styles.contentWrap}>
-        <StudentSessionManagement 
-          onSessionCancelled={() => {
-            // Refresh the calendar when a session is cancelled
-            setMasterCalendarRefresh(prev => prev + 1);
-            if (masterCalendarRef.current) {
-              masterCalendarRef.current.refreshCalendar();
-            }
-          }}
-        />
       </div>
 
       <SiteFooter isSuperuser={currentUser?.roleId === 1} />
