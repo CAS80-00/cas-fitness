@@ -732,7 +732,8 @@ router.post('/session-log/:logId/cancel', authenticateToken, async (req, res) =>
     const logResult = await db.query(`
       SELECT 
         stsl.id, stsl.student_trainer_session_id, stsl.scheduled_date, stsl.status,
-        sts.student_id
+        stsl.slot_instance_id,
+        sts.student_id, sts.trainer_id
       FROM student_trainer_session_logs stsl
       JOIN student_trainer_sessions sts ON stsl.student_trainer_session_id = sts.id
       WHERE stsl.id = $1
@@ -772,6 +773,18 @@ router.post('/session-log/:logId/cancel', authenticateToken, async (req, res) =>
       WHERE id = $1
     `, [logId]);
 
+    // Release the slot back to available in trainer's calendar
+    // This makes it show as WORKOUT (available) instead of BOOKED
+    if (log.slot_instance_id) {
+      await db.query(`
+        UPDATE slot_instances
+        SET status = 'WORKOUT', modified_by = $2, modified_at = NOW()
+        WHERE id = $1
+      `, [log.slot_instance_id, studentId]);
+      
+      console.log('[TRAINER-SESSIONS] Released slot:', log.slot_instance_id, 'back to WORKOUT status');
+    }
+
     // Restore remaining sessions
     await db.query(`
       UPDATE student_trainer_sessions
@@ -779,15 +792,17 @@ router.post('/session-log/:logId/cancel', authenticateToken, async (req, res) =>
       WHERE id = $1
     `, [log.student_trainer_session_id]);
 
+    console.log('[TRAINER-SESSIONS] Session cancelled:', logId, 'Trainer:', log.trainer_id);
+
     res.json({
       success: true,
-      message: 'Session cancelled successfully',
-      remainingSessionsRestored: 1
+      message: 'Session cancelled successfully - availability restored',
+      remainingSessionsRestored: 1,
+      slotReleased: !!log.slot_instance_id
     });
   } catch (err) {
     console.error('[TRAINER-SESSIONS] Error cancelling session:', err.message);
     res.status(500).json({ error: `Failed to cancel session: ${err.message}` });
   }
-});
 
 module.exports = router;
