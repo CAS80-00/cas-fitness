@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import AccessQRCode from "../components/AccessQRCode";
 import TrainerSessionScheduler from "../components/TrainerSessionScheduler";
 import MasterWorkoutCalendar from "../components/MasterWorkoutCalendar";
+import StudentSessionManagement from "../components/StudentSessionManagement";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import styles from "../styles/StudentProfile.module.css";
@@ -277,6 +278,10 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
             </div>
           </div>
         )}
+      </div>
+
+      <div className={styles.contentWrap}>
+        <StudentSessionManagement />
       </div>
 
       <SiteFooter isSuperuser={currentUser?.roleId === 1} />

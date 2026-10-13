@@ -703,4 +703,72 @@ router.post('/book-session', authenticateToken, async (req, res) => {
   }
 });
 
+// Cancel a booked trainer session (students can cancel if 24+ hours away)
+router.post('/session-log/:logId/cancel', authenticateToken, async (req, res) => {
+  const { logId } = req.params;
+  const studentId = req.user.userId;
+
+  try {
+    // Get the session log details
+    const logResult = await db.query(`
+      SELECT 
+        stsl.id, stsl.student_trainer_session_id, stsl.scheduled_date, stsl.status,
+        sts.student_id
+      FROM student_trainer_session_logs stsl
+      JOIN student_trainer_sessions sts ON stsl.student_trainer_session_id = sts.id
+      WHERE stsl.id = $1
+    `, [logId]);
+
+    if (logResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const log = logResult.rows[0];
+
+    // Verify this is the student's session
+    if (log.student_id !== studentId) {
+      return res.status(403).json({ error: 'Unauthorized - this is not your session' });
+    }
+
+    // Check if session is already cancelled
+    if (log.status === 'CANCELLED') {
+      return res.status(400).json({ error: 'Session is already cancelled' });
+    }
+
+    // Check if session is more than 24 hours away
+    const scheduledDate = new Date(log.scheduled_date);
+    const hoursUntilSession = (scheduledDate.getTime() - Date.now()) / (1000 * 60 * 60);
+
+    if (hoursUntilSession < 24) {
+      return res.status(400).json({ 
+        error: 'Cannot cancel within 24 hours of session start',
+        hoursUntilSession: hoursUntilSession.toFixed(2)
+      });
+    }
+
+    // Cancel the session log
+    await db.query(`
+      UPDATE student_trainer_session_logs
+      SET status = 'CANCELLED', updated_at = NOW()
+      WHERE id = $1
+    `, [logId]);
+
+    // Restore remaining sessions
+    await db.query(`
+      UPDATE student_trainer_sessions
+      SET remaining_sessions = remaining_sessions + 1, updated_at = NOW()
+      WHERE id = $1
+    `, [log.student_trainer_session_id]);
+
+    res.json({
+      success: true,
+      message: 'Session cancelled successfully',
+      remainingSessionsRestored: 1
+    });
+  } catch (err) {
+    console.error('[TRAINER-SESSIONS] Error cancelling session:', err.message);
+    res.status(500).json({ error: `Failed to cancel session: ${err.message}` });
+  }
+});
+
 module.exports = router;
