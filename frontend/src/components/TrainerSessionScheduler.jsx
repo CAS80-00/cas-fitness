@@ -193,7 +193,7 @@ export default function TrainerSessionScheduler({ studentId, trainerSessions, on
                   <div className={styles.sessionInfo}>
                     <strong>{session.package_name || "Trainer Sessions"}</strong>
                     <p>Sessions: {session.remaining_sessions} remaining</p>
-                    <p>Valid: {new Date(session.start_date).toLocaleDateString()} - {new Date(session.expiration_date).toLocaleDateString()}</p>
+                    <p>Valid: {typeof session.start_date === 'string' ? session.start_date : new Date(session.start_date).toISOString().split('T')[0]} - {typeof session.expiration_date === 'string' ? session.expiration_date : new Date(session.expiration_date).toISOString().split('T')[0]}</p>
                   </div>
                 </div>
               ))}
@@ -276,7 +276,7 @@ export default function TrainerSessionScheduler({ studentId, trainerSessions, on
                   onClick={() => handleSelectSlot(slot)}
                 >
                   <div className={styles.slotDate}>
-                    {new Date(slot.date).toLocaleDateString()}
+                    {typeof slot.date === 'string' ? slot.date : new Date(slot.date).toISOString().split('T')[0]}
                   </div>
                   <div className={styles.slotTime}>
                     {slot.startTime} - {slot.endTime}
@@ -300,7 +300,7 @@ export default function TrainerSessionScheduler({ studentId, trainerSessions, on
               <strong>Trainer:</strong> {selectedTrainer?.firstName} {selectedTrainer?.lastName}
             </div>
             <div>
-              <strong>Date:</strong> {new Date(selectedSlot.date).toLocaleDateString()}
+              <strong>Date:</strong> {typeof selectedSlot.date === 'string' ? selectedSlot.date : new Date(selectedSlot.date).toISOString().split('T')[0]}
             </div>
             <div>
               <strong>Time:</strong> {selectedSlot.startTime} - {selectedSlot.endTime}
