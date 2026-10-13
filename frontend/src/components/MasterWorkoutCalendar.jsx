@@ -47,13 +47,11 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
         headers: { Authorization: `Bearer ${token}` },
       });
       const workoutsData = await workoutsRes.json();
-      console.log("[MasterWorkoutCalendar] Workouts response - status:", workoutsRes.status, "data keys:", Object.keys(workoutsData), "full data:", workoutsData);
       if (!workoutsRes.ok) throw new Error(workoutsData.error || "Failed to load workout sessions.");
-      console.log("[MasterWorkoutCalendar] About to set sessions from:", workoutsData.sessions || workoutsData.workouts);
       setSessions(workoutsData.sessions || []);
       console.log("[MasterWorkoutCalendar] Loaded sessions:", workoutsData.sessions);
     } catch (err) {
-      console.error("[MasterWorkoutCalendar] Error loading data:", err);
+      console.error("[MasterWorkoutCalendar] Error:", err);
       setError(err.message);
     }
   }, [apiBaseUrl]);
@@ -188,19 +186,8 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
     // Only show details modal if it's a booked session (status === "BOOKED")
     if (info.event.extendedProps.status === "BOOKED") {
       // Match session by trainer_id and start time
-      // The slot ID doesn't match workout_sessions table ID, so we match by trainer + time
       const trainerId = info.event.extendedProps.trainerId;
       const eventStart = new Date(info.event.start);
-      
-      console.log("[MasterWorkoutCalendar] Looking for session match:");
-      console.log("  trainerId:", trainerId);
-      console.log("  eventStart:", eventStart);
-      console.log("  Available sessions:", sessions.length);
-      sessions.forEach(s => {
-        const sessionStart = new Date(s.start_time);
-        const timeDiff = Math.abs(eventStart.getTime() - sessionStart.getTime());
-        console.log(`  - Session ${s.id}: trainer_id=${s.trainer_id}, start=${s.start_time} (${sessionStart.toLocaleString()}), timeDiff=${timeDiff}ms, student=${s.student_name}`);
-      });
       
       // Find matching session by trainer and approximate time match
       const sessionData = sessions.find(s => {
@@ -211,8 +198,6 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
         const timeDiff = Math.abs(eventStart.getTime() - sessionStart.getTime());
         return timeDiff < 60000; // Within 1 minute
       });
-      
-      console.log("[MasterWorkoutCalendar] Matched session:", sessionData);
       
       setSelectedSession({
         id: info.event.id,
