@@ -96,7 +96,14 @@ export default function TrainerSessionScheduler({ studentId, trainerSessions, on
   useEffect(() => {
     const unsubscribe = onCalendarEvent(CalendarEvents.SESSION_CANCELLED, (data) => {
       console.log("[TrainerSessionScheduler] Session cancelled event received", data);
-      // If a trainer is selected, reload their schedule to show cancelled slot as available
+      
+      // If calendar ref is available, call its refresh method
+      if (calendarRef.current) {
+        console.log("[TrainerSessionScheduler] Refreshing calendar via ref");
+        calendarRef.current.refreshCalendar();
+      }
+      
+      // Also refresh trainer slots if a trainer is currently selected
       if (selectedTrainer && selectedSession) {
         setLoading(true);
         const startDate = new Date(selectedSession.start_date).toISOString().split('T')[0];
@@ -114,7 +121,7 @@ export default function TrainerSessionScheduler({ studentId, trainerSessions, on
     });
 
     return unsubscribe;
-  }, [selectedTrainer, selectedSession]);
+  }, [selectedTrainer, selectedSession, apiBaseUrl, authHeaders]);
 
   const handleSelectSession = (session) => {
     setSelectedSession(session);

@@ -772,17 +772,30 @@ router.post('/session-log/:logId/cancel', authenticateToken, async (req, res) =>
       SET status = 'CANCELLED', updated_at = NOW()
       WHERE id = $1
     `, [logId]);
+    
+    console.log('[TRAINER-SESSIONS] Updated session log to CANCELLED:', logId);
 
     // Release the slot back to available in trainer's calendar
     // This makes it show as WORKOUT (available) instead of BOOKED
     if (log.slot_instance_id) {
-      await db.query(`
+      const slotUpdateResult = await db.query(`
         UPDATE slot_instances
         SET status = 'WORKOUT', modified_by = $2, modified_at = NOW()
         WHERE id = $1
+        RETURNING id, status, slot_date, start_time
       `, [log.slot_instance_id, studentId]);
       
-      console.log('[TRAINER-SESSIONS] Released slot:', log.slot_instance_id, 'back to WORKOUT status');
+      if (slotUpdateResult.rows.length > 0) {
+        const updatedSlot = slotUpdateResult.rows[0];
+        console.log('[TRAINER-SESSIONS] Released slot back to WORKOUT:', {
+          slotId: log.slot_instance_id,
+          status: updatedSlot.status,
+          date: updatedSlot.slot_date,
+          time: updatedSlot.start_time
+        });
+      }
+    } else {
+      console.log('[TRAINER-SESSIONS] WARNING: No slot_instance_id found for session log:', logId);
     }
 
     // Restore remaining sessions
@@ -804,5 +817,6 @@ router.post('/session-log/:logId/cancel', authenticateToken, async (req, res) =>
     console.error('[TRAINER-SESSIONS] Error cancelling session:', err.message);
     res.status(500).json({ error: `Failed to cancel session: ${err.message}` });
   }
+});
 
 module.exports = router;
