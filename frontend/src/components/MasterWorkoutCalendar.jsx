@@ -48,9 +48,11 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
       });
       const workoutsData = await workoutsRes.json();
       if (!workoutsRes.ok) throw new Error(workoutsData.error || "Failed to load workout sessions.");
+      console.log("[MasterWorkoutCalendar] Workouts response - status:", workoutsRes.status, "data:", workoutsData);
       setSessions(workoutsData.sessions || []);
       console.log("[MasterWorkoutCalendar] Loaded sessions:", workoutsData.sessions);
     } catch (err) {
+      console.error("[MasterWorkoutCalendar] Error loading data:", err);
       setError(err.message);
     }
   }, [apiBaseUrl]);
