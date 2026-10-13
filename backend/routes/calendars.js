@@ -925,21 +925,23 @@ router.get("/trainer-workouts", authenticateToken, async (req, res) => {
   }
 
   try {
+    // Get trainer's booked sessions from session logs
     const query = `
       SELECT 
-        ws.id,
-        ws.trainer_id,
-        ws.student_id,
-        ws.status,
-        ws.start_time,
-        ws.end_time,
+        stsl.id,
+        sts.trainer_id,
+        sts.student_id,
+        stsl.status,
+        stsl.scheduled_date as start_time,
+        stsl.scheduled_date + INTERVAL '50 minutes' as end_time,
         u.first_name as student_first_name,
         u.last_name as student_last_name,
         u.email as student_email
-      FROM workout_sessions ws
-      LEFT JOIN users u ON ws.student_id = u.id
-      WHERE ws.trainer_id = $1
-      ORDER BY ws.start_time DESC
+      FROM student_trainer_session_logs stsl
+      JOIN student_trainer_sessions sts ON stsl.student_trainer_session_id = sts.id
+      LEFT JOIN users u ON sts.student_id = u.id
+      WHERE sts.trainer_id = $1
+      ORDER BY stsl.scheduled_date DESC
     `;
 
     const result = await db.query(query, [trainer_id]);

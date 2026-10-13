@@ -330,7 +330,7 @@ export default function EmployeeConsolidatedCalendar({ employeeId, refreshTrigge
               )}
             </div>
 
-            {selectedEvent.type === "workout-booked" && selectedEvent.data.status === "SCHEDULED" && (
+            {selectedEvent.type === "workout-booked" && selectedEvent.data.status === "SCHEDULED" && selectedEvent.data.id && (
               <div className={styles.actionButtons}>
                 <p className={styles.actionLabel}>Manage Session:</p>
                 
