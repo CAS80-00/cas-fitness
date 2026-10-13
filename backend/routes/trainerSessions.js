@@ -315,7 +315,7 @@ router.post('/assign', authenticateToken, requireRole(['SUPERUSER', 'STAFF']), a
 // Update student trainer session
 router.put('/session/:sessionId', authenticateToken, requireRole(['SUPERUSER', 'STAFF']), async (req, res) => {
   const { sessionId } = req.params;
-  const { trainer_id, total_sessions, start_date, expiration_date, status, notes } = req.body;
+  const { total_sessions, start_date, expiration_date, status, notes } = req.body;
 
   try {
     // First get the current session
@@ -328,30 +328,55 @@ router.put('/session/:sessionId', authenticateToken, requireRole(['SUPERUSER', '
     }
 
     const oldTotal = currentSession.rows[0].total_sessions;
-    const sessionCountDifference = total_sessions ? parseInt(total_sessions) - oldTotal : 0;
-    const newRemaining = total_sessions ? Math.max(0, currentSession.rows[0].remaining_sessions + sessionCountDifference) : currentSession.rows[0].remaining_sessions;
+    const newTotal = total_sessions !== undefined ? parseInt(total_sessions) : oldTotal;
+    const sessionCountDifference = newTotal - oldTotal;
+    const newRemaining = Math.max(0, currentSession.rows[0].remaining_sessions + sessionCountDifference);
 
     // Begin transaction if we're adding/removing sessions
     if (sessionCountDifference !== 0) {
       await db.query('BEGIN');
     }
 
+    // Build update query dynamically
+    const updates = [];
+    const params = [];
+    let paramCount = 1;
+
+    if (start_date !== undefined) {
+      updates.push(`start_date = $${paramCount++}`);
+      params.push(start_date);
+    }
+    if (expiration_date !== undefined) {
+      updates.push(`expiration_date = $${paramCount++}`);
+      params.push(expiration_date);
+    }
+    if (status !== undefined) {
+      updates.push(`status = $${paramCount++}`);
+      params.push(status);
+    }
+    if (notes !== undefined) {
+      updates.push(`notes = $${paramCount++}`);
+      params.push(notes);
+    }
+
+    updates.push(`total_sessions = $${paramCount++}`);
+    params.push(newTotal);
+    
+    updates.push(`remaining_sessions = $${paramCount++}`);
+    params.push(newRemaining);
+    
+    updates.push(`updated_at = NOW()`);
+    
+    params.push(sessionId);
+
     // Update main session record
     const result = await db.query(`
       UPDATE student_trainer_sessions
-      SET 
-        trainer_id = COALESCE($1, trainer_id),
-        total_sessions = COALESCE($2, total_sessions),
-        remaining_sessions = $3,
-        start_date = COALESCE($4, start_date),
-        expiration_date = COALESCE($5, expiration_date),
-        status = COALESCE($6, status),
-        notes = COALESCE($7, notes),
-        updated_at = NOW()
-      WHERE id = $8
+      SET ${updates.join(', ')}
+      WHERE id = $${paramCount}
       RETURNING id, student_id, trainer_id, total_sessions, remaining_sessions,
                 start_date, expiration_date, status, created_at, updated_at
-    `, [trainer_id, total_sessions, newRemaining, start_date, expiration_date, status, notes, sessionId]);
+    `, params);
     
     if (result.rows.length === 0) {
       if (sessionCountDifference !== 0) await db.query('ROLLBACK');
@@ -360,13 +385,13 @@ router.put('/session/:sessionId', authenticateToken, requireRole(['SUPERUSER', '
 
     // If adding more sessions, create new logs for the added sessions
     if (sessionCountDifference > 0) {
-      const sessionNumber = oldTotal + 1;
       for (let i = 0; i < sessionCountDifference; i++) {
+        const sessionNumber = oldTotal + 1 + i;
         await db.query(`
           INSERT INTO student_trainer_session_logs 
           (student_trainer_session_id, session_number, scheduled_date, completed_date, status, location_format, notes)
           VALUES ($1, $2, NULL, NULL, 'PENDING', NULL, NULL)
-        `, [sessionId, sessionNumber + i]);
+        `, [sessionId, sessionNumber]);
       }
     } else if (sessionCountDifference < 0) {
       // If removing sessions, mark the last X sessions as CANCELLED
@@ -375,10 +400,10 @@ router.put('/session/:sessionId', authenticateToken, requireRole(['SUPERUSER', '
         UPDATE student_trainer_session_logs
         SET status = 'CANCELLED', updated_at = NOW()
         WHERE student_trainer_session_id = $1
-          AND status = 'PENDING'
           AND session_number > $2
+        ORDER BY session_number DESC
         LIMIT $3
-      `, [sessionId, oldTotal - sessionsToCancel, sessionsToCancel]);
+      `, [sessionId, newTotal, sessionsToCancel]);
     }
 
     if (sessionCountDifference !== 0) {
