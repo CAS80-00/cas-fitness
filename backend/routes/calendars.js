@@ -995,8 +995,26 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
     daysOfWeek,
   } = req.body;
 
-  if (!userId || !calendarType || !startDate || !endDate || startHour === undefined || startMinute === undefined || !durationMinutes || !daysOfWeek) {
-    return res.status(400).json({ error: "Missing required fields" });
+  console.log("[CALENDARS] POST /slots/create received body:", JSON.stringify(req.body, null, 2));
+
+  // Detailed validation with field-by-field checking
+  const missingFields = [];
+  if (!userId) missingFields.push('userId');
+  if (!calendarType) missingFields.push('calendarType');
+  if (!startDate) missingFields.push('startDate');
+  if (!endDate) missingFields.push('endDate');
+  if (startHour === undefined || startHour === null) missingFields.push('startHour');
+  if (startMinute === undefined || startMinute === null) missingFields.push('startMinute');
+  if (!durationMinutes) missingFields.push('durationMinutes');
+  if (!daysOfWeek || daysOfWeek.length === 0) missingFields.push('daysOfWeek (must have at least one day)');
+
+  if (missingFields.length > 0) {
+    console.log("[CALENDARS] Missing fields:", missingFields);
+    return res.status(400).json({ 
+      error: "Missing required fields",
+      missingFields: missingFields,
+      receivedBody: req.body
+    });
   }
 
   if (daysOfWeek.length === 0) {

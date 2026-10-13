@@ -204,8 +204,40 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
 
   const handleCreateSlots = async (e) => {
     e.preventDefault();
-    if (!selectedEmployee || formData.daysOfWeek.length === 0) {
-      setMessage("Please select an employee and at least one day of week.");
+    
+    // Better validation with specific error messages
+    if (!selectedEmployee) {
+      setMessage("❌ Please select an employee first");
+      return;
+    }
+    
+    if (!formData.daysOfWeek || formData.daysOfWeek.length === 0) {
+      setMessage("❌ Please select at least one day of week");
+      return;
+    }
+    
+    if (!formData.startDate) {
+      setMessage("❌ Please enter a start date");
+      return;
+    }
+    
+    if (!formData.endDate) {
+      setMessage("❌ Please enter an end date");
+      return;
+    }
+    
+    if (formData.startHour === undefined || formData.startHour === null) {
+      setMessage("❌ Please enter a start hour");
+      return;
+    }
+    
+    if (formData.startMinute === undefined || formData.startMinute === null) {
+      setMessage("❌ Please enter start minutes");
+      return;
+    }
+    
+    if (!formData.durationMinutes || formData.durationMinutes <= 0) {
+      setMessage("❌ Please enter a valid slot duration");
       return;
     }
 
