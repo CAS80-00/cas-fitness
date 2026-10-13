@@ -90,15 +90,21 @@ const StudentSessionManagement = () => {
       // Broadcast cancellation event to all calendars
       const cancelledSession = sessions.find(s => s.id === logId);
       if (cancelledSession) {
+        console.log('[StudentSessionManagement] Broadcasting cancellation for session:', logId);
         broadcastSessionCancelled({
           id: logId,
+          slot_id: cancelledSession.slot_instance_id, // Include slot ID for tracking
           trainer_id: cancelledSession.trainer_id,
           student_id: cancelledSession.student_id,
           scheduled_date: cancelledSession.start_time,
         });
       }
       
-      loadSessions();
+      // Refresh sessions after a brief delay to ensure database updates have completed
+      setTimeout(() => {
+        console.log('[StudentSessionManagement] Refreshing sessions after cancellation');
+        loadSessions();
+      }, 500);
     } catch (err) {
       setError(err.message);
     } finally {

@@ -793,20 +793,30 @@ router.post('/session-log/:logId/cancel', authenticateToken, async (req, res) =>
         UPDATE slot_instances
         SET status = 'WORKOUT', modified_by = $2, modified_at = NOW()
         WHERE id = $1
-        RETURNING id, status, slot_date, start_time
+        RETURNING id, status, slot_date, start_time, user_id
       `, [log.slot_instance_id, studentId]);
       
       if (slotUpdateResult.rows.length > 0) {
         const updatedSlot = slotUpdateResult.rows[0];
-        console.log('[TRAINER-SESSIONS] Released slot back to WORKOUT:', {
+        console.log('[TRAINER-SESSIONS] ✅ Released slot back to WORKOUT:', {
           slotId: log.slot_instance_id,
+          trainerId: updatedSlot.user_id,
           status: updatedSlot.status,
           date: updatedSlot.slot_date,
           time: updatedSlot.start_time
         });
+      } else {
+        console.log('[TRAINER-SESSIONS] ⚠️ Slot update query returned no rows. Checking if slot exists...');
+        const checkSlot = await db.query('SELECT id, status FROM slot_instances WHERE id = $1', [log.slot_instance_id]);
+        if (checkSlot.rows.length === 0) {
+          console.log('[TRAINER-SESSIONS] ❌ Slot ID not found in database:', log.slot_instance_id);
+        } else {
+          console.log('[TRAINER-SESSIONS] Slot exists but update failed:', checkSlot.rows[0]);
+        }
       }
     } else {
-      console.log('[TRAINER-SESSIONS] WARNING: No slot_instance_id found for session log:', logId);
+      console.log('[TRAINER-SESSIONS] ❌ CRITICAL: No slot_instance_id found for session log:', logId);
+      console.log('[TRAINER-SESSIONS] Session log details:', log);
     }
 
     // Restore remaining sessions
