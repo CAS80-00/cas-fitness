@@ -47,8 +47,9 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
         headers: { Authorization: `Bearer ${token}` },
       });
       const workoutsData = await workoutsRes.json();
+      console.log("[MasterWorkoutCalendar] Workouts response - status:", workoutsRes.status, "data keys:", Object.keys(workoutsData), "full data:", workoutsData);
       if (!workoutsRes.ok) throw new Error(workoutsData.error || "Failed to load workout sessions.");
-      console.log("[MasterWorkoutCalendar] Workouts response - status:", workoutsRes.status, "data:", workoutsData);
+      console.log("[MasterWorkoutCalendar] About to set sessions from:", workoutsData.sessions || workoutsData.workouts);
       setSessions(workoutsData.sessions || []);
       console.log("[MasterWorkoutCalendar] Loaded sessions:", workoutsData.sessions);
     } catch (err) {
