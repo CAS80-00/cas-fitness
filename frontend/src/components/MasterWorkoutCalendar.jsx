@@ -49,6 +49,7 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
       const workoutsData = await workoutsRes.json();
       if (!workoutsRes.ok) throw new Error(workoutsData.error || "Failed to load workout sessions.");
       setSessions(workoutsData.sessions || []);
+      console.log("[MasterWorkoutCalendar] Loaded sessions:", workoutsData.sessions);
     } catch (err) {
       setError(err.message);
     }
@@ -188,6 +189,16 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
       const trainerId = info.event.extendedProps.trainerId;
       const eventStart = new Date(info.event.start);
       
+      console.log("[MasterWorkoutCalendar] Looking for session match:");
+      console.log("  trainerId:", trainerId);
+      console.log("  eventStart:", eventStart);
+      console.log("  Available sessions:", sessions.length);
+      sessions.forEach(s => {
+        const sessionStart = new Date(s.start_time);
+        const timeDiff = Math.abs(eventStart.getTime() - sessionStart.getTime());
+        console.log(`  - Session ${s.id}: trainer_id=${s.trainer_id}, start=${s.start_time} (${sessionStart.toLocaleString()}), timeDiff=${timeDiff}ms, student=${s.student_name}`);
+      });
+      
       // Find matching session by trainer and approximate time match
       const sessionData = sessions.find(s => {
         if (s.trainer_id !== trainerId) return false;
@@ -197,6 +208,8 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
         const timeDiff = Math.abs(eventStart.getTime() - sessionStart.getTime());
         return timeDiff < 60000; // Within 1 minute
       });
+      
+      console.log("[MasterWorkoutCalendar] Matched session:", sessionData);
       
       setSelectedSession({
         id: info.event.id,
