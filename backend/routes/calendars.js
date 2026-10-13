@@ -945,6 +945,8 @@ router.get("/trainer-workouts", authenticateToken, async (req, res) => {
     `;
 
     const result = await db.query(query, [trainer_id]);
+    console.log(`[/trainer-workouts] Trainer ID: ${trainer_id}, Found ${result.rows.length} sessions`);
+    console.log(`[/trainer-workouts] Session data:`, result.rows);
     
     const workouts = result.rows.map((session) => ({
       id: session.id,
@@ -957,6 +959,7 @@ router.get("/trainer-workouts", authenticateToken, async (req, res) => {
       end_time: session.end_time,
     }));
 
+    console.log(`[/trainer-workouts] Returning ${workouts.length} workouts:`, workouts);
     res.json({ data: workouts });
   } catch (err) {
     console.error("Error fetching trainer workouts:", err.message);

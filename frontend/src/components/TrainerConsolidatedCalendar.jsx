@@ -102,6 +102,7 @@ export default function EmployeeConsolidatedCalendar({ employeeId, refreshTrigge
       }
 
       const workoutSessionsData = await workoutSessionsResponse.json();
+      console.log("[TrainerConsolidatedCalendar] Workout sessions:", workoutSessionsData.data);
       setWorkoutSessions(workoutSessionsData.data || []);
     } catch (err) {
       console.error("Error loading calendar data:", err);
@@ -177,11 +178,13 @@ export default function EmployeeConsolidatedCalendar({ employeeId, refreshTrigge
   const handleEventClick = (info) => {
     const eventType = info.event.extendedProps.type;
     if (eventType === "consultation-booked" || eventType === "workout-booked") {
+      const eventData = eventType === "consultation-booked" 
+        ? info.event.extendedProps.bookingData 
+        : info.event.extendedProps.sessionData;
+      console.log("[TrainerConsolidatedCalendar] Selected event:", eventType, eventData);
       setSelectedEvent({
         type: eventType,
-        data: eventType === "consultation-booked" 
-          ? info.event.extendedProps.bookingData 
-          : info.event.extendedProps.sessionData,
+        data: eventData,
       });
       setShowDetailsModal(true);
     }

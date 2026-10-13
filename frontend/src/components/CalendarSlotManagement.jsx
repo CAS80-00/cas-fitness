@@ -69,6 +69,59 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
   const currentUserData = localStorage.getItem("cas_user");
   const isSuperuser = currentUserData ? JSON.parse(currentUserData).roleId === 1 : false;
 
+  // Helper: Calculate hours until session starts
+  const getHoursUntilSession = () => {
+    if (!selectedSlot || !selectedSlot.slot_date || !selectedSlot.start_time) return 999;
+    const sessionStart = new Date(`${selectedSlot.slot_date}T${selectedSlot.start_time}`);
+    const now = new Date();
+    return (sessionStart - now) / (1000 * 60 * 60);
+  };
+
+  // Helper: Check if trainer can cancel (24+ hours away)
+  const canCancelSession = () => {
+    if (isSuperuser) return true; // Superuser can always cancel
+    const hours = getHoursUntilSession();
+    return hours >= 24;
+  };
+
+  // Manage trainer session status
+  const handleManageSessionStatus = async (newStatus) => {
+    if (!selectedSlot || !selectedSlot.id) return;
+
+    try {
+      setLoading(true);
+      const token = apiToken();
+      
+      const res = await fetch(
+        `${apiBaseUrl}/trainer-sessions/session-log/${selectedSlot.id}/manage-status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status: newStatus }),
+        }
+      );
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || `Failed to update session status to ${newStatus}`);
+      }
+
+      setMessage(`✓ Session marked as ${newStatus}`);
+      setShowStatusModal(false);
+      setSelectedSlot(null);
+      if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
+      onSlotChanged();
+    } catch (err) {
+      setMessage(`Error: ${err.message}`);
+      console.error("Error managing session status:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (currentUserData) {
       setCurrentUser(JSON.parse(currentUserData));
@@ -968,6 +1021,52 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
                           );
                         })}
                       </div>
+                    </div>
+                  )}
+
+                  {selectedSlot.status === "BOOKED" && (
+                    <div className={styles.statusOptions}>
+                      <p className={styles.optionLabel}>Manage Session:</p>
+                      
+                      <button
+                        className={styles.optionBtn}
+                        style={{ borderLeftColor: "#10b981", backgroundColor: "#10b981" }}
+                        onClick={() => handleManageSessionStatus('COMPLETE')}
+                        disabled={loading}
+                      >
+                        ✓ Mark Complete
+                      </button>
+
+                      <button
+                        className={styles.optionBtn}
+                        style={{ borderLeftColor: "#f59e0b", backgroundColor: "#f59e0b" }}
+                        onClick={() => handleManageSessionStatus('ABSENT')}
+                        disabled={loading}
+                      >
+                        ! Mark Absent
+                      </button>
+
+                      {canCancelSession() ? (
+                        <button
+                          className={styles.optionBtn}
+                          style={{ borderLeftColor: "#ef4444", backgroundColor: "#ef4444" }}
+                          onClick={() => handleManageSessionStatus('CANCELLED')}
+                          disabled={loading}
+                        >
+                          ✕ Cancel Session
+                        </button>
+                      ) : (
+                        <div style={{
+                          padding: "0.75rem 1rem",
+                          backgroundColor: "#f3f4f6",
+                          borderRadius: "4px",
+                          color: "#6b7280",
+                          fontSize: "0.875rem",
+                          marginTop: "0.5rem"
+                        }}>
+                          Can only cancel {Math.ceil(getHoursUntilSession())} hours before session
+                        </div>
+                      )}
                     </div>
                   )}
 
