@@ -649,16 +649,33 @@ router.post('/book-session', authenticateToken, async (req, res) => {
     }
     
     // Combine slot_date and start_time into ISO format timestamp
-    // start_time is already in HH:MM:SS format, so just combine with T separator
+    // start_time is already in HH:MM:SS format from the TIME column
     const scheduledDateTime = `${slotDatePart}T${slot.start_time}`;
     
-    console.log('[TRAINER-SESSIONS] Creating log with scheduledDateTime:', scheduledDateTime);
+    console.log('[TRAINER-SESSIONS] Input scheduledDateTime:', scheduledDateTime);
+    
+    // JavaScript approach: Interpret the time as EDT, convert to UTC
+    // The user books at their local time (EDT), so:
+    // - "2026-10-16T13:00:00" means 1 PM EDT
+    // - EDT is UTC-4, meaning EDT times are 4 hours BEHIND UTC
+    // - So 1 PM EDT = 5 PM UTC
+    // - Therefore: utcTime = edtTime + 4 hours
+    
+    // Parse the date as if it's in UTC (this is what JavaScript does)
+    const dateObj = new Date(scheduledDateTime);  // Parses as UTC
+    
+    // But we want to treat the INPUT as EDT, not UTC
+    // So we add 4 hours to convert from EDT to UTC
+    const edtOffsetMs = 4 * 60 * 60 * 1000;  // 4 hours in milliseconds
+    const utcDate = new Date(dateObj.getTime() + edtOffsetMs);
+    const utcDateString = utcDate.toISOString().split('.')[0];  // Remove milliseconds, keep ISO format
+    
+    console.log('[TRAINER-SESSIONS] Timezone conversion:');
+    console.log('[TRAINER-SESSIONS]   Input (treating as EDT):', scheduledDateTime);
+    console.log('[TRAINER-SESSIONS]   After adding 4 hours (UTC):', utcDateString);
 
     // Create session log with slot_instance_id link
-    // Step 1: Interpret the input as America/New_York time
-    // Step 2: Convert to UTC for storage in the database
-    // Example: "2026-10-16T13:00:00" (1 PM) in New York = "2026-10-16T17:00:00 UTC" (5 PM UTC)
-    // When FullCalendar retrieves it, it sees "17:00 UTC" and displays as "13:00 EDT"
+    // Store directly as UTC timestamp string
     const logResult = await db.query(`
       INSERT INTO student_trainer_session_logs (
         student_trainer_session_id, slot_instance_id, session_number, scheduled_date, location_format, status
@@ -669,12 +686,20 @@ router.post('/book-session', authenticateToken, async (req, res) => {
           SELECT COUNT(*) FROM student_trainer_session_logs 
           WHERE student_trainer_session_id = $1
         )),
-        ($3::TIMESTAMP AT TIME ZONE 'America/New_York')::TIMESTAMPTZ,
+        $3::TIMESTAMPTZ,
         'IN_PERSON',
         'SCHEDULED'
       )
       RETURNING id, session_number, status, scheduled_date
-    `, [sessionPackageId, sessionPackage.remaining_sessions, scheduledDateTime, slotInstanceId]);
+    `, [sessionPackageId, sessionPackage.remaining_sessions, utcDateString, slotInstanceId]);
+
+    // Log what was actually stored in the database
+    const storedDate = logResult.rows[0].scheduled_date;
+    console.log('[TRAINER-SESSIONS] Stored scheduled_date from DB:', storedDate);
+    console.log('[TRAINER-SESSIONS] Type of scheduled_date:', typeof storedDate);
+    if (storedDate) {
+      console.log('[TRAINER-SESSIONS] ISO String:', storedDate.toISOString ? storedDate.toISOString() : String(storedDate));
+    }
 
     // Mark the slot as BOOKED in the master calendar
     await db.query(`
@@ -697,7 +722,7 @@ router.post('/book-session', authenticateToken, async (req, res) => {
         id: logResult.rows[0].id,
         sessionNumber: logResult.rows[0].session_number,
         status: logResult.rows[0].status,
-        scheduledDate: logResult.rows[0].scheduled_date
+        scheduledDate: logResult.rows[0].scheduled_date.toISOString ? logResult.rows[0].scheduled_date.toISOString() : logResult.rows[0].scheduled_date
       }
     });
   } catch (err) {

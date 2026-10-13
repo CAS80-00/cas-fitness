@@ -237,8 +237,11 @@ router.get("/workouts", authenticateToken, async (req, res) => {
           : null;
         
         if (booking.student_id) {
-          console.log(`[/workouts] Trainer Session ID: ${booking.id}, Student: ${studentName || 'NO NAME'}, Student ID: ${booking.student_id}, Start: ${booking.start_time}`);
-        }
+            console.log(`[/workouts] Trainer Session ID: ${booking.id}, Student: ${studentName || 'NO NAME'}, Student ID: ${booking.student_id}, Start: ${booking.start_time}, Type: ${typeof booking.start_time}`);
+            if (booking.start_time && typeof booking.start_time === 'object' && booking.start_time.toISOString) {
+              console.log(`[/workouts]   - As ISO: ${booking.start_time.toISOString()}`);
+            }
+          }
         
         return {
           id: booking.id,
