@@ -42,28 +42,17 @@ export default function TrainerSessionManagement({ studentId, onClose }) {
   useEffect(() => {
     loadSessions();
     loadPackages();
-    loadTrainers();
   }, [studentId]);
-
-  const loadTrainers = async () => {
-    try {
-      const res = await fetch(`${apiBaseUrl}/admin/trainers`, {
-        headers: authHeaders(),
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      setTrainers(data);
-    } catch (err) {
-      console.error("Error loading trainers:", err);
-    }
-  };
 
   const loadSessions = async () => {
     try {
       setError("");
       const res = await fetch(
         `${apiBaseUrl}/trainer-sessions/student/${studentId}`,
-        { headers: authHeaders() }
+        { 
+          headers: authHeaders(),
+          cache: 'no-store'
+        }
       );
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -127,6 +116,7 @@ export default function TrainerSessionManagement({ studentId, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('[FORM] handleSubmit called - modalMode:', modalMode, 'selectedSession:', selectedSession);
     setIsLoading(true);
     setError("");
 
@@ -144,23 +134,29 @@ export default function TrainerSessionManagement({ studentId, onClose }) {
       };
 
       console.log('Sending payload:', payload);
+      console.log('[FORM] modalMode:', modalMode);
+      console.log('[FORM] selectedSession.id:', selectedSession?.id);
 
       let res;
       if (modalMode === "add") {
+        console.log('[FORM] Sending POST to /assign');
         res = await fetch(`${apiBaseUrl}/trainer-sessions/assign`, {
           method: "POST",
           headers: authHeaders(),
           body: JSON.stringify(payload),
         });
       } else {
-        res = await fetch(
-          `${apiBaseUrl}/trainer-sessions/session/${selectedSession.id}`,
-          {
-            method: "PUT",
-            headers: authHeaders(),
-            body: JSON.stringify(payload),
-          }
-        );
+        const putUrl = `${apiBaseUrl}/trainer-sessions/session/${selectedSession.id}`;
+        console.log('[FORM] Sending PUT to:', putUrl);
+        res = await fetch(putUrl, {
+          method: "PUT",
+          headers: {
+            ...authHeaders(),
+            'Cache-Control': 'no-cache',
+          },
+          body: JSON.stringify(payload),
+        });
+        console.log('[FORM] PUT response status:', res.status);
       }
 
       if (!res.ok) {

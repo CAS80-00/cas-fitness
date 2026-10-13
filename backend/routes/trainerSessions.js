@@ -314,107 +314,37 @@ router.post('/assign', authenticateToken, requireRole(['SUPERUSER', 'STAFF']), a
 
 // Update student trainer session
 router.put('/session/:sessionId', authenticateToken, requireRole(['SUPERUSER', 'STAFF']), async (req, res) => {
-  const { sessionId } = req.params;
+  const sessionId = parseInt(req.params.sessionId);
   const { total_sessions, start_date, expiration_date, status, notes } = req.body;
 
   try {
-    // First get the current session
-    const currentSession = await db.query(`
-      SELECT total_sessions, remaining_sessions FROM student_trainer_sessions WHERE id = $1
-    `, [sessionId]);
-    
-    if (currentSession.rows.length === 0) {
-      return res.status(404).json({ error: 'Trainer session not found' });
-    }
+    console.log('[PUT] Updating session', sessionId, 'with total_sessions:', total_sessions);
 
-    const oldTotal = currentSession.rows[0].total_sessions;
-    const newTotal = total_sessions !== undefined ? parseInt(total_sessions) : oldTotal;
-    const sessionCountDifference = newTotal - oldTotal;
-    const newRemaining = Math.max(0, currentSession.rows[0].remaining_sessions + sessionCountDifference);
+    // Simple direct update
+    const result = await db.query(
+      `UPDATE student_trainer_sessions
+       SET total_sessions = $1, 
+           start_date = COALESCE($2, start_date),
+           expiration_date = COALESCE($3, expiration_date),
+           status = COALESCE($4, status),
+           notes = COALESCE($5, notes),
+           updated_at = NOW()
+       WHERE id = $6
+       RETURNING id, student_id, trainer_id, total_sessions, remaining_sessions, start_date, expiration_date, status, created_at, updated_at`,
+      [total_sessions, start_date, expiration_date, status, notes, sessionId]
+    );
 
-    // Begin transaction if we're adding/removing sessions
-    if (sessionCountDifference !== 0) {
-      await db.query('BEGIN');
-    }
-
-    // Build update query dynamically
-    const updates = [];
-    const params = [];
-    let paramCount = 1;
-
-    if (start_date !== undefined) {
-      updates.push(`start_date = $${paramCount++}`);
-      params.push(start_date);
-    }
-    if (expiration_date !== undefined) {
-      updates.push(`expiration_date = $${paramCount++}`);
-      params.push(expiration_date);
-    }
-    if (status !== undefined) {
-      updates.push(`status = $${paramCount++}`);
-      params.push(status);
-    }
-    if (notes !== undefined) {
-      updates.push(`notes = $${paramCount++}`);
-      params.push(notes);
-    }
-
-    updates.push(`total_sessions = $${paramCount++}`);
-    params.push(newTotal);
-    
-    updates.push(`remaining_sessions = $${paramCount++}`);
-    params.push(newRemaining);
-    
-    updates.push(`updated_at = NOW()`);
-    
-    params.push(sessionId);
-
-    // Update main session record
-    const result = await db.query(`
-      UPDATE student_trainer_sessions
-      SET ${updates.join(', ')}
-      WHERE id = $${paramCount}
-      RETURNING id, student_id, trainer_id, total_sessions, remaining_sessions,
-                start_date, expiration_date, status, created_at, updated_at
-    `, params);
-    
     if (result.rows.length === 0) {
-      if (sessionCountDifference !== 0) await db.query('ROLLBACK');
-      return res.status(404).json({ error: 'Trainer session not found' });
+      return res.status(404).json({ error: 'Session not found' });
     }
 
-    // If adding more sessions, create new logs for the added sessions
-    if (sessionCountDifference > 0) {
-      for (let i = 0; i < sessionCountDifference; i++) {
-        const sessionNumber = oldTotal + 1 + i;
-        await db.query(`
-          INSERT INTO student_trainer_session_logs 
-          (student_trainer_session_id, session_number, scheduled_date, completed_date, status, location_format, notes)
-          VALUES ($1, $2, NULL, NULL, 'PENDING', NULL, NULL)
-        `, [sessionId, sessionNumber]);
-      }
-    } else if (sessionCountDifference < 0) {
-      // If removing sessions, mark the last X sessions as CANCELLED
-      const sessionsToCancel = Math.abs(sessionCountDifference);
-      await db.query(`
-        UPDATE student_trainer_session_logs
-        SET status = 'CANCELLED', updated_at = NOW()
-        WHERE student_trainer_session_id = $1
-          AND session_number > $2
-        ORDER BY session_number DESC
-        LIMIT $3
-      `, [sessionId, newTotal, sessionsToCancel]);
-    }
-
-    if (sessionCountDifference !== 0) {
-      await db.query('COMMIT');
-    }
-
+    console.log('[PUT] Updated! New total_sessions:', result.rows[0].total_sessions);
     res.json(result.rows[0]);
   } catch (err) {
-    await db.query('ROLLBACK').catch(() => {});
-    console.error('Error updating trainer session:', err);
-    res.status(500).json({ error: 'Failed to update trainer session' });
+    console.error('[PUT] Error - Full details:', err);
+    console.error('[PUT] Error message:', err.message);
+    console.error('[PUT] Error stack:', err.stack);
+    res.status(500).json({ error: 'Failed to update session', details: err.message });
   }
 });
 

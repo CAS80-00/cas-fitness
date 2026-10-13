@@ -35,11 +35,12 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
-// Request logging middleware
+// Request logging middleware - Log ALL requests
 app.use((req, res, next) => {
   try {
+    console.log(`[REQUEST] ${req.method} ${req.path}`);
     if (req.path.includes('/trainer-sessions')) {
-      console.log(`[TRAINER-SESSIONS] ${req.method} ${req.path}`);
+      console.log(`[TRAINER-SESSIONS] ${req.method} ${req.path} | Body:`, req.body);
     }
     next();
   } catch (e) {
