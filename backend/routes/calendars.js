@@ -183,6 +183,7 @@ router.get("/workouts", authenticateToken, async (req, res) => {
       FROM workout_sessions ws
       LEFT JOIN users u ON ws.student_id = u.id
       WHERE ws.start_time >= NOW() - INTERVAL '7 days'
+        AND ws.start_time <= NOW() + INTERVAL '90 days'
       ORDER BY ws.start_time ASC
     `,
     );
