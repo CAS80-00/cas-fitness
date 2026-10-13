@@ -3,6 +3,7 @@ import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import { onCalendarEvent, CalendarEvents } from "../utils/calendarEvents";
 import styles from "../styles/TrainerAvailabilityCalendar.module.css";
 
 /**
@@ -152,6 +153,19 @@ const TrainerAvailabilityCalendar = forwardRef(({ onSelectSlot, sessionPackage }
   useEffect(() => {
     loadSchedule();
   }, [loadSchedule]);
+
+  // Listen for session cancellation events and refresh the calendar
+  useEffect(() => {
+    const unsubscribe = onCalendarEvent(CalendarEvents.SESSION_CANCELLED, (data) => {
+      console.log("[TrainerAvailabilityCalendar] Session cancelled event received", data);
+      // Reload the schedule to show cancelled slot as available
+      if (loadScheduleRef.current) {
+        loadScheduleRef.current();
+      }
+    });
+
+    return unsubscribe;
+  }, []);
 
   const handleSelectEvent = (info) => {
     const event = info.event;
