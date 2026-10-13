@@ -16,6 +16,8 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
   const [selectedTrainerId, setSelectedTrainerId] = useState("");
   const [error, setError] = useState("");
   const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedSession, setSelectedSession] = useState(null);
   const loadDataRef = useRef(null);
 
   // Expose refresh function via ref
@@ -170,6 +172,22 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
     return allEvents;
   }, [trainerSlots, selectedTrainerId]);
 
+  const handleEventClick = (info) => {
+    // Only show details modal if it's a booked session (status === "BOOKED")
+    if (info.event.extendedProps.status === "BOOKED") {
+      setSelectedSession({
+        id: info.event.id,
+        title: info.event.title,
+        start: info.event.start,
+        end: info.event.end,
+        trainerId: info.event.extendedProps.trainerId,
+        trainerName: info.event.extendedProps.trainerName,
+        status: info.event.extendedProps.status,
+      });
+      setShowDetailsModal(true);
+    }
+  };
+
   return (
     <div className={styles.card}>
       <div className={styles.header}>
@@ -302,6 +320,7 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
         initialView="timeGridWeek"
         headerToolbar={{ left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek" }}
         events={events}
+        eventClick={handleEventClick}
         height="auto"
         showNonCurrentDates={true}
         fixedWeekCount={false}
@@ -314,6 +333,57 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
           }
         }}
       />
+
+      {/* Booked Session Details Modal */}
+      {showDetailsModal && selectedSession && (
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3>Workout Session Details</h3>
+              <button
+                className={styles.closeBtn}
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setSelectedSession(null);
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={styles.modalBody}>
+              <div className={styles.detailRow}>
+                <label>Trainer:</label>
+                <span>{selectedSession.trainerName}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <label>Status:</label>
+                <span className={styles.status}>{selectedSession.status}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <label>Start Time:</label>
+                <span>{new Date(selectedSession.start).toLocaleString()}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <label>End Time:</label>
+                <span>{new Date(selectedSession.end).toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button
+                className={styles.closeButtonStyle}
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setSelectedSession(null);
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 });
