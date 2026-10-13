@@ -41,6 +41,14 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
       const slotsData = await slotsRes.json();
       if (!slotsRes.ok) throw new Error(slotsData.error || "Failed to load trainer slots.");
       setTrainerSlots(slotsData.slots || []);
+      
+      // Also load workout sessions with student names for matching booked sessions
+      const workoutsRes = await fetch(`${apiBaseUrl}/calendars/workouts`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const workoutsData = await workoutsRes.json();
+      if (!workoutsRes.ok) throw new Error(workoutsData.error || "Failed to load workout sessions.");
+      setSessions(workoutsData.sessions || []);
     } catch (err) {
       setError(err.message);
     }
@@ -175,16 +183,27 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
   const handleEventClick = (info) => {
     // Only show details modal if it's a booked session (status === "BOOKED")
     if (info.event.extendedProps.status === "BOOKED") {
-      // Find the corresponding session to get student information
-      const sessionId = parseInt(info.event.id.split("-")[1]);
-      const sessionData = sessions.find(s => s.id === sessionId);
+      // Match session by trainer_id and start time
+      // The slot ID doesn't match workout_sessions table ID, so we match by trainer + time
+      const trainerId = info.event.extendedProps.trainerId;
+      const eventStart = new Date(info.event.start);
+      
+      // Find matching session by trainer and approximate time match
+      const sessionData = sessions.find(s => {
+        if (s.trainer_id !== trainerId) return false;
+        
+        // Compare start times - allow 1 minute tolerance for time zone conversions
+        const sessionStart = new Date(s.start_time);
+        const timeDiff = Math.abs(eventStart.getTime() - sessionStart.getTime());
+        return timeDiff < 60000; // Within 1 minute
+      });
       
       setSelectedSession({
         id: info.event.id,
         title: info.event.title,
         start: info.event.start,
         end: info.event.end,
-        trainerId: info.event.extendedProps.trainerId,
+        trainerId: trainerId,
         trainerName: info.event.extendedProps.trainerName,
         status: info.event.extendedProps.status,
         studentName: sessionData?.student_name || "Unknown Student",
