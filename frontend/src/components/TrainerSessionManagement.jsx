@@ -27,7 +27,6 @@ export default function TrainerSessionManagement({ studentId, onClose }) {
   const [modalMode, setModalMode] = useState("add"); // 'add', 'edit', 'view'
 
   const [formData, setFormData] = useState({
-    trainer_id: "",
     total_sessions: 4,
     start_date: new Date().toISOString().split("T")[0],
     expiration_date: "",
@@ -110,7 +109,6 @@ export default function TrainerSessionManagement({ studentId, onClose }) {
     setModalMode("edit");
     setSelectedSession(session);
     setFormData({
-      trainer_id: session.trainer_id,
       total_sessions: session.total_sessions,
       start_date: new Date(session.start_date).toISOString().split("T")[0],
       expiration_date: new Date(session.expiration_date)
@@ -139,7 +137,6 @@ export default function TrainerSessionManagement({ studentId, onClose }) {
 
       const payload = {
         student_id: studentId,
-        trainer_id: formData.trainer_id,
         total_sessions: parseInt(formData.total_sessions),
         start_date: new Date(formData.start_date).toISOString(),
         expiration_date: new Date(formData.expiration_date).toISOString(),
@@ -465,24 +462,6 @@ function SessionModal({
           <SessionDetails session={session} onUpdateLog={onUpdateLog} />
         ) : (
           <form onSubmit={onSubmit} className={styles.form}>
-            <div className={styles['form-group']}>
-              <label>Trainer *</label>
-              <select
-                value={formData.trainer_id}
-                onChange={(e) =>
-                  setFormData({ ...formData, trainer_id: e.target.value })
-                }
-                required
-              >
-                <option value="">-- Select a Trainer --</option>
-                {trainers.map((trainer) => (
-                  <option key={trainer.id} value={trainer.id}>
-                    {trainer.firstName} {trainer.lastName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             <div className={styles['form-group']}>
               <label>Number of Sessions *</label>
               <input
