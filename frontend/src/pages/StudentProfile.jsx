@@ -281,7 +281,15 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
       </div>
 
       <div className={styles.contentWrap}>
-        <StudentSessionManagement />
+        <StudentSessionManagement 
+          onSessionCancelled={() => {
+            // Refresh the calendar when a session is cancelled
+            setMasterCalendarRefresh(prev => prev + 1);
+            if (masterCalendarRef.current) {
+              masterCalendarRef.current.refreshCalendar();
+            }
+          }}
+        />
       </div>
 
       <SiteFooter isSuperuser={currentUser?.roleId === 1} />
