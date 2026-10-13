@@ -179,11 +179,67 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
         }
       });
 
+    // Add booked trainer sessions
+    sessions.forEach((session) => {
+      try {
+        const eventStart = new Date(session.start_time);
+        const eventEnd = new Date(session.end_time);
+
+        if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
+          console.warn(`Invalid date for session ${session.id}:`, session);
+          return;
+        }
+
+        // Only show if selected trainer matches or no specific trainer is selected
+        if (selectedTrainerId && session.trainer_id !== selectedTrainerId) {
+          return;
+        }
+
+        allEvents.push({
+          id: `session-${session.id}`,
+          title: `${session.student_name} - Trainer Session`,
+          start: eventStart.toISOString(),
+          end: eventEnd.toISOString(),
+          backgroundColor: "#8b5cf6", // purple for booked sessions
+          borderColor: "#6d28d9",
+          textColor: "#ffffff",
+          extendedProps: {
+            type: "session",
+            status: "BOOKED",
+            trainerId: session.trainer_id,
+            studentName: session.student_name,
+            studentId: session.student_id,
+            originalSession: session,
+          },
+        });
+      } catch (err) {
+        console.error(`Error parsing session ${session.id}:`, err, session);
+      }
+    });
+
     return allEvents;
   }, [trainerSlots, selectedTrainerId, sessions]);
 
   const handleEventClick = (info) => {
-    // Only show details modal if it's a booked session (status === "BOOKED")
+    // Handle booked session details modal
+    if (info.event.extendedProps.type === "session") {
+      const session = info.event.extendedProps.originalSession;
+      setSelectedSession({
+        id: info.event.id,
+        title: info.event.title,
+        start: info.event.start,
+        end: info.event.end,
+        trainerId: session.trainer_id,
+        trainerName: "", // We can look this up if needed
+        status: "BOOKED",
+        studentName: session.student_name,
+        studentId: session.student_id,
+      });
+      setShowDetailsModal(true);
+      return;
+    }
+
+    // Original slot handling - kept for backward compatibility
     if (info.event.extendedProps.status === "BOOKED") {
       // Match session by trainer_id and start time
       const trainerId = info.event.extendedProps.trainerId;

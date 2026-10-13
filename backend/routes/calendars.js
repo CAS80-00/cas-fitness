@@ -169,6 +169,7 @@ router.post("/consultations/book", async (req, res) => {
 
 router.get("/workouts", authenticateToken, async (req, res) => {
   try {
+    // Get workout sessions
     const result = await db.query(
       `
       SELECT 
@@ -188,27 +189,70 @@ router.get("/workouts", authenticateToken, async (req, res) => {
     `,
     );
 
-    const sessions = result.rows.map((session) => {
-      const studentName = session.first_name && session.last_name 
-        ? `${session.first_name} ${session.last_name}` 
-        : null;
-      
-      if (session.student_id) {
-        console.log(`[/workouts] Session ID: ${session.id}, Student: ${studentName || 'NO NAME'}, Student ID: ${session.student_id}, Start: ${session.start_time}`);
-      }
-      
-      return {
-        id: session.id,
-        trainer_id: session.trainer_id,
-        student_id: session.student_id,
-        student_name: studentName || `Student #${session.student_id}`,
-        start_time: session.start_time,
-        end_time: session.end_time,
-        status: session.status,
-      };
-    });
+    // Get trainer session bookings (from session logs with scheduled status)
+    const trainerBookings = await db.query(
+      `
+      SELECT 
+        stsl.id, 
+        sts.trainer_id, 
+        sts.student_id, 
+        stsl.scheduled_date as start_time,
+        stsl.scheduled_date + INTERVAL '50 minutes' as end_time,
+        stsl.status,
+        u.first_name,
+        u.last_name
+      FROM student_trainer_session_logs stsl
+      LEFT JOIN student_trainer_sessions sts ON stsl.student_trainer_session_id = sts.id
+      LEFT JOIN users u ON sts.student_id = u.id
+      WHERE stsl.scheduled_date >= NOW() - INTERVAL '7 days'
+        AND stsl.scheduled_date <= NOW() + INTERVAL '90 days'
+        AND stsl.status = 'SCHEDULED'
+      ORDER BY stsl.scheduled_date ASC
+    `,
+    );
 
-    console.log(`[/workouts] Returning ${sessions.length} sessions`);
+    const sessions = [
+      ...result.rows.map((session) => {
+        const studentName = session.first_name && session.last_name 
+          ? `${session.first_name} ${session.last_name}` 
+          : null;
+        
+        if (session.student_id) {
+          console.log(`[/workouts] Session ID: ${session.id}, Student: ${studentName || 'NO NAME'}, Student ID: ${session.student_id}, Start: ${session.start_time}`);
+        }
+        
+        return {
+          id: session.id,
+          trainer_id: session.trainer_id,
+          student_id: session.student_id,
+          student_name: studentName || `Student #${session.student_id}`,
+          start_time: session.start_time,
+          end_time: session.end_time,
+          status: session.status,
+        };
+      }),
+      ...trainerBookings.rows.map((booking) => {
+        const studentName = booking.first_name && booking.last_name 
+          ? `${booking.first_name} ${booking.last_name}` 
+          : null;
+        
+        if (booking.student_id) {
+          console.log(`[/workouts] Trainer Session ID: ${booking.id}, Student: ${studentName || 'NO NAME'}, Student ID: ${booking.student_id}, Start: ${booking.start_time}`);
+        }
+        
+        return {
+          id: booking.id,
+          trainer_id: booking.trainer_id,
+          student_id: booking.student_id,
+          student_name: studentName || `Student #${booking.student_id}`,
+          start_time: booking.start_time,
+          end_time: booking.end_time,
+          status: booking.status,
+        };
+      })
+    ];
+
+    console.log(`[/workouts] Returning ${sessions.length} sessions (${result.rows.length} workout sessions + ${trainerBookings.rows.length} trainer sessions)`);
     res.json({ sessions });
   } catch (err) {
     console.error("[/workouts] Error:", err);

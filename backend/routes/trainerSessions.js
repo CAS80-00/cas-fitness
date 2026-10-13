@@ -318,12 +318,11 @@ router.put('/session/:sessionId', authenticateToken, requireRole(['SUPERUSER', '
   const { total_sessions, start_date, expiration_date, status, notes } = req.body;
 
   try {
-    console.log('[PUT] Updating session', sessionId, 'with total_sessions:', total_sessions);
-
-    // Simple direct update
+    // When total_sessions changes, reset remaining_sessions to match
     const result = await db.query(
       `UPDATE student_trainer_sessions
        SET total_sessions = $1, 
+           remaining_sessions = $1,
            start_date = COALESCE($2, start_date),
            expiration_date = COALESCE($3, expiration_date),
            status = COALESCE($4, status),
@@ -338,12 +337,9 @@ router.put('/session/:sessionId', authenticateToken, requireRole(['SUPERUSER', '
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    console.log('[PUT] Updated! New total_sessions:', result.rows[0].total_sessions);
     res.json(result.rows[0]);
   } catch (err) {
-    console.error('[PUT] Error - Full details:', err);
-    console.error('[PUT] Error message:', err.message);
-    console.error('[PUT] Error stack:', err.stack);
+    console.error('[PUT] Error updating session:', err.message);
     res.status(500).json({ error: 'Failed to update session', details: err.message });
   }
 });
@@ -588,8 +584,6 @@ router.post('/book-session', authenticateToken, async (req, res) => {
   const { sessionPackageId, trainerId, slotInstanceId } = req.body;
   const studentId = req.user.userId;
 
-  console.log('[TRAINER-SESSIONS] Book session request:', { sessionPackageId, trainerId, slotInstanceId, studentId });
-
   if (!sessionPackageId || !trainerId || !slotInstanceId) {
     return res.status(400).json({ error: 'Missing required fields: sessionPackageId, trainerId, slotInstanceId' });
   }
@@ -603,13 +597,9 @@ router.post('/book-session', authenticateToken, async (req, res) => {
         AND sts.student_id = $2 
         AND sts.status = 'ACTIVE'
         AND sts.remaining_sessions > 0
-        AND NOW() BETWEEN sts.start_date AND sts.expiration_date
+        AND CURRENT_DATE >= DATE(sts.start_date)
+        AND CURRENT_DATE <= DATE(sts.expiration_date)
     `, [sessionPackageId, studentId]);
-
-    console.log('[TRAINER-SESSIONS] Package check result:', packageResult.rows.length, 'found');
-    if (packageResult.rows.length > 0) {
-      console.log('[TRAINER-SESSIONS] Package details:', packageResult.rows[0]);
-    }
 
     if (packageResult.rows.length === 0) {
       return res.status(403).json({ error: 'No active session package found for this student' });
@@ -658,7 +648,9 @@ router.post('/book-session', authenticateToken, async (req, res) => {
       slotDatePart = new Date(slot.slot_date).toISOString().split('T')[0];
     }
     
-    const scheduledDateTime = `${slotDatePart} ${slot.start_time}`;
+    // Combine slot_date and start_time into ISO format timestamp
+    // start_time is already in HH:MM:SS format, so just combine with T separator
+    const scheduledDateTime = `${slotDatePart}T${slot.start_time}`;
     
     console.log('[TRAINER-SESSIONS] Creating log with scheduledDateTime:', scheduledDateTime);
 

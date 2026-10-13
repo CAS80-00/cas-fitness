@@ -116,7 +116,6 @@ export default function TrainerSessionManagement({ studentId, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('[FORM] handleSubmit called - modalMode:', modalMode, 'selectedSession:', selectedSession);
     setIsLoading(true);
     setError("");
 
@@ -133,13 +132,8 @@ export default function TrainerSessionManagement({ studentId, onClose }) {
         notes: formData.notes,
       };
 
-      console.log('Sending payload:', payload);
-      console.log('[FORM] modalMode:', modalMode);
-      console.log('[FORM] selectedSession.id:', selectedSession?.id);
-
       let res;
       if (modalMode === "add") {
-        console.log('[FORM] Sending POST to /assign');
         res = await fetch(`${apiBaseUrl}/trainer-sessions/assign`, {
           method: "POST",
           headers: authHeaders(),
@@ -147,22 +141,15 @@ export default function TrainerSessionManagement({ studentId, onClose }) {
         });
       } else {
         const putUrl = `${apiBaseUrl}/trainer-sessions/session/${selectedSession.id}`;
-        console.log('[FORM] Sending PUT to:', putUrl);
         res = await fetch(putUrl, {
           method: "PUT",
-          headers: {
-            ...authHeaders(),
-            'Cache-Control': 'no-cache',
-          },
+          headers: authHeaders(),
           body: JSON.stringify(payload),
         });
-        console.log('[FORM] PUT response status:', res.status);
       }
 
       if (!res.ok) {
         const err = await res.json();
-        console.error('Backend error response:', err);
-        console.error('Stringified:', JSON.stringify(err));
         throw new Error(err.error || "Failed to save session");
       }
 
