@@ -655,7 +655,10 @@ router.post('/book-session', authenticateToken, async (req, res) => {
     console.log('[TRAINER-SESSIONS] Creating log with scheduledDateTime:', scheduledDateTime);
 
     // Create session log with slot_instance_id link
-    // Use AT TIME ZONE to explicitly set to EST/EDT to prevent UTC interpretation
+    // Step 1: Interpret the input as America/New_York time
+    // Step 2: Convert to UTC for storage in the database
+    // Example: "2026-10-16T13:00:00" (1 PM) in New York = "2026-10-16T17:00:00 UTC" (5 PM UTC)
+    // When FullCalendar retrieves it, it sees "17:00 UTC" and displays as "13:00 EDT"
     const logResult = await db.query(`
       INSERT INTO student_trainer_session_logs (
         student_trainer_session_id, slot_instance_id, session_number, scheduled_date, location_format, status
@@ -666,7 +669,7 @@ router.post('/book-session', authenticateToken, async (req, res) => {
           SELECT COUNT(*) FROM student_trainer_session_logs 
           WHERE student_trainer_session_id = $1
         )),
-        ($3 AT TIME ZONE 'America/New_York')::TIMESTAMPTZ,
+        ($3::TIMESTAMP AT TIME ZONE 'America/New_York')::TIMESTAMPTZ,
         'IN_PERSON',
         'SCHEDULED'
       )
