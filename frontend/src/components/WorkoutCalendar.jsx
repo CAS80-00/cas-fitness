@@ -591,6 +591,13 @@ export default function WorkoutCalendar({
 
             <div className="space-y-3 text-xs text-gray-300">
               <div className="border-b border-gray-700 pb-3">
+                <label className="text-gray-500 text-xs uppercase tracking-wide">Student</label>
+                <p className="text-white font-medium mt-1">
+                  {selectedBookingDetails.student_name || `Student #${selectedBookingDetails.student_id}`}
+                </p>
+              </div>
+
+              <div className="border-b border-gray-700 pb-3">
                 <label className="text-gray-500 text-xs uppercase tracking-wide">Status</label>
                 <p className="text-white font-medium mt-1">
                   {selectedBookingDetails.status}

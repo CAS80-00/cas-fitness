@@ -171,14 +171,35 @@ router.get("/workouts", authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
       `
-      SELECT id, trainer_id, student_id, start_time, end_time, status
-      FROM workout_sessions
-      WHERE start_time >= NOW() - INTERVAL '7 days'
-      ORDER BY start_time ASC
+      SELECT 
+        ws.id, 
+        ws.trainer_id, 
+        ws.student_id, 
+        ws.start_time, 
+        ws.end_time, 
+        ws.status,
+        u.first_name,
+        u.last_name
+      FROM workout_sessions ws
+      LEFT JOIN users u ON ws.student_id = u.id
+      WHERE ws.start_time >= NOW() - INTERVAL '7 days'
+      ORDER BY ws.start_time ASC
     `,
     );
 
-    res.json({ sessions: result.rows });
+    const sessions = result.rows.map((session) => ({
+      id: session.id,
+      trainer_id: session.trainer_id,
+      student_id: session.student_id,
+      student_name: session.first_name && session.last_name 
+        ? `${session.first_name} ${session.last_name}` 
+        : `Student #${session.student_id}`,
+      start_time: session.start_time,
+      end_time: session.end_time,
+      status: session.status,
+    }));
+
+    res.json({ sessions });
   } catch (err) {
     res.status(500).json({ error: "Error fetching workout sessions." });
   }

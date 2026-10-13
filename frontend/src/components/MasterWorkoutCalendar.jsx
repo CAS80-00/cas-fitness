@@ -170,11 +170,15 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
       });
 
     return allEvents;
-  }, [trainerSlots, selectedTrainerId]);
+  }, [trainerSlots, selectedTrainerId, sessions]);
 
   const handleEventClick = (info) => {
     // Only show details modal if it's a booked session (status === "BOOKED")
     if (info.event.extendedProps.status === "BOOKED") {
+      // Find the corresponding session to get student information
+      const sessionId = parseInt(info.event.id.split("-")[1]);
+      const sessionData = sessions.find(s => s.id === sessionId);
+      
       setSelectedSession({
         id: info.event.id,
         title: info.event.title,
@@ -183,6 +187,8 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
         trainerId: info.event.extendedProps.trainerId,
         trainerName: info.event.extendedProps.trainerName,
         status: info.event.extendedProps.status,
+        studentName: sessionData?.student_name || "Unknown Student",
+        studentId: sessionData?.student_id,
       });
       setShowDetailsModal(true);
     }
@@ -352,6 +358,10 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
             </div>
 
             <div className={styles.modalBody}>
+              <div className={styles.detailRow}>
+                <label>Student:</label>
+                <span>{selectedSession.studentName}</span>
+              </div>
               <div className={styles.detailRow}>
                 <label>Trainer:</label>
                 <span>{selectedSession.trainerName}</span>
