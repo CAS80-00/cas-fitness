@@ -69,7 +69,11 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
 
     // Add trainer slots from new slot_instances table
     trainerSlots
-      .filter((slot) => !selectedTrainerId || slot.trainerId === selectedTrainerId)
+      .filter((slot) => {
+        // Skip BOOKED slots - they're shown as trainer session events instead
+        if (slot.status === "BOOKED") return false;
+        return !selectedTrainerId || slot.trainerId === selectedTrainerId;
+      })
       .forEach((slot) => {
         // Slots have concrete slot_date and start/end times
         if (slot.slotDate && slot.startTime && slot.endTime) {
