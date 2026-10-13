@@ -248,23 +248,41 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
       // Handle both employee mode (string) and superuser mode (object)
       const employeeId = typeof selectedEmployee === 'string' ? selectedEmployee : selectedEmployee.id;
 
-      const payload = {
-        userId: employeeId,
-        calendarType: formData.calendarType,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        startHour: formData.startHour,
-        startMinute: formData.startMinute,
-        durationMinutes: formData.durationMinutes,
-        endHour: formData.endHour,
-        endMinute: formData.endMinute,
-        locationFormat: formData.locationFormat,
-        daysOfWeek: formData.daysOfWeek,
-      };
+      // Different payload format for superuser vs employee endpoints
+      let payload;
+      const endpoint = isEmployee ? `${apiBaseUrl}/calendars/slots/create` : `${apiBaseUrl}/admin/slot-templates`;
+      
+      if (isEmployee) {
+        // Employee endpoint expects: startHour, startMinute, durationMinutes, etc.
+        payload = {
+          userId: employeeId,
+          calendarType: formData.calendarType,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          startHour: formData.startHour,
+          startMinute: formData.startMinute,
+          durationMinutes: formData.durationMinutes,
+          endHour: formData.endHour,
+          endMinute: formData.endMinute,
+          locationFormat: formData.locationFormat,
+          daysOfWeek: formData.daysOfWeek,
+        };
+      } else {
+        // Superuser endpoint expects: startTime (HH:MM format), not separate hour/minute
+        const startTime = `${String(formData.startHour).padStart(2, '0')}:${String(formData.startMinute).padStart(2, '0')}`;
+        payload = {
+          userId: employeeId,
+          calendarType: formData.calendarType,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          startTime: startTime, // Changed from startHour/startMinute
+          durationMinutes: formData.durationMinutes,
+          locationFormat: formData.locationFormat,
+          daysOfWeek: formData.daysOfWeek,
+        };
+      }
 
       console.log("Creating slots with payload:", payload); // Debug log
-
-      const endpoint = isEmployee ? `${apiBaseUrl}/calendars/slots/create` : `${apiBaseUrl}/admin/slot-templates`;
       
       const res = await fetch(endpoint, {
         method: "POST",
@@ -277,6 +295,9 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
 
       if (!res.ok) {
         const err = await res.json();
+        if (err.missingFields) {
+          throw new Error(`Missing required fields: ${err.missingFields.join(', ')}`);
+        }
         throw new Error(err.error || "Failed to create slots.");
       }
 
