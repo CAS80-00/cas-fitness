@@ -45,6 +45,10 @@ export default function WorkoutCalendar({
   const [selectedSession, setSelectedSession] = useState(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
 
+  // Session details modal state
+  const [selectedBookingDetails, setSelectedBookingDetails] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
   const getToken = () => localStorage.getItem("cas_jwt");
 
   const loadSessions = useCallback(async () => {
@@ -183,8 +187,16 @@ export default function WorkoutCalendar({
   };
 
   const handleEventClick = (info) => {
-    if (isTrainer) {
-      setSelectedSession(info.event.extendedProps.originalSession);
+    const session = info.event.extendedProps.originalSession;
+    
+    // Show booking details modal for booked sessions (when student_id exists)
+    if (session.student_id) {
+      setSelectedBookingDetails(session);
+      setShowDetailsModal(true);
+    }
+    // Show status modal for trainers to update session status
+    else if (isTrainer && session.student_id) {
+      setSelectedSession(session);
       setShowStatusModal(true);
     }
   };
@@ -555,6 +567,75 @@ export default function WorkoutCalendar({
               className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-white hover:bg-gray-600"
             >
               Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Session Booking Details Modal */}
+      {showDetailsModal && selectedBookingDetails && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="space-y-4 rounded-lg border border-gray-600 bg-gray-900 p-6 w-full max-w-md">
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold text-white">Workout Session Details</h4>
+              <button
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setSelectedBookingDetails(null);
+                }}
+                className="text-gray-400 hover:text-white text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs text-gray-300">
+              <div className="border-b border-gray-700 pb-3">
+                <label className="text-gray-500 text-xs uppercase tracking-wide">Status</label>
+                <p className="text-white font-medium mt-1">
+                  {selectedBookingDetails.status}
+                </p>
+              </div>
+
+              <div className="border-b border-gray-700 pb-3">
+                <label className="text-gray-500 text-xs uppercase tracking-wide">Start Time</label>
+                <p className="text-white font-medium mt-1">
+                  {new Date(selectedBookingDetails.start_time).toLocaleString()}
+                </p>
+              </div>
+
+              <div className="border-b border-gray-700 pb-3">
+                <label className="text-gray-500 text-xs uppercase tracking-wide">End Time</label>
+                <p className="text-white font-medium mt-1">
+                  {new Date(selectedBookingDetails.end_time).toLocaleString()}
+                </p>
+              </div>
+
+              <div className="border-b border-gray-700 pb-3">
+                <label className="text-gray-500 text-xs uppercase tracking-wide">Trainer ID</label>
+                <p className="text-white font-medium mt-1">
+                  {selectedBookingDetails.trainer_id}
+                </p>
+              </div>
+
+              {selectedBookingDetails.student_id && (
+                <div className="border-b border-gray-700 pb-3">
+                  <label className="text-gray-500 text-xs uppercase tracking-wide">Student ID</label>
+                  <p className="text-white font-medium mt-1">
+                    {selectedBookingDetails.student_id}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => {
+                setShowDetailsModal(false);
+                setSelectedBookingDetails(null);
+              }}
+              className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-white hover:bg-gray-600 mt-4"
+            >
+              Close
             </button>
           </div>
         </div>
