@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import TrainerAvailabilityCalendar from "./TrainerAvailabilityCalendar";
 import styles from "../styles/TrainerSessionScheduler.module.css";
+import { onCalendarEvent, CalendarEvents } from "../utils/calendarEvents";
 
 /**
  * TrainerSessionScheduler
@@ -89,6 +90,30 @@ export default function TrainerSessionScheduler({ studentId, trainerSessions, on
     };
 
     loadSchedule();
+  }, [selectedTrainer, selectedSession]);
+
+  // Listen for session cancellation events and refresh available slots
+  useEffect(() => {
+    const unsubscribe = onCalendarEvent(CalendarEvents.SESSION_CANCELLED, (data) => {
+      console.log("[TrainerSessionScheduler] Session cancelled event received", data);
+      // If a trainer is selected, reload their schedule to show cancelled slot as available
+      if (selectedTrainer && selectedSession) {
+        setLoading(true);
+        const startDate = new Date(selectedSession.start_date).toISOString().split('T')[0];
+        const endDate = new Date(selectedSession.expiration_date).toISOString().split('T')[0];
+
+        fetch(
+          `${apiBaseUrl}/trainer-sessions/trainer-schedule/${selectedTrainer.id}?startDate=${startDate}&endDate=${endDate}`,
+          { headers: authHeaders() }
+        )
+          .then(res => res.json())
+          .then(data => setTrainerSlots(data.availableSlots || []))
+          .catch(err => console.error("Error reloading schedule:", err))
+          .finally(() => setLoading(false));
+      }
+    });
+
+    return unsubscribe;
   }, [selectedTrainer, selectedSession]);
 
   const handleSelectSession = (session) => {

@@ -3,6 +3,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import styles from "../styles/MasterCalendar.module.css";
+import { onCalendarEvent, CalendarEvents } from "../utils/calendarEvents";
 
 /**
  * MasterWorkoutCalendar
@@ -59,6 +60,19 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
   useEffect(() => {
     loadDataRef.current = loadData;
   }, [loadData]);
+
+  // Listen for session cancellation events and refresh
+  useEffect(() => {
+    const unsubscribe = onCalendarEvent(CalendarEvents.SESSION_CANCELLED, (data) => {
+      console.log("[MasterWorkoutCalendar] Session cancelled event received", data);
+      // Refresh the calendar to show availability restored
+      if (loadDataRef.current) {
+        loadDataRef.current();
+      }
+    });
+    
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     loadData();

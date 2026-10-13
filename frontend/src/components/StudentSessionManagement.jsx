@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import styles from '../styles/StudentSessionManagement.module.css';
+import { broadcastSessionCancelled } from '../utils/calendarEvents';
 
 const StudentSessionManagement = () => {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -67,6 +68,18 @@ const StudentSessionManagement = () => {
 
       setSuccessMessage('Session cancelled successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
+      
+      // Broadcast cancellation event to all calendars
+      const cancelledSession = sessions.find(s => s.id === logId);
+      if (cancelledSession) {
+        broadcastSessionCancelled({
+          id: logId,
+          trainer_id: cancelledSession.trainer_id,
+          student_id: cancelledSession.student_id,
+          scheduled_date: cancelledSession.start_time,
+        });
+      }
+      
       loadSessions();
     } catch (err) {
       setError(err.message);
