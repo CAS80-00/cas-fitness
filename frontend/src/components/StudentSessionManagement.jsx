@@ -151,7 +151,7 @@ const StudentSessionManagement = () => {
                   <div className={styles.sessionRow}>
                     <span className={styles.label}>Trainer:</span>
                     <span className={styles.value}>
-                      {session.trainer_id ? 'Assigned Trainer' : 'TBD'}
+                      {session.trainer_name || 'TBD'}
                     </span>
                   </div>
                   <div className={styles.sessionRow}>
