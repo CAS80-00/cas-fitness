@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import styles from '../styles/StudentSessionManagement.module.css';
-import { broadcastSessionCancelled } from '../utils/calendarEvents';
+import { broadcastSessionCancelled, onCalendarEvent, CalendarEvents } from '../utils/calendarEvents';
 
 const StudentSessionManagement = () => {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -12,6 +12,24 @@ const StudentSessionManagement = () => {
 
   useEffect(() => {
     loadSessions();
+  }, []);
+
+  // Listen for booking and cancellation events to refresh sessions
+  useEffect(() => {
+    const unsubscribeBooked = onCalendarEvent(CalendarEvents.SESSION_BOOKED, (data) => {
+      console.log("[StudentSessionManagement] Session booked event received", data);
+      loadSessions();
+    });
+
+    const unsubscribeCancelled = onCalendarEvent(CalendarEvents.SESSION_CANCELLED, (data) => {
+      console.log("[StudentSessionManagement] Session cancelled event received", data);
+      loadSessions();
+    });
+
+    return () => {
+      unsubscribeBooked();
+      unsubscribeCancelled();
+    };
   }, []);
 
   const loadSessions = async () => {

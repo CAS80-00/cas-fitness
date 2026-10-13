@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import TrainerAvailabilityCalendar from "./TrainerAvailabilityCalendar";
 import styles from "../styles/TrainerSessionScheduler.module.css";
-import { onCalendarEvent, CalendarEvents } from "../utils/calendarEvents";
+import { onCalendarEvent, CalendarEvents, broadcastSessionBooked } from "../utils/calendarEvents";
 
 /**
  * TrainerSessionScheduler
@@ -168,6 +168,14 @@ export default function TrainerSessionScheduler({ studentId, trainerSessions, on
 
       const result = await res.json();
       setSuccess("Session booked successfully!");
+      
+      // Broadcast booking event to all listeners
+      broadcastSessionBooked({
+        id: result.sessionLog?.id,
+        trainer_id: selectedTrainer.id,
+        student_id: studentId,
+        scheduled_date: selectedSlot.date,
+      });
       
       // Refresh the calendar to show the booked slot
       if (calendarRef.current) {
