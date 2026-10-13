@@ -187,20 +187,30 @@ router.get("/workouts", authenticateToken, async (req, res) => {
     `,
     );
 
-    const sessions = result.rows.map((session) => ({
-      id: session.id,
-      trainer_id: session.trainer_id,
-      student_id: session.student_id,
-      student_name: session.first_name && session.last_name 
+    const sessions = result.rows.map((session) => {
+      const studentName = session.first_name && session.last_name 
         ? `${session.first_name} ${session.last_name}` 
-        : `Student #${session.student_id}`,
-      start_time: session.start_time,
-      end_time: session.end_time,
-      status: session.status,
-    }));
+        : null;
+      
+      if (session.student_id) {
+        console.log(`[/workouts] Session ID: ${session.id}, Student: ${studentName || 'NO NAME'}, Student ID: ${session.student_id}, Start: ${session.start_time}`);
+      }
+      
+      return {
+        id: session.id,
+        trainer_id: session.trainer_id,
+        student_id: session.student_id,
+        student_name: studentName || `Student #${session.student_id}`,
+        start_time: session.start_time,
+        end_time: session.end_time,
+        status: session.status,
+      };
+    });
 
+    console.log(`[/workouts] Returning ${sessions.length} sessions`);
     res.json({ sessions });
   } catch (err) {
+    console.error("[/workouts] Error:", err);
     res.status(500).json({ error: "Error fetching workout sessions." });
   }
 });
