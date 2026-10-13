@@ -49,7 +49,6 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
       const workoutsData = await workoutsRes.json();
       if (!workoutsRes.ok) throw new Error(workoutsData.error || "Failed to load workout sessions.");
       setSessions(workoutsData.sessions || []);
-      console.log("[MasterWorkoutCalendar] Loaded sessions:", workoutsData.sessions);
     } catch (err) {
       console.error("[MasterWorkoutCalendar] Error:", err);
       setError(err.message);
@@ -191,11 +190,12 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
         }
 
         // Only show if selected trainer matches or no specific trainer is selected
-        if (selectedTrainerId && session.trainer_id !== selectedTrainerId) {
+        // Note: trainer_id can be null if not assigned, so show it regardless
+        if (selectedTrainerId && session.trainer_id && session.trainer_id !== selectedTrainerId) {
           return;
         }
 
-        allEvents.push({
+        const eventData = {
           id: `session-${session.id}`,
           title: `${session.student_name} - Trainer Session`,
           start: eventStart.toISOString(),
@@ -211,7 +211,8 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
             studentId: session.student_id,
             originalSession: session,
           },
-        });
+        };
+        allEvents.push(eventData);
       } catch (err) {
         console.error(`Error parsing session ${session.id}:`, err, session);
       }
@@ -230,41 +231,10 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
         start: info.event.start,
         end: info.event.end,
         trainerId: session.trainer_id,
-        trainerName: "", // We can look this up if needed
+        trainerName: "",
         status: "BOOKED",
         studentName: session.student_name,
         studentId: session.student_id,
-      });
-      setShowDetailsModal(true);
-      return;
-    }
-
-    // Original slot handling - kept for backward compatibility
-    if (info.event.extendedProps.status === "BOOKED") {
-      // Match session by trainer_id and start time
-      const trainerId = info.event.extendedProps.trainerId;
-      const eventStart = new Date(info.event.start);
-      
-      // Find matching session by trainer and approximate time match
-      const sessionData = sessions.find(s => {
-        if (s.trainer_id !== trainerId) return false;
-        
-        // Compare start times - allow 1 minute tolerance for time zone conversions
-        const sessionStart = new Date(s.start_time);
-        const timeDiff = Math.abs(eventStart.getTime() - sessionStart.getTime());
-        return timeDiff < 60000; // Within 1 minute
-      });
-      
-      setSelectedSession({
-        id: info.event.id,
-        title: info.event.title,
-        start: info.event.start,
-        end: info.event.end,
-        trainerId: trainerId,
-        trainerName: info.event.extendedProps.trainerName,
-        status: info.event.extendedProps.status,
-        studentName: sessionData?.student_name || "Unknown Student",
-        studentId: sessionData?.student_id,
       });
       setShowDetailsModal(true);
     }
