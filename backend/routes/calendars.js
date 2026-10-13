@@ -180,9 +180,12 @@ router.get("/workouts", authenticateToken, async (req, res) => {
         ws.end_time, 
         ws.status,
         t.first_name as trainer_first_name,
-        t.last_name as trainer_last_name
+        t.last_name as trainer_last_name,
+        s.first_name as student_first_name,
+        s.last_name as student_last_name
       FROM workout_sessions ws
       LEFT JOIN users t ON ws.trainer_id = t.id
+      LEFT JOIN users s ON ws.student_id = s.id
       WHERE ws.start_time >= NOW() - INTERVAL '7 days'
         AND ws.start_time <= NOW() + INTERVAL '90 days'
       ORDER BY ws.start_time ASC
@@ -200,10 +203,13 @@ router.get("/workouts", authenticateToken, async (req, res) => {
         stsl.scheduled_date + INTERVAL '50 minutes' as end_time,
         stsl.status,
         t.first_name as trainer_first_name,
-        t.last_name as trainer_last_name
+        t.last_name as trainer_last_name,
+        s.first_name as student_first_name,
+        s.last_name as student_last_name
       FROM student_trainer_session_logs stsl
       LEFT JOIN student_trainer_sessions sts ON stsl.student_trainer_session_id = sts.id
       LEFT JOIN users t ON sts.trainer_id = t.id
+      LEFT JOIN users s ON sts.student_id = s.id
       WHERE stsl.scheduled_date >= NOW() - INTERVAL '7 days'
         AND stsl.scheduled_date <= NOW() + INTERVAL '90 days'
         AND stsl.status = 'SCHEDULED'
@@ -216,9 +222,12 @@ router.get("/workouts", authenticateToken, async (req, res) => {
         const trainerName = session.trainer_first_name && session.trainer_last_name 
           ? `${session.trainer_first_name} ${session.trainer_last_name}` 
           : 'TBD';
+        const studentName = session.student_first_name && session.student_last_name 
+          ? `${session.student_first_name} ${session.student_last_name}` 
+          : 'Unknown Student';
         
         if (session.student_id) {
-          console.log(`[/workouts] Session ID: ${session.id}, Trainer: ${trainerName}, Student ID: ${session.student_id}, Start: ${session.start_time}`);
+          console.log(`[/workouts] Session ID: ${session.id}, Trainer: ${trainerName}, Student: ${studentName}, Start: ${session.start_time}`);
         }
         
         return {
@@ -226,6 +235,7 @@ router.get("/workouts", authenticateToken, async (req, res) => {
           trainer_id: session.trainer_id,
           student_id: session.student_id,
           trainer_name: trainerName,
+          student_name: studentName,
           start_time: session.start_time,
           end_time: session.end_time,
           status: session.status,
@@ -235,9 +245,12 @@ router.get("/workouts", authenticateToken, async (req, res) => {
         const trainerName = booking.trainer_first_name && booking.trainer_last_name 
           ? `${booking.trainer_first_name} ${booking.trainer_last_name}` 
           : 'TBD';
+        const studentName = booking.student_first_name && booking.student_last_name 
+          ? `${booking.student_first_name} ${booking.student_last_name}` 
+          : 'Unknown Student';
         
         if (booking.student_id) {
-            console.log(`[/workouts] Trainer Session ID: ${booking.id}, Trainer: ${trainerName}, Student ID: ${booking.student_id}, Start: ${booking.start_time}`);
+            console.log(`[/workouts] Trainer Session ID: ${booking.id}, Trainer: ${trainerName}, Student: ${studentName}, Start: ${booking.start_time}`);
           }
         
         return {
@@ -245,6 +258,7 @@ router.get("/workouts", authenticateToken, async (req, res) => {
           trainer_id: booking.trainer_id,
           student_id: booking.student_id,
           trainer_name: trainerName,
+          student_name: studentName,
           start_time: booking.start_time,
           end_time: booking.end_time,
           status: booking.status,

@@ -249,9 +249,9 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
         start: info.event.start,
         end: info.event.end,
         trainerId: session.trainer_id,
-        trainerName: "",
+        trainerName: session.trainer_name || "TBD",
         status: "BOOKED",
-        studentName: session.student_name,
+        studentName: session.student_name || "Unknown Student",
         studentId: session.student_id,
       });
       setShowDetailsModal(true);
