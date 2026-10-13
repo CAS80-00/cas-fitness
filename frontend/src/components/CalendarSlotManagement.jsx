@@ -270,12 +270,14 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
       } else {
         // Superuser endpoint expects: startTime (HH:MM format), not separate hour/minute
         const startTime = `${String(formData.startHour).padStart(2, '0')}:${String(formData.startMinute).padStart(2, '0')}`;
+        const endTimeOfDay = `${String(formData.endHour).padStart(2, '0')}:${String(formData.endMinute).padStart(2, '0')}`;
         payload = {
           userId: employeeId,
           calendarType: formData.calendarType,
           startDate: formData.startDate,
           endDate: formData.endDate,
           startTime: startTime, // Changed from startHour/startMinute
+          endTimeOfDay: endTimeOfDay, // Add end time of day to limit slot creation
           durationMinutes: formData.durationMinutes,
           locationFormat: formData.locationFormat,
           daysOfWeek: formData.daysOfWeek,
