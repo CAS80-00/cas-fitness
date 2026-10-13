@@ -653,29 +653,19 @@ router.post('/book-session', authenticateToken, async (req, res) => {
     const scheduledDateTime = `${slotDatePart}T${slot.start_time}`;
     
     console.log('[TRAINER-SESSIONS] Input scheduledDateTime:', scheduledDateTime);
-    
-    // JavaScript approach: Interpret the time as EDT, convert to UTC
-    // The user books at their local time (EDT), so:
-    // - "2026-10-16T13:00:00" means 1 PM EDT
-    // - EDT is UTC-4, meaning EDT times are 4 hours BEHIND UTC
-    // - So 1 PM EDT = 5 PM UTC
-    // - Therefore: utcTime = edtTime + 4 hours
-    
-    // Parse the date as if it's in UTC (this is what JavaScript does)
-    const dateObj = new Date(scheduledDateTime);  // Parses as UTC
-    
-    // But we want to treat the INPUT as EDT, not UTC
-    // So we add 4 hours to convert from EDT to UTC
-    const edtOffsetMs = 4 * 60 * 60 * 1000;  // 4 hours in milliseconds
-    const utcDate = new Date(dateObj.getTime() + edtOffsetMs);
-    const utcDateString = utcDate.toISOString().split('.')[0];  // Remove milliseconds, keep ISO format
-    
-    console.log('[TRAINER-SESSIONS] Timezone conversion:');
-    console.log('[TRAINER-SESSIONS]   Input (treating as EDT):', scheduledDateTime);
-    console.log('[TRAINER-SESSIONS]   After adding 4 hours (UTC):', utcDateString);
 
     // Create session log with slot_instance_id link
-    // Store directly as UTC timestamp string
+    // When JavaScript parses "2026-10-16T13:00:00" (without timezone marker),
+    // it automatically interprets as LOCAL time. Since the backend runs in EDT,
+    // this correctly converts: 1 PM EDT -> "2026-10-16T17:00:00Z" (5 PM UTC)
+    // We just need to convert to ISO string and store as-is
+    const dateObj = new Date(scheduledDateTime);
+    const utcDateString = dateObj.toISOString().split('.')[0];  // Remove milliseconds
+    
+    console.log('[TRAINER-SESSIONS] Timezone handling:');
+    console.log('[TRAINER-SESSIONS]   Input (user\'s local time):', scheduledDateTime);
+    console.log('[TRAINER-SESSIONS]   Converted to UTC for storage:', utcDateString);
+
     const logResult = await db.query(`
       INSERT INTO student_trainer_session_logs (
         student_trainer_session_id, slot_instance_id, session_number, scheduled_date, location_format, status
