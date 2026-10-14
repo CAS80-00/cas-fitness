@@ -10,9 +10,26 @@
   border-color: #262626;
 }
 
+.titleRow {
+  @apply flex items-center justify-between;
+}
+
 .title {
   @apply text-lg font-bold;
   color: #ffffff;
+}
+
+.toggleBtn {
+  @apply inline-flex h-8 w-8 items-center justify-center rounded border text-lg font-bold transition;
+  background-color: transparent;
+  border-color: #404040;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+.toggleBtn:hover {
+  background-color: #1a1a1a;
+  border-color: #505050;
 }
 
 .loading {

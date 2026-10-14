@@ -5,6 +5,7 @@ export default function SessionHistory({ userId }) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isExpanded, setIsExpanded] = useState(true);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 
   useEffect(() => {
@@ -58,7 +59,9 @@ export default function SessionHistory({ userId }) {
   if (loading) {
     return (
       <div className={styles.card}>
-        <h2 className={styles.title}>Session History (Last 3 Months)</h2>
+        <div className={styles.titleRow}>
+          <h2 className={styles.title}>Session History (Last 3 Months)</h2>
+        </div>
         <div className={styles.loading}>Loading session history...</div>
       </div>
     );
@@ -67,7 +70,9 @@ export default function SessionHistory({ userId }) {
   if (error) {
     return (
       <div className={styles.card}>
-        <h2 className={styles.title}>Session History (Last 3 Months)</h2>
+        <div className={styles.titleRow}>
+          <h2 className={styles.title}>Session History (Last 3 Months)</h2>
+        </div>
         <div className={styles.error}>Error: {error}</div>
       </div>
     );
@@ -75,34 +80,47 @@ export default function SessionHistory({ userId }) {
 
   return (
     <div className={styles.card}>
-      <h2 className={styles.title}>Session History (Last 3 Months)</h2>
+      <div className={styles.titleRow}>
+        <h2 className={styles.title}>Session History (Last 3 Months)</h2>
+        <button
+          className={styles.toggleBtn}
+          onClick={() => setIsExpanded(!isExpanded)}
+          aria-expanded={isExpanded}
+        >
+          {isExpanded ? '−' : '+'}
+        </button>
+      </div>
       
-      {sessions.length === 0 ? (
-        <p className={styles.empty}>No session history available</p>
-      ) : (
-        <div className={styles.historyList}>
-          {sessions.map((session) => (
-            <div key={session.id} className={styles.historyItem}>
-              <div className={styles.itemHeader}>
-                <div className={styles.dateAndTrainer}>
-                  <span className={styles.date}>{formatDate(session.scheduledDate)}</span>
-                  <span className={styles.trainer}>with {session.trainerName}</span>
+      {isExpanded && (
+        <>
+          {sessions.length === 0 ? (
+            <p className={styles.empty}>No session history available</p>
+          ) : (
+            <div className={styles.historyList}>
+              {sessions.map((session) => (
+                <div key={session.id} className={styles.historyItem}>
+                  <div className={styles.itemHeader}>
+                    <div className={styles.dateAndTrainer}>
+                      <span className={styles.date}>{formatDate(session.scheduledDate)}</span>
+                      <span className={styles.trainer}>with {session.trainerName}</span>
+                    </div>
+                    {getStatusBadge(session.status)}
+                  </div>
+                  <div className={styles.itemDetails}>
+                    <span className={styles.detail}>
+                      <strong>Package:</strong> {session.packageName || 'N/A'}
+                    </span>
+                    {session.notes && (
+                      <span className={styles.detail}>
+                        <strong>Notes:</strong> {session.notes}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {getStatusBadge(session.status)}
-              </div>
-              <div className={styles.itemDetails}>
-                <span className={styles.detail}>
-                  <strong>Package:</strong> {session.packageName || 'N/A'}
-                </span>
-                {session.notes && (
-                  <span className={styles.detail}>
-                    <strong>Notes:</strong> {session.notes}
-                  </span>
-                )}
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );
