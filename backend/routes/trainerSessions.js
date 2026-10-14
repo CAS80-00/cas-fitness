@@ -926,6 +926,16 @@ router.put('/session-log/:logId/manage-status', authenticateToken, async (req, r
 
     console.log(`[/trainer-sessions/manage-status] Updated session log:`, updateResult.rows);
 
+    // Update the slot_instances status to match
+    if (log.slot_instance_id) {
+      console.log(`[/trainer-sessions/manage-status] Updating slot_instances status for slot ${log.slot_instance_id} to ${newStatus}`);
+      await db.query(`
+        UPDATE slot_instances
+        SET status = $1
+        WHERE id = $2
+      `, [newStatus, log.slot_instance_id]);
+    }
+
     // If status is COMPLETED or ABSENT, decrement remaining_sessions
     if ((newStatus === 'COMPLETED' || newStatus === 'ABSENT') && log.remaining_sessions > 0) {
       console.log(`[/trainer-sessions/manage-status] Decrementing remaining_sessions for session ${log.student_trainer_session_id}`);

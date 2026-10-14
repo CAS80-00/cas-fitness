@@ -122,11 +122,27 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
         throw new Error(err.error || `Failed to update session status to ${newStatus}`);
       }
 
+      const data = await res.json();
+      
+      // Update the selected slot to show the new status
+      setSelectedSlot(prev => ({
+        ...prev,
+        status: newStatus
+      }));
+      
       setMessage(`✓ Session marked as ${newStatus}`);
-      setShowStatusModal(false);
-      setSelectedSlot(null);
-      if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
-      onSlotChanged();
+      
+      // Reload slots after a short delay to show the updated status
+      setTimeout(() => {
+        if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
+        onSlotChanged();
+        // Close modal after reloading
+        setTimeout(() => {
+          setShowStatusModal(false);
+          setSelectedSlot(null);
+          setMessage("");
+        }, 500);
+      }, 500);
     } catch (err) {
       setMessage(`Error: ${err.message}`);
       console.error("Error managing session status:", err);
