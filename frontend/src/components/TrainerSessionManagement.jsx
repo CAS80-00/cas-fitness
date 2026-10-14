@@ -274,19 +274,21 @@ export default function TrainerSessionManagement({ studentId, onClose }) {
 
                   <div className={styles.sessionDetails}>
                     <div className={styles.detail}>
-                      <span className={styles.label}>Total Sessions:</span>
-                      <span className={styles.value}>{session.total_sessions}</span>
+                      <span className={styles.label}>Purchased:</span>
+                      <span className={styles.value}>{session.total_sessions || session.purchased_sessions}</span>
+                    </div>
+                    <div className={styles.detail}>
+                      <span className={styles.label}>Used:</span>
+                      <span className={styles.value}>{session.used_sessions || 0}</span>
+                    </div>
+                    <div className={styles.detail}>
+                      <span className={styles.label}>Scheduled:</span>
+                      <span className={styles.value}>{session.scheduled_sessions || 0}</span>
                     </div>
                     <div className={styles.detail}>
                       <span className={styles.label}>Remaining:</span>
                       <span className={styles.value}>
                         {session.remaining_sessions}
-                      </span>
-                    </div>
-                    <div className={styles.detail}>
-                      <span className={styles.label}>Start Date:</span>
-                      <span className={styles.value}>
-                        {new Date(session.start_date).toLocaleDateString()}
                       </span>
                     </div>
                     <div className={styles.detail}>
