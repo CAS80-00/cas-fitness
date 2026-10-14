@@ -957,6 +957,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
                   <FullCalendar
                     plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                     initialView="timeGridWeek"
+                    allDaySlot={false}
                     headerToolbar={{
                       left: "prev,next today",
                       center: "title",
