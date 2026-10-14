@@ -88,6 +88,8 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
   const handleManageSessionStatus = async (newStatus) => {
     if (!selectedSlot) return;
 
+    console.log(`[CalendarSlotManagement] Selected slot data:`, selectedSlot);
+
     // Use session_log_id if available (for booked sessions), otherwise use slot id
     const sessionLogId = selectedSlot.session_log_id || selectedSlot.id;
     
@@ -101,6 +103,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
       const token = apiToken();
       
       console.log(`[CalendarSlotManagement] Managing session ${sessionLogId} with status ${newStatus}`);
+      console.log(`[CalendarSlotManagement] Full URL: ${apiBaseUrl}/trainer-sessions/session-log/${sessionLogId}/manage-status`);
       
       const res = await fetch(
         `${apiBaseUrl}/trainer-sessions/session-log/${sessionLogId}/manage-status`,
@@ -1041,7 +1044,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
                       <button
                         className={styles.optionBtn}
                         style={{ borderLeftColor: "#10b981", backgroundColor: "#10b981" }}
-                        onClick={() => handleManageSessionStatus('COMPLETE')}
+                        onClick={() => handleManageSessionStatus('COMPLETED')}
                         disabled={loading}
                       >
                         ✓ Mark Complete

@@ -860,11 +860,13 @@ router.put('/session-log/:logId/manage-status', authenticateToken, async (req, r
   const { logId } = req.params;
   const { newStatus } = req.body;
   const userId = req.user.userId;
-  const userRole = req.user.role;
+  const userRoleId = req.user.roleId;
 
-  // Validate status
-  if (!['COMPLETE', 'ABSENT', 'CANCELLED'].includes(newStatus)) {
-    return res.status(400).json({ error: 'Invalid status. Must be COMPLETE, ABSENT, or CANCELLED.' });
+  console.log(`[/trainer-sessions/manage-status] Received request for logId: ${logId}, newStatus: ${newStatus}, userRoleId: ${userRoleId}`);
+
+  // Validate status - database accepts: SCHEDULED, COMPLETED, FAILED, ABSENT, CANCELLED
+  if (!['COMPLETED', 'ABSENT', 'CANCELLED'].includes(newStatus)) {
+    return res.status(400).json({ error: 'Invalid status. Must be COMPLETED, ABSENT, or CANCELLED.' });
   }
 
   try {
@@ -880,15 +882,22 @@ router.put('/session-log/:logId/manage-status', authenticateToken, async (req, r
       WHERE stsl.id = $1
     `, [logId]);
 
+    console.log(`[/trainer-sessions/manage-status] Query result for logId ${logId}:`, logResult.rows);
+
     if (logResult.rows.length === 0) {
+      console.log(`[/trainer-sessions/manage-status] No session log found for ID ${logId}`);
       return res.status(404).json({ error: 'Session log not found' });
     }
 
     const log = logResult.rows[0];
+    console.log(`[/trainer-sessions/manage-status] Found session log:`, log);
 
-    // Permission check: only trainer, superuser, or staff can manage sessions
-    const isTrainer = userRole === 'TRAINER' && log.trainer_id === userId;
-    const isSuperuserOrStaff = userRole === 'SUPERUSER' || userRole === 'STAFF';
+    // Permission check: only trainer, superuser (roleId=1), or staff can manage sessions
+    // roleId: 1=SUPERUSER, 2=TRAINER, 3=STAFF, 4=STUDENT
+    const isTrainer = userRoleId === 2 && log.trainer_id === userId;
+    const isSuperuserOrStaff = userRoleId === 1 || userRoleId === 3;
+
+    console.log(`[/trainer-sessions/manage-status] Permission check - isTrainer: ${isTrainer}, isSuperuserOrStaff: ${isSuperuserOrStaff}`);
 
     if (!isTrainer && !isSuperuserOrStaff) {
       return res.status(403).json({ error: 'You do not have permission to manage this session.' });
@@ -915,8 +924,8 @@ router.put('/session-log/:logId/manage-status', authenticateToken, async (req, r
       RETURNING id, status, scheduled_date
     `, [newStatus, logId]);
 
-    // If status is COMPLETE or ABSENT, decrement remaining_sessions
-    if ((newStatus === 'COMPLETE' || newStatus === 'ABSENT') && log.remaining_sessions > 0) {
+    // If status is COMPLETED or ABSENT, decrement remaining_sessions
+    if ((newStatus === 'COMPLETED' || newStatus === 'ABSENT') && log.remaining_sessions > 0) {
       await db.query(`
         UPDATE student_trainer_sessions
         SET remaining_sessions = remaining_sessions - 1
