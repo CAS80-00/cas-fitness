@@ -1,7 +1,7 @@
 @reference "./global.css";
 /* ==========================================================================
    CreditCardManager Module
-   Credit card input form and display with masking
+   Credit card display with add/update button
    ========================================================================== */
 
 .container {
@@ -17,20 +17,6 @@
 .title {
   @apply text-sm font-bold;
   color: #e5e7eb;
-}
-
-.error {
-  @apply rounded px-3 py-2 text-xs;
-  background-color: rgba(239, 68, 68, 0.1);
-  color: #fca5a5;
-  border: 1px solid #7f1d1d;
-}
-
-.success {
-  @apply rounded px-3 py-2 text-xs;
-  background-color: rgba(16, 185, 129, 0.1);
-  color: #a7f3d0;
-  border: 1px solid #047857;
 }
 
 /* Empty State */
@@ -107,81 +93,8 @@
   background-color: #2563eb;
 }
 
-/* Form */
-.form {
-  @apply space-y-3;
-}
-
-.formGroup {
-  @apply flex flex-col gap-1;
-}
-
-.formGroup label {
-  @apply text-xs font-semibold;
-  color: #d1d5db;
-}
-
-.input {
-  @apply w-full rounded border px-2 py-2 text-xs;
-  background-color: #0a0a0a;
-  border-color: #404040;
-  color: #e5e7eb;
-}
-
-.input:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-}
-
-.input::placeholder {
-  color: #6b7280;
-}
-
-.formRow {
-  @apply grid grid-cols-3 gap-2;
-}
-
-.formRow .formGroup {
-  @apply flex flex-col gap-1;
-}
-
-/* Form Actions */
-.formActions {
-  @apply flex gap-2;
-}
-
-.saveButton {
-  @apply flex-1 rounded py-2 text-xs font-semibold transition;
-  background-color: #10b981;
-  color: white;
-}
-
-.saveButton:hover:not(:disabled) {
-  background-color: #059669;
-}
-
-.saveButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.cancelButton {
-  @apply flex-1 rounded py-2 text-xs font-semibold transition;
-  background-color: #6b7280;
-  color: white;
-}
-
-.cancelButton:hover {
-  background-color: #4b5563;
-}
-
 /* Responsive */
 @media (max-width: 640px) {
-  .formRow {
-    @apply grid-cols-3;
-  }
-
   .cardNumber {
     @apply text-base;
   }
