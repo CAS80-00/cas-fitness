@@ -873,7 +873,7 @@ router.put('/session-log/:logId/manage-status', authenticateToken, async (req, r
     // Get session log and related data
     const logResult = await db.query(`
       SELECT 
-        stsl.id, stsl.scheduled_date, stsl.status,
+        stsl.id, stsl.student_trainer_session_id, stsl.scheduled_date, stsl.status,
         sts.student_id, sts.trainer_id, sts.remaining_sessions,
         si.id as slot_instance_id
       FROM student_trainer_session_logs stsl
@@ -924,28 +924,37 @@ router.put('/session-log/:logId/manage-status', authenticateToken, async (req, r
       RETURNING id, status, scheduled_date
     `, [newStatus, logId]);
 
+    console.log(`[/trainer-sessions/manage-status] Updated session log:`, updateResult.rows);
+
     // If status is COMPLETED or ABSENT, decrement remaining_sessions
     if ((newStatus === 'COMPLETED' || newStatus === 'ABSENT') && log.remaining_sessions > 0) {
-      await db.query(`
+      console.log(`[/trainer-sessions/manage-status] Decrementing remaining_sessions for session ${log.student_trainer_session_id}`);
+      const decrementResult = await db.query(`
         UPDATE student_trainer_sessions
         SET remaining_sessions = remaining_sessions - 1
         WHERE id = $1
+        RETURNING id, remaining_sessions
       `, [log.student_trainer_session_id]);
+      console.log(`[/trainer-sessions/manage-status] After decrement:`, decrementResult.rows);
     }
 
     // If status is CANCELLED, restore the slot and remaining sessions
     if (newStatus === 'CANCELLED' && log.slot_instance_id) {
+      console.log(`[/trainer-sessions/manage-status] Restoring slot ${log.slot_instance_id}`);
       await db.query(`
         UPDATE slot_instances
         SET status = 'WORKOUT'
         WHERE id = $1
       `, [log.slot_instance_id]);
 
-      await db.query(`
+      console.log(`[/trainer-sessions/manage-status] Incrementing remaining_sessions for session ${log.student_trainer_session_id}`);
+      const incrementResult = await db.query(`
         UPDATE student_trainer_sessions
         SET remaining_sessions = remaining_sessions + 1
         WHERE id = $1
+        RETURNING id, remaining_sessions
       `, [log.student_trainer_session_id]);
+      console.log(`[/trainer-sessions/manage-status] After increment:`, incrementResult.rows);
     }
 
     const updatedLog = updateResult.rows[0];
