@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db/database');
-const { authenticateToken } = require('../middleware/auth');
+const db = require('../db/client');
+const { authenticateToken } = require('../middleware/authMiddleware');
 
 // GET: Student's active subscriptions with plan details
 router.get('/student/:userId', authenticateToken, async (req, res) => {
@@ -190,7 +190,7 @@ router.get('/:subscriptionId/price-status', authenticateToken, async (req, res) 
       isDiscontinued: sub.is_discontinued,
       isPriceLocked: sub.locked_price !== null,
       lockedPrice: sub.locked_price,
-      priceLocked At: sub.price_locked_at,
+      priceLockedAt: sub.price_locked_at,
       currentPrice: sub.current_price,
       planTitle: sub.title,
       displayPrice: sub.locked_price || sub.current_price,
