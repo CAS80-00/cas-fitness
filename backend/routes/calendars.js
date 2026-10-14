@@ -192,7 +192,7 @@ router.get("/workouts", authenticateToken, async (req, res) => {
     `,
     );
 
-    // Get trainer session bookings (from session logs with scheduled status)
+    // Get trainer session bookings (from session logs with all relevant statuses)
     const trainerBookings = await db.query(
       `
       SELECT 
@@ -212,7 +212,6 @@ router.get("/workouts", authenticateToken, async (req, res) => {
       LEFT JOIN users s ON sts.student_id = s.id
       WHERE stsl.scheduled_date >= NOW() - INTERVAL '7 days'
         AND stsl.scheduled_date <= NOW() + INTERVAL '90 days'
-        AND stsl.status = 'SCHEDULED'
       ORDER BY stsl.scheduled_date ASC
     `,
     );

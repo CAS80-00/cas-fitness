@@ -208,22 +208,52 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
         }
 
         // Only show if selected trainer matches or no specific trainer is selected
-        // Note: trainer_id can be null if not assigned, so show it regardless
         if (selectedTrainerId && session.trainer_id && session.trainer_id !== selectedTrainerId) {
           return;
         }
 
+        // Determine color based on session status
+        let backgroundColor, borderColor, statusLabel;
+        
+        switch (session.status) {
+          case 'SCHEDULED':
+          case 'BOOKED':
+            backgroundColor = "#3b82f6"; // blue for booked
+            borderColor = "#1e40af";
+            statusLabel = "Booked";
+            break;
+          case 'COMPLETED':
+            backgroundColor = "#10b981"; // green for completed
+            borderColor = "#047857";
+            statusLabel = "Completed";
+            break;
+          case 'ABSENT':
+            backgroundColor = "#f59e0b"; // orange for absent
+            borderColor = "#d97706";
+            statusLabel = "Absent";
+            break;
+          case 'CANCELLED':
+            backgroundColor = "#6b7280"; // gray for cancelled
+            borderColor = "#4b5563";
+            statusLabel = "Cancelled";
+            break;
+          default:
+            backgroundColor = "#8b5cf6"; // purple as default
+            borderColor = "#6d28d9";
+            statusLabel = session.status;
+        }
+
         const eventData = {
           id: `session-${session.id}`,
-          title: `${session.student_name} - Trainer Session`,
+          title: `${session.student_name} - ${statusLabel}`,
           start: eventStart.toISOString(),
           end: eventEnd.toISOString(),
-          backgroundColor: "#8b5cf6", // purple for booked sessions
-          borderColor: "#6d28d9",
+          backgroundColor,
+          borderColor,
           textColor: "#ffffff",
           extendedProps: {
             type: "session",
-            status: "BOOKED",
+            status: session.status,
             trainerId: session.trainer_id,
             studentName: session.student_name,
             studentId: session.student_id,
