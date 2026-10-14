@@ -946,14 +946,6 @@ router.put('/session-log/:logId/manage-status', authenticateToken, async (req, r
 
     const updatedLog = updateResult.rows[0];
 
-    // Log the action for audit purposes
-      logId: logId,
-      newStatus: newStatus,
-      userId: userId,
-      trainerId: log.trainer_id,
-      studentId: log.student_id
-    });
-
     res.json({
       success: true,
       message: `Session marked as ${newStatus}`,
