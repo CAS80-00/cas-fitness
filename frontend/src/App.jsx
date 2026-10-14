@@ -26,6 +26,8 @@ function App() {
     const raw = localStorage.getItem("cas_user");
     return raw ? "profile" : "home";
   });
+  const [cartItem, setCartItem] = useState(null);
+  const [cartRequested, setCartRequested] = useState(false);
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [graceSeconds, setGraceSeconds] = useState(120);
 
