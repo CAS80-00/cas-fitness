@@ -88,8 +88,6 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
   const handleManageSessionStatus = async (newStatus) => {
     if (!selectedSlot) return;
 
-    console.log(`[CalendarSlotManagement] Selected slot data:`, selectedSlot);
-
     // Use session_log_id if available (for booked sessions), otherwise use slot id
     const sessionLogId = selectedSlot.session_log_id || selectedSlot.id;
     
@@ -101,9 +99,6 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
     try {
       setLoading(true);
       const token = apiToken();
-      
-      console.log(`[CalendarSlotManagement] Managing session ${sessionLogId} with status ${newStatus}`);
-      console.log(`[CalendarSlotManagement] Full URL: ${apiBaseUrl}/trainer-sessions/session-log/${sessionLogId}/manage-status`);
       
       const res = await fetch(
         `${apiBaseUrl}/trainer-sessions/session-log/${sessionLogId}/manage-status`,
@@ -122,27 +117,20 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
         throw new Error(err.error || `Failed to update session status to ${newStatus}`);
       }
 
-      const data = await res.json();
-      console.log(`[CalendarSlotManagement] API response:`, data);
-      
       // Update the selected slot to show the new status
       setSelectedSlot(prev => ({
         ...prev,
         status: newStatus
       }));
-      console.log(`[CalendarSlotManagement] Updated selectedSlot status to ${newStatus}`);
       
       setMessage(`✓ Session marked as ${newStatus}`);
       
       // Reload slots after a short delay to show the updated status
-      console.log(`[CalendarSlotManagement] Starting reload in 500ms...`);
       setTimeout(() => {
-        console.log(`[CalendarSlotManagement] Reloading slots for employee ${selectedEmployee?.id}`);
         if (selectedEmployee) loadSlotInstances(selectedEmployee.id);
         onSlotChanged();
         // Close modal after reloading
         setTimeout(() => {
-          console.log(`[CalendarSlotManagement] Closing modal`);
           setShowStatusModal(false);
           setSelectedSlot(null);
           setMessage("");
@@ -204,8 +192,6 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
         ? `${apiBaseUrl}/calendars/my-slots`
         : `${apiBaseUrl}/admin/slot-instances/${userId}`;
       
-      console.log(`[CalendarSlotManagement] Loading slots from ${endpoint}`);
-      
       const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -213,10 +199,6 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
       const data = await res.json();
       
       const instances = data.instances || [];
-      console.log(`[CalendarSlotManagement] Loaded ${instances.length} slots:`, instances);
-      instances.forEach((slot, idx) => {
-        console.log(`  Slot ${idx}: id=${slot.id}, status=${slot.status}, displayStatus=${slot.displayStatus}`);
-      });
       setSlotInstances(instances);
     } catch (err) {
       setMessage(`Error: ${err.message}`);

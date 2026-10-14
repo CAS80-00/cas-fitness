@@ -862,8 +862,6 @@ router.put('/session-log/:logId/manage-status', authenticateToken, async (req, r
   const userId = req.user.userId;
   const userRoleId = req.user.roleId;
 
-  console.log(`[/trainer-sessions/manage-status] Received request for logId: ${logId}, newStatus: ${newStatus}, userRoleId: ${userRoleId}`);
-
   // Validate status - database accepts: SCHEDULED, COMPLETED, FAILED, ABSENT, CANCELLED
   if (!['COMPLETED', 'ABSENT', 'CANCELLED'].includes(newStatus)) {
     return res.status(400).json({ error: 'Invalid status. Must be COMPLETED, ABSENT, or CANCELLED.' });
@@ -882,23 +880,16 @@ router.put('/session-log/:logId/manage-status', authenticateToken, async (req, r
       WHERE stsl.id = $1
     `, [logId]);
 
-    console.log(`[/trainer-sessions/manage-status] Query result for logId ${logId}:`, logResult.rows);
-
     if (logResult.rows.length === 0) {
-      console.log(`[/trainer-sessions/manage-status] No session log found for ID ${logId}`);
       return res.status(404).json({ error: 'Session log not found' });
     }
 
     const log = logResult.rows[0];
-    console.log(`[/trainer-sessions/manage-status] Found session log:`, log);
-    console.log(`[/trainer-sessions/manage-status] slot_instance_id value: ${log.slot_instance_id}`);
 
     // Permission check: only trainer, superuser (roleId=1), or staff can manage sessions
     // roleId: 1=SUPERUSER, 2=TRAINER, 3=STAFF, 4=STUDENT
     const isTrainer = userRoleId === 2 && log.trainer_id === userId;
     const isSuperuserOrStaff = userRoleId === 1 || userRoleId === 3;
-
-    console.log(`[/trainer-sessions/manage-status] Permission check - isTrainer: ${isTrainer}, isSuperuserOrStaff: ${isSuperuserOrStaff}`);
 
     if (!isTrainer && !isSuperuserOrStaff) {
       return res.status(403).json({ error: 'You do not have permission to manage this session.' });
@@ -925,46 +916,37 @@ router.put('/session-log/:logId/manage-status', authenticateToken, async (req, r
       RETURNING id, status, scheduled_date
     `, [newStatus, logId]);
 
-    console.log(`[/trainer-sessions/manage-status] Updated session log:`, updateResult.rows);
-
     // Note: We don't update slot_instances status because it has a constrained set of values
     // The actual session status (COMPLETED, ABSENT, CANCELLED) is tracked in student_trainer_session_logs
     // The slot_instances keeps its status as BOOKED to show it was used
 
     // If status is COMPLETED or ABSENT, decrement remaining_sessions
     if ((newStatus === 'COMPLETED' || newStatus === 'ABSENT') && log.remaining_sessions > 0) {
-      console.log(`[/trainer-sessions/manage-status] Decrementing remaining_sessions for session ${log.student_trainer_session_id}`);
-      const decrementResult = await db.query(`
+      await db.query(`
         UPDATE student_trainer_sessions
         SET remaining_sessions = remaining_sessions - 1
         WHERE id = $1
-        RETURNING id, remaining_sessions
       `, [log.student_trainer_session_id]);
-      console.log(`[/trainer-sessions/manage-status] After decrement:`, decrementResult.rows);
     }
 
     // If status is CANCELLED, restore the slot and remaining sessions
     if (newStatus === 'CANCELLED' && log.slot_instance_id) {
-      console.log(`[/trainer-sessions/manage-status] Restoring slot ${log.slot_instance_id}`);
       await db.query(`
         UPDATE slot_instances
         SET status = 'WORKOUT'
         WHERE id = $1
       `, [log.slot_instance_id]);
 
-      console.log(`[/trainer-sessions/manage-status] Incrementing remaining_sessions for session ${log.student_trainer_session_id}`);
-      const incrementResult = await db.query(`
+      await db.query(`
         UPDATE student_trainer_sessions
         SET remaining_sessions = remaining_sessions + 1
         WHERE id = $1
-        RETURNING id, remaining_sessions
       `, [log.student_trainer_session_id]);
-      console.log(`[/trainer-sessions/manage-status] After increment:`, incrementResult.rows);
     }
 
     const updatedLog = updateResult.rows[0];
 
-    console.log(`[TRAINER-SESSIONS] Session status updated by roleId ${userRoleId}:`, {
+    // Log the action for audit purposes
       logId: logId,
       newStatus: newStatus,
       userId: userId,
