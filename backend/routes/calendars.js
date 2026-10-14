@@ -169,6 +169,22 @@ router.post("/consultations/book", async (req, res) => {
 
 router.get("/workouts", authenticateToken, async (req, res) => {
   try {
+    const userId = req.user.userId;
+    const roleId = req.user.roleId;
+
+    // Get user role to determine filtering
+    const roleRes = await db.query("SELECT role_name FROM roles WHERE id = $1", [roleId]);
+    const roleName = roleRes.rows[0]?.role_name || '';
+    
+    // If student, only show their own sessions + available slots (no other students' bookings)
+    // If trainer/superuser, show all sessions
+    const isStudent = roleName === 'STUDENT';
+
+    let studentIdFilter = '';
+    if (isStudent) {
+      studentIdFilter = `AND (ws.student_id = ${userId} OR ws.student_id IS NULL)`;
+    }
+
     // Get workout sessions (legacy format)
     const result = await db.query(
       `
@@ -188,11 +204,17 @@ router.get("/workouts", authenticateToken, async (req, res) => {
       LEFT JOIN users s ON ws.student_id = s.id
       WHERE ws.start_time >= NOW() - INTERVAL '7 days'
         AND ws.start_time <= NOW() + INTERVAL '90 days'
+        ${studentIdFilter}
       ORDER BY ws.start_time ASC
     `,
     );
 
     // Get trainer session bookings (from session logs with all relevant statuses)
+    let trainerBookingFilter = '';
+    if (isStudent) {
+      trainerBookingFilter = `AND sts.student_id = ${userId}`;
+    }
+
     const trainerBookings = await db.query(
       `
       SELECT 
@@ -212,6 +234,7 @@ router.get("/workouts", authenticateToken, async (req, res) => {
       LEFT JOIN users s ON sts.student_id = s.id
       WHERE stsl.scheduled_date >= NOW() - INTERVAL '7 days'
         AND stsl.scheduled_date <= NOW() + INTERVAL '90 days'
+        ${trainerBookingFilter}
       ORDER BY stsl.scheduled_date ASC
     `,
     );
