@@ -108,7 +108,7 @@ export default function SubscriptionManagement({ userId }) {
         <div className={styles.subscriptionsList}>
           {subscriptions.map((sub) => {
             const priceLocked = sub.locked_price !== null;
-            const displayPrice = priceLocked ? sub.locked_price : sub.price;
+            const displayPrice = Number(priceLocked ? sub.locked_price : sub.price);
 
             return (
               <div key={sub.id} className={styles.subscriptionCard}>
