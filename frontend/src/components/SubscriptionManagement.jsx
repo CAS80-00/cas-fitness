@@ -64,6 +64,34 @@ export default function SubscriptionManagement({ userId }) {
     }
   };
 
+  const handleResumeSubscription = async (subscriptionId) => {
+    setCancellingId(subscriptionId);
+    try {
+      const token = localStorage.getItem('cas_jwt');
+      const res = await fetch(`${apiBaseUrl}/subscriptions/${subscriptionId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'ACTIVE' }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to resume subscription');
+      }
+
+      setError('');
+      loadSubscriptions();
+      alert('Subscription resumed!');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -81,6 +109,9 @@ export default function SubscriptionManagement({ userId }) {
       badgeText = 'Price Locked';
     } else if (status === 'ACTIVE') {
       badgeClass += ` ${styles.statusActive}`;
+    } else if (status === 'PAUSED') {
+      badgeClass += ` ${styles.statusPaused}`;
+      badgeText = 'Paused';
     } else if (status === 'CANCELLED') {
       badgeClass += ` ${styles.statusCancelled}`;
     } else if (status === 'INACTIVE') {
@@ -172,6 +203,24 @@ export default function SubscriptionManagement({ userId }) {
                     >
                       {cancellingId === sub.id ? 'Cancelling...' : 'Cancel Subscription'}
                     </button>
+                  )}
+                  {sub.status === 'PAUSED' && (
+                    <>
+                      <button
+                        className={styles.resumeButton}
+                        onClick={() => handleResumeSubscription(sub.id)}
+                        disabled={cancellingId === sub.id}
+                      >
+                        {cancellingId === sub.id ? 'Resuming...' : 'Resume Subscription'}
+                      </button>
+                      <button
+                        className={styles.cancelButton}
+                        onClick={() => handleCancelSubscription(sub.id)}
+                        disabled={cancellingId === sub.id}
+                      >
+                        Cancel
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

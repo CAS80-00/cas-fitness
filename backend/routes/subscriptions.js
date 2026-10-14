@@ -203,22 +203,72 @@ router.get('/:subscriptionId/price-status', authenticateToken, async (req, res) 
   }
 });
 
-// PUT: Update subscription auto_renew setting
-router.put('/:subscriptionId/auto-renew', authenticateToken, async (req, res) => {
-  const { subscriptionId } = req.params;
-  const { autoRenew } = req.body;
+// GET: Check card expiry and pause subscription if needed
+router.post('/check-card-status/:userId', authenticateToken, async (req, res) => {
+  const { userId } = req.params;
 
-  if (autoRenew === undefined || typeof autoRenew !== 'boolean') {
-    return res.status(400).json({ error: 'autoRenew must be a boolean' });
+  try {
+    // Get active card
+    const cardRes = await db.query(
+      `SELECT id, expiry_month, expiry_year, is_active 
+       FROM student_credit_cards 
+       WHERE student_id = $1 AND is_active = TRUE
+       LIMIT 1`,
+      [userId]
+    );
+
+    if (cardRes.rows.length === 0) {
+      return res.json({ hasCard: false, isExpired: false });
+    }
+
+    const card = cardRes.rows[0];
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+    const cardYear = parseInt(card.expiry_year, 10);
+    const cardMonth = parseInt(card.expiry_month, 10);
+
+    const isExpired = cardYear < currentYear || (cardYear === currentYear && cardMonth < currentMonth);
+
+    // If card is expired and subscription is active, pause it
+    if (isExpired) {
+      await db.query(
+        `UPDATE user_subscriptions 
+         SET status = 'PAUSED', auto_renew = FALSE
+         WHERE user_id = $1 AND status = 'ACTIVE'
+         RETURNING id`,
+        [userId]
+      );
+    }
+
+    res.json({ 
+      hasCard: true, 
+      isExpired, 
+      message: isExpired ? 'Subscription paused due to expired card' : 'Card is valid' 
+    });
+  } catch (err) {
+    console.error('Error checking card status:', err);
+    res.status(500).json({ error: 'Failed to check card status' });
+  }
+});
+
+// PUT: Update subscription status (for pausing/resuming)
+router.put('/:subscriptionId/status', authenticateToken, async (req, res) => {
+  const { subscriptionId } = req.params;
+  const { status } = req.body;
+
+  const validStatuses = ['ACTIVE', 'PAUSED', 'CANCELLED', 'INACTIVE', 'EXPIRED'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ error: 'Invalid status' });
   }
 
   try {
     const result = await db.query(
       `UPDATE user_subscriptions 
-       SET auto_renew = $1
+       SET status = $1
        WHERE id = $2
-       RETURNING id, auto_renew`,
-      [autoRenew, subscriptionId]
+       RETURNING id, status`,
+      [status, subscriptionId]
     );
 
     if (result.rows.length === 0) {
@@ -227,12 +277,12 @@ router.put('/:subscriptionId/auto-renew', authenticateToken, async (req, res) =>
 
     res.json({ 
       success: true, 
-      message: `Auto-renewal ${autoRenew ? 'enabled' : 'disabled'}`,
+      message: `Subscription ${status.toLowerCase()}`,
       subscription: result.rows[0] 
     });
   } catch (err) {
-    console.error('Error updating auto-renew:', err);
-    res.status(500).json({ error: 'Failed to update auto-renewal setting' });
+    console.error('Error updating status:', err);
+    res.status(500).json({ error: 'Failed to update subscription status' });
   }
 });
 

@@ -39,10 +39,26 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
 
         if (res.ok) {
           const data = await res.json();
-          const activeSubscription = data.subscriptions?.find(sub => sub.status === 'ACTIVE');
+          // Find active or paused subscription
+          const activeSubscription = data.subscriptions?.find(sub => 
+            sub.status === 'ACTIVE' || sub.status === 'PAUSED'
+          );
           if (activeSubscription) {
             setSubscription(activeSubscription);
             setAutoRenew(activeSubscription.auto_renew ?? true);
+          }
+        }
+
+        // Check if card is expired and pause subscription if needed
+        const cardCheckRes = await fetch(`${apiBaseUrl}/subscriptions/check-card-status/${currentUser.id}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (cardCheckRes.ok) {
+          const cardStatus = await cardCheckRes.json();
+          if (cardStatus.isExpired) {
+            setStatusMessage('Your subscription has been paused because your credit card expired. Please update your card.');
           }
         }
       } catch (err) {
