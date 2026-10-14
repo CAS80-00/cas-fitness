@@ -891,6 +891,7 @@ router.put('/session-log/:logId/manage-status', authenticateToken, async (req, r
 
     const log = logResult.rows[0];
     console.log(`[/trainer-sessions/manage-status] Found session log:`, log);
+    console.log(`[/trainer-sessions/manage-status] slot_instance_id value: ${log.slot_instance_id}`);
 
     // Permission check: only trainer, superuser (roleId=1), or staff can manage sessions
     // roleId: 1=SUPERUSER, 2=TRAINER, 3=STAFF, 4=STUDENT
