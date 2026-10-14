@@ -56,7 +56,7 @@
 }
 
 .cardExpiredAlert {
-  @apply absolute top-0 left-1/2 -translate-x-1/2 rounded-b-lg px-2 py-1 text-xs font-semibold text-center w-3/4;
+  @apply absolute top-0 left-1/2 -translate-x-1/2 rounded-b-lg px-2 py-1 text-xs font-semibold text-center w-2/3;
   background-color: #dc2626;
   color: white;
   z-index: 20;
