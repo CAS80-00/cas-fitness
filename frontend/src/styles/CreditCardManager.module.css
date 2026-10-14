@@ -10,6 +10,10 @@
   border-color: #404040;
 }
 
+.titleRow {
+  @apply flex items-center justify-between;
+}
+
 .title {
   @apply text-sm font-bold;
   color: #e5e7eb;
@@ -27,6 +31,30 @@
   background-color: rgba(16, 185, 129, 0.1);
   color: #a7f3d0;
   border: 1px solid #047857;
+}
+
+/* Empty State */
+.emptyState {
+  @apply flex flex-col items-center justify-center rounded-lg border border-dashed py-6;
+  border-color: #404040;
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.emptyText {
+  @apply mb-3 text-xs;
+  color: #9ca3af;
+}
+
+.addButton {
+  @apply rounded-md px-4 py-2 text-xs font-semibold transition;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.addButton:hover {
+  background-color: #2563eb;
 }
 
 /* Saved Card Display */

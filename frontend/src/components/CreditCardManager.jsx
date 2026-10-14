@@ -128,10 +128,25 @@ export default function CreditCardManager({ userId }) {
 
   return (
     <div className={styles.container}>
-      <h3 className={styles.title}>Payment Method</h3>
+      <div className={styles.titleRow}>
+        <h3 className={styles.title}>Payment Method</h3>
+      </div>
 
       {error && <div className={styles.error}>{error}</div>}
       {success && <div className={styles.success}>{success}</div>}
+
+      {!showForm && !savedCard ? (
+        <div className={styles.emptyState}>
+          <p className={styles.emptyText}>No payment method added yet</p>
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className={styles.addButton}
+          >
+            + Add Credit Card
+          </button>
+        </div>
+      ) : null}
 
       {savedCard && !showForm ? (
         <div className={styles.savedCard}>
