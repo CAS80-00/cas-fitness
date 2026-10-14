@@ -4,6 +4,7 @@ import TrainerSessionScheduler from "../components/TrainerSessionScheduler";
 import StudentSessionManagement from "../components/StudentSessionManagement";
 import SessionHistory from "../components/SessionHistory";
 import CreditCardManager from "../components/CreditCardManager";
+import CreditCardModal from "../components/CreditCardModal";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import styles from "../styles/StudentProfile.module.css";
@@ -21,6 +22,7 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
   const [statusMessage, setStatusMessage] = useState("");
   const [trainerSessions, setTrainerSessions] = useState([]);
   const [showScheduler, setShowScheduler] = useState(false);
+  const [showCardModal, setShowCardModal] = useState(false);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 
   useEffect(() => {
@@ -142,7 +144,7 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
             </label>
           </div>
 
-          <CreditCardManager userId={currentUser?.id} />
+          <CreditCardManager userId={currentUser?.id} onAddCard={() => setShowCardModal(true)} />
         </div>
 
         <div className={styles.dashboardGrid}>
@@ -288,6 +290,13 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
           </div>
         )}
       </div>
+
+      <CreditCardModal 
+        userId={currentUser?.id}
+        isOpen={showCardModal}
+        onClose={() => setShowCardModal(false)}
+        onCardSaved={() => window.location.reload()}
+      />
 
       <SiteFooter isSuperuser={currentUser?.roleId === 1} />
     </div>

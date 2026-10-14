@@ -1,0 +1,151 @@
+@reference "./global.css";
+/* ==========================================================================
+   CreditCardModal Module
+   Modal for adding credit card information
+   ========================================================================== */
+
+.overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modal {
+  @apply w-full max-w-md rounded-lg shadow-2xl;
+  background-color: #0a0a0a;
+  border: 1px solid #404040;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.header {
+  @apply flex items-center justify-between border-b p-6;
+  border-color: #404040;
+}
+
+.title {
+  @apply text-lg font-bold;
+  color: #e5e7eb;
+}
+
+.closeButton {
+  @apply h-8 w-8 flex items-center justify-center rounded transition;
+  background-color: transparent;
+  color: #9ca3af;
+  border: 1px solid #404040;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.closeButton:hover {
+  background-color: #1a1a1a;
+  color: #e5e7eb;
+}
+
+.form {
+  @apply space-y-4 p-6;
+}
+
+.formGroup {
+  @apply space-y-2;
+}
+
+.formGroup label {
+  @apply block text-xs font-semibold;
+  color: #d1d5db;
+}
+
+.input {
+  @apply w-full rounded border px-3 py-2 text-sm;
+  background-color: #1a1a1a;
+  border-color: #404040;
+  color: #e5e7eb;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.1em;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.input::placeholder {
+  color: #6b7280;
+}
+
+.hint {
+  @apply text-xs;
+  color: #9ca3af;
+}
+
+.error {
+  @apply rounded px-3 py-2 text-xs;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  border: 1px solid #7f1d1d;
+}
+
+.success {
+  @apply rounded px-3 py-2 text-xs;
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #a7f3d0;
+  border: 1px solid #047857;
+}
+
+.actions {
+  @apply flex gap-3 pt-4;
+}
+
+.cancelButton {
+  @apply flex-1 rounded py-2 text-xs font-semibold transition;
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background-color: #4b5563;
+}
+
+.cancelButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.submitButton {
+  @apply flex-1 rounded py-2 text-xs font-semibold transition;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.submitButton:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .modal {
+    @apply w-11/12 max-w-none;
+  }
+
+  .header {
+    @apply p-4;
+  }
+
+  .form {
+    @apply p-4;
+  }
+}
