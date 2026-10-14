@@ -929,11 +929,15 @@ router.put('/session-log/:logId/manage-status', authenticateToken, async (req, r
     // Update the slot_instances status to match
     if (log.slot_instance_id) {
       console.log(`[/trainer-sessions/manage-status] Updating slot_instances status for slot ${log.slot_instance_id} to ${newStatus}`);
-      await db.query(`
+      const slotUpdateResult = await db.query(`
         UPDATE slot_instances
         SET status = $1
         WHERE id = $2
+        RETURNING id, status
       `, [newStatus, log.slot_instance_id]);
+      console.log(`[/trainer-sessions/manage-status] Slot update result:`, slotUpdateResult.rows);
+    } else {
+      console.log(`[/trainer-sessions/manage-status] WARNING: No slot_instance_id found for session log ${logId}`);
     }
 
     // If status is COMPLETED or ABSENT, decrement remaining_sessions
