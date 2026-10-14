@@ -1240,10 +1240,12 @@ router.get("/slot-instances/:userId", authenticateToken, async (req, res) => {
              si.modified_by, si.modified_at,
              si.approved_by, si.approved_at, si.created_at,
              u.first_name, u.last_name, u.email, 
-             modified_user.first_name as modified_by_first_name, modified_user.last_name as modified_by_last_name
+             modified_user.first_name as modified_by_first_name, modified_user.last_name as modified_by_last_name,
+             stsl.id as session_log_id
       FROM slot_instances si
       JOIN users u ON si.user_id = u.id
       LEFT JOIN users modified_user ON si.modified_by = modified_user.id
+      LEFT JOIN student_trainer_session_logs stsl ON stsl.slot_instance_id = si.id
       WHERE si.user_id = $1
     `;
     const params = [userId];

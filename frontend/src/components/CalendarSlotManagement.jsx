@@ -86,14 +86,24 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
 
   // Manage trainer session status
   const handleManageSessionStatus = async (newStatus) => {
-    if (!selectedSlot || !selectedSlot.id) return;
+    if (!selectedSlot) return;
+
+    // Use session_log_id if available (for booked sessions), otherwise use slot id
+    const sessionLogId = selectedSlot.session_log_id || selectedSlot.id;
+    
+    if (!sessionLogId) {
+      setMessage("Error: Session log ID not available");
+      return;
+    }
 
     try {
       setLoading(true);
       const token = apiToken();
       
+      console.log(`[CalendarSlotManagement] Managing session ${sessionLogId} with status ${newStatus}`);
+      
       const res = await fetch(
-        `${apiBaseUrl}/trainer-sessions/session-log/${selectedSlot.id}/manage-status`,
+        `${apiBaseUrl}/trainer-sessions/session-log/${sessionLogId}/manage-status`,
         {
           method: "PUT",
           headers: {
