@@ -78,12 +78,12 @@ export default function CreditCardManager({ userId, onAddCard }) {
         </div>
       ) : (
         <div className={styles.savedCard}>
-          {isCardExpired() && (
-            <div className={styles.expiredAlert}>
-              ⚠️ Card is expired
-            </div>
-          )}
           <div className={styles.cardDisplay}>
+            {isCardExpired() && (
+              <div className={styles.cardExpiredOverlay}>
+                ⚠️ Card is expired
+              </div>
+            )}
             <button
               type="button"
               onClick={handleAddCard}

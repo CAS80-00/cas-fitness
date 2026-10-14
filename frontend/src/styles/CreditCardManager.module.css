@@ -55,6 +55,15 @@
   border: 1px solid #991b1b;
 }
 
+.cardExpiredOverlay {
+  @apply absolute inset-0 rounded-lg flex items-center justify-center font-bold text-sm;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fecaca;
+  text-align: center;
+  z-index: 20;
+  backdrop-filter: blur(2px);
+}
+
 .cardDisplay {
   @apply relative w-full rounded-lg border-0 p-3;
   background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
