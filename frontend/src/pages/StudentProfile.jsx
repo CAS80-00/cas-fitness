@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import AccessQRCode from "../components/AccessQRCode";
 import TrainerSessionScheduler from "../components/TrainerSessionScheduler";
 import StudentSessionManagement from "../components/StudentSessionManagement";
+import SessionHistory from "../components/SessionHistory";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import styles from "../styles/StudentProfile.module.css";
@@ -184,6 +185,7 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
 
           <div className={styles.calendarColumn}>
             <StudentSessionManagement />
+            <SessionHistory userId={currentUser?.id} />
           </div>
         </div>
 

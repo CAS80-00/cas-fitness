@@ -1,0 +1,117 @@
+@reference "./global.css";
+/* ==========================================================================
+   SessionHistory Module
+   Displays student's personal trainer session history (last 3 months)
+   ========================================================================== */
+
+.card {
+  @apply space-y-4 rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+}
+
+.title {
+  @apply text-lg font-bold;
+  color: #ffffff;
+}
+
+.loading {
+  @apply rounded px-4 py-3 text-sm;
+  background-color: #1a1a1a;
+  color: #9ca3af;
+}
+
+.error {
+  @apply rounded px-4 py-3 text-sm;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  border: 1px solid #7f1d1d;
+}
+
+.empty {
+  @apply rounded px-4 py-3 text-sm;
+  background-color: #1a1a1a;
+  color: #6b7280;
+}
+
+.historyList {
+  @apply space-y-3;
+}
+
+.historyItem {
+  @apply rounded-lg border p-4;
+  background-color: #1a1a1a;
+  border-color: #404040;
+  transition: border-color 0.2s ease;
+}
+
+.historyItem:hover {
+  border-color: #505050;
+}
+
+.itemHeader {
+  @apply mb-3 flex items-center justify-between gap-3;
+}
+
+.dateAndTrainer {
+  @apply flex flex-col gap-1;
+}
+
+.date {
+  @apply block text-sm font-semibold;
+  color: #e5e7eb;
+}
+
+.trainer {
+  @apply block text-xs;
+  color: #9ca3af;
+}
+
+.badge {
+  @apply inline-block rounded px-3 py-1 text-xs font-semibold whitespace-nowrap;
+  background-color: #374151;
+  color: #e5e7eb;
+}
+
+.badge.completed {
+  background-color: rgba(168, 85, 247, 0.2);
+  color: #d8b4fe;
+  border: 1px solid #a855f7;
+}
+
+.badge.absent {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #fde047;
+  border: 1px solid #f59e0b;
+}
+
+.badge.cancelled {
+  background-color: rgba(107, 114, 128, 0.2);
+  color: #d1d5db;
+  border: 1px solid #6b7280;
+}
+
+.itemDetails {
+  @apply flex flex-col gap-2 border-t border-gray-700 pt-3;
+}
+
+.detail {
+  @apply block text-xs;
+  color: #d1d5db;
+}
+
+.detail strong {
+  color: #e5e7eb;
+  margin-right: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .itemHeader {
+    @apply flex-col items-start gap-2;
+  }
+
+  .badge {
+    @apply text-xs;
+  }
+}

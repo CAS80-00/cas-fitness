@@ -957,4 +957,74 @@ router.put('/session-log/:logId/manage-status', authenticateToken, async (req, r
   }
 });
 
+// ============================================================================
+// SESSION HISTORY - Get past sessions for student (last 3 months)
+// ============================================================================
+
+router.get('/history/student/:studentId', authenticateToken, async (req, res) => {
+  const { studentId } = req.params;
+
+  // Allow a student to view their own history, or allow SUPERUSER/STAFF to view any student's
+  if (req.user.userId !== studentId) {
+    try {
+      const roleRes = await db.query(
+        "SELECT role_name FROM roles WHERE id = $1",
+        [req.user.roleId]
+      );
+      
+      if (roleRes.rows.length === 0 || !['SUPERUSER', 'STAFF'].includes(roleRes.rows[0].role_name)) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    } catch (err) {
+      console.error('[TRAINER-SESSIONS] Error checking role:', err);
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  }
+
+  try {
+    // Get sessions from last 3 months (completed, absent, or cancelled)
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    const result = await db.query(`
+      SELECT 
+        stsl.id,
+        stsl.student_trainer_session_id,
+        stsl.session_number,
+        stsl.scheduled_date,
+        stsl.completed_date,
+        stsl.status,
+        stsl.notes,
+        sts.trainer_id,
+        trainer.first_name as trainer_first_name,
+        trainer.last_name as trainer_last_name,
+        tsp.name as package_name
+      FROM student_trainer_session_logs stsl
+      JOIN student_trainer_sessions sts ON stsl.student_trainer_session_id = sts.id
+      LEFT JOIN users trainer ON sts.trainer_id = trainer.id
+      LEFT JOIN trainer_session_packages tsp ON sts.package_id = tsp.id
+      WHERE sts.student_id = $1
+        AND stsl.scheduled_date >= $2
+        AND stsl.status IN ('COMPLETED', 'ABSENT', 'CANCELLED')
+      ORDER BY stsl.scheduled_date DESC
+    `, [studentId, threeMonthsAgo]);
+
+    res.json({
+      sessions: result.rows.map(row => ({
+        id: row.id,
+        sessionNumber: row.session_number,
+        scheduledDate: row.scheduled_date,
+        completedDate: row.completed_date,
+        status: row.status,
+        trainerName: `${row.trainer_first_name} ${row.trainer_last_name}`,
+        packageName: row.package_name,
+        notes: row.notes
+      }))
+    });
+  } catch (err) {
+    console.error('[TRAINER-SESSIONS] Error fetching session history:', err);
+    res.status(500).json({ error: 'Failed to fetch session history' });
+  }
+});
+
 module.exports = router;
