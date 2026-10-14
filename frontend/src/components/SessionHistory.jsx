@@ -5,7 +5,7 @@ export default function SessionHistory({ userId }) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 
   useEffect(() => {
