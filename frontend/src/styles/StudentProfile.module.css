@@ -56,18 +56,18 @@
 }
 
 .sessionsCard {
-  @apply space-y-3 rounded-xl border p-6;
+  @apply space-y-4 rounded-xl border p-6;
   background-color: var(--color-dark-slate);
-  border-color: #262626;
+  border-color: #404040;
 }
 
 .sessionsList {
-  @apply space-y-4;
+  @apply space-y-0;
 }
 
 .sessionItem {
-  @apply rounded-lg border p-4;
-  background-color: #1a1a1a;
+  @apply rounded-lg border p-5;
+  background-color: transparent;
   border-color: #404040;
   position: relative;
 }
@@ -75,17 +75,18 @@
 .sessionExpired {
   opacity: 0.7;
   border-color: #7f1d1d;
-  background-color: #2d1a1a;
+  background-color: rgba(127, 29, 29, 0.1);
 }
 
 .expiredBadge {
-  @apply absolute top-2 right-2 text-xs font-bold px-2 py-1 rounded;
+  @apply absolute top-3 right-4 text-xs font-bold px-2 py-1 rounded;
   background-color: #dc2626;
   color: #ffffff;
 }
 
 .sessionRow {
-  @apply flex items-center justify-between text-sm mb-2;
+  @apply flex items-center justify-between text-base mb-3;
+  color: #d1d5db;
 }
 
 .sessionRow:last-child {
@@ -95,6 +96,7 @@
 .sessionValue {
   @apply font-bold;
   color: #60a5fa;
+  font-size: 18px;
 }
 
 .sessionValueZero {
@@ -104,6 +106,7 @@
 .expiryDate {
   @apply font-bold;
   color: #fbbf24;
+  font-size: 16px;
 }
 
 .expiryDatePassed {
@@ -185,7 +188,7 @@
 }
 
 .scheduleButton {
-  @apply mt-4 w-full rounded py-2 text-sm font-semibold transition;
+  @apply mt-4 w-full rounded-lg py-3 text-base font-semibold transition;
   background-color: #3b82f6;
   color: white;
 }
