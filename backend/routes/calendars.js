@@ -180,64 +180,97 @@ router.get("/workouts", authenticateToken, async (req, res) => {
     // If trainer/superuser, show all sessions
     const isStudent = roleName === 'STUDENT';
 
-    let studentIdFilter = '';
-    if (isStudent) {
-      studentIdFilter = `AND (ws.student_id = ${userId} OR ws.student_id IS NULL)`;
-    }
-
     // Get workout sessions (legacy format)
-    const result = await db.query(
-      `
-      SELECT 
-        ws.id, 
-        ws.trainer_id, 
-        ws.student_id, 
-        ws.start_time, 
-        ws.end_time, 
-        ws.status,
-        t.first_name as trainer_first_name,
-        t.last_name as trainer_last_name,
-        s.first_name as student_first_name,
-        s.last_name as student_last_name
-      FROM workout_sessions ws
-      LEFT JOIN users t ON ws.trainer_id = t.id
-      LEFT JOIN users s ON ws.student_id = s.id
-      WHERE ws.start_time >= NOW() - INTERVAL '7 days'
-        AND ws.start_time <= NOW() + INTERVAL '90 days'
-        ${studentIdFilter}
-      ORDER BY ws.start_time ASC
-    `,
-    );
+    let result;
+    if (isStudent) {
+      result = await db.query(`
+        SELECT 
+          ws.id, 
+          ws.trainer_id, 
+          ws.student_id, 
+          ws.start_time, 
+          ws.end_time, 
+          ws.status,
+          t.first_name as trainer_first_name,
+          t.last_name as trainer_last_name,
+          s.first_name as student_first_name,
+          s.last_name as student_last_name
+        FROM workout_sessions ws
+        LEFT JOIN users t ON ws.trainer_id = t.id
+        LEFT JOIN users s ON ws.student_id = s.id
+        WHERE ws.start_time >= NOW() - INTERVAL '7 days'
+          AND ws.start_time <= NOW() + INTERVAL '90 days'
+          AND (ws.student_id = $1 OR ws.student_id IS NULL)
+        ORDER BY ws.start_time ASC
+      `, [userId]);
+    } else {
+      result = await db.query(`
+        SELECT 
+          ws.id, 
+          ws.trainer_id, 
+          ws.student_id, 
+          ws.start_time, 
+          ws.end_time, 
+          ws.status,
+          t.first_name as trainer_first_name,
+          t.last_name as trainer_last_name,
+          s.first_name as student_first_name,
+          s.last_name as student_last_name
+        FROM workout_sessions ws
+        LEFT JOIN users t ON ws.trainer_id = t.id
+        LEFT JOIN users s ON ws.student_id = s.id
+        WHERE ws.start_time >= NOW() - INTERVAL '7 days'
+          AND ws.start_time <= NOW() + INTERVAL '90 days'
+        ORDER BY ws.start_time ASC
+      `);
+    }
 
     // Get trainer session bookings (from session logs with all relevant statuses)
-    let trainerBookingFilter = '';
+    let trainerBookings;
     if (isStudent) {
-      trainerBookingFilter = `AND sts.student_id = ${userId}`;
+      trainerBookings = await db.query(`
+        SELECT 
+          stsl.id, 
+          sts.trainer_id, 
+          sts.student_id, 
+          stsl.scheduled_date as start_time,
+          stsl.scheduled_date + INTERVAL '50 minutes' as end_time,
+          stsl.status,
+          t.first_name as trainer_first_name,
+          t.last_name as trainer_last_name,
+          s.first_name as student_first_name,
+          s.last_name as student_last_name
+        FROM student_trainer_session_logs stsl
+        LEFT JOIN student_trainer_sessions sts ON stsl.student_trainer_session_id = sts.id
+        LEFT JOIN users t ON sts.trainer_id = t.id
+        LEFT JOIN users s ON sts.student_id = s.id
+        WHERE stsl.scheduled_date >= NOW() - INTERVAL '7 days'
+          AND stsl.scheduled_date <= NOW() + INTERVAL '90 days'
+          AND sts.student_id = $1
+        ORDER BY stsl.scheduled_date ASC
+      `, [userId]);
+    } else {
+      trainerBookings = await db.query(`
+        SELECT 
+          stsl.id, 
+          sts.trainer_id, 
+          sts.student_id, 
+          stsl.scheduled_date as start_time,
+          stsl.scheduled_date + INTERVAL '50 minutes' as end_time,
+          stsl.status,
+          t.first_name as trainer_first_name,
+          t.last_name as trainer_last_name,
+          s.first_name as student_first_name,
+          s.last_name as student_last_name
+        FROM student_trainer_session_logs stsl
+        LEFT JOIN student_trainer_sessions sts ON stsl.student_trainer_session_id = sts.id
+        LEFT JOIN users t ON sts.trainer_id = t.id
+        LEFT JOIN users s ON sts.student_id = s.id
+        WHERE stsl.scheduled_date >= NOW() - INTERVAL '7 days'
+          AND stsl.scheduled_date <= NOW() + INTERVAL '90 days'
+        ORDER BY stsl.scheduled_date ASC
+      `);
     }
-
-    const trainerBookings = await db.query(
-      `
-      SELECT 
-        stsl.id, 
-        sts.trainer_id, 
-        sts.student_id, 
-        stsl.scheduled_date as start_time,
-        stsl.scheduled_date + INTERVAL '50 minutes' as end_time,
-        stsl.status,
-        t.first_name as trainer_first_name,
-        t.last_name as trainer_last_name,
-        s.first_name as student_first_name,
-        s.last_name as student_last_name
-      FROM student_trainer_session_logs stsl
-      LEFT JOIN student_trainer_sessions sts ON stsl.student_trainer_session_id = sts.id
-      LEFT JOIN users t ON sts.trainer_id = t.id
-      LEFT JOIN users s ON sts.student_id = s.id
-      WHERE stsl.scheduled_date >= NOW() - INTERVAL '7 days'
-        AND stsl.scheduled_date <= NOW() + INTERVAL '90 days'
-        ${trainerBookingFilter}
-      ORDER BY stsl.scheduled_date ASC
-    `,
-    );
 
     const sessions = [
       ...result.rows.map((session) => {
