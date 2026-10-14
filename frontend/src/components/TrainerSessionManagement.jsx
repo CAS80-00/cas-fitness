@@ -59,7 +59,26 @@ export default function TrainerSessionManagement({ studentId, onClose }) {
         throw new Error(errorData.error || `Failed to load trainer sessions (${res.status})`);
       }
       const data = await res.json();
-      setSessions(data);
+      
+      // Fetch full details with logs for each session (matches student view behavior)
+      const sessionsWithLogs = await Promise.all(
+        (data || []).map(async (session) => {
+          try {
+            const detailRes = await fetch(
+              `${apiBaseUrl}/trainer-sessions/session/${session.id}`,
+              { headers: authHeaders() }
+            );
+            if (detailRes.ok) {
+              return await detailRes.json();
+            }
+          } catch (err) {
+            console.error(`Error loading details for session ${session.id}:`, err);
+          }
+          return session;
+        })
+      );
+      
+      setSessions(sessionsWithLogs || []);
     } catch (err) {
       console.error("Error fetching sessions:", err);
       setError(err.message);
