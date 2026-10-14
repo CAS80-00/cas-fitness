@@ -981,20 +981,29 @@ router.get("/my-slots", authenticateToken, async (req, res) => {
         TO_CHAR(si.slot_date, 'YYYY-MM-DD') as slot_date,
         si.start_time,
         si.end_time,
-        si.status
+        si.status,
+        stsl.id as session_log_id,
+        stsl.status as session_log_status
       FROM slot_instances si
+      LEFT JOIN student_trainer_session_logs stsl ON stsl.slot_instance_id = si.id
       WHERE si.user_id = $1
       ORDER BY si.slot_date ASC, si.start_time ASC
     `;
 
     const result = await db.query(query, [userId]);
     
+    // Map to include displayStatus from session_log_status if available
+    const instances = result.rows.map(row => ({
+      ...row,
+      displayStatus: row.session_log_status || row.status
+    }));
+    
     // Disable caching to ensure fresh slot data is always fetched
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
     
-    res.json({ instances: result.rows });
+    res.json({ instances });
   } catch (err) {
     console.error("Error fetching employee slots:", err.message);
     res.status(500).json({ error: "Failed to fetch employee slots.", details: err.message });

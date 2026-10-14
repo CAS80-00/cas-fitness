@@ -1241,7 +1241,8 @@ router.get("/slot-instances/:userId", authenticateToken, async (req, res) => {
              si.approved_by, si.approved_at, si.created_at,
              u.first_name, u.last_name, u.email, 
              modified_user.first_name as modified_by_first_name, modified_user.last_name as modified_by_last_name,
-             stsl.id as session_log_id
+             stsl.id as session_log_id,
+             stsl.status as session_log_status
       FROM slot_instances si
       JOIN users u ON si.user_id = u.id
       LEFT JOIN users modified_user ON si.modified_by = modified_user.id
@@ -1278,10 +1279,11 @@ router.get("/slot-instances/:userId", authenticateToken, async (req, res) => {
     console.log(`[/admin/slot-instances] Sample slot data:`, result.rows.slice(0, 2));
     
     // Keep both status and calendar_type - don't overwrite status
-    // Frontend can use calendar_type for display if status is APPROVED
+    // If there's a session log, use its status (COMPLETED, ABSENT, CANCELLED, SCHEDULED)
+    // Otherwise use the slot status (BOOKED, CONSULTATION, WORKOUT, etc)
     const instances = result.rows.map(row => ({
       ...row,
-      displayStatus: row.status === 'APPROVED' ? row.calendar_type : row.status
+      displayStatus: row.session_log_status || (row.status === 'APPROVED' ? row.calendar_type : row.status)
     }));
     
     console.log(`[/admin/slot-instances] Sample instance after mapping:`, instances.slice(0, 2));

@@ -927,19 +927,9 @@ router.put('/session-log/:logId/manage-status', authenticateToken, async (req, r
 
     console.log(`[/trainer-sessions/manage-status] Updated session log:`, updateResult.rows);
 
-    // Update the slot_instances status to match
-    if (log.slot_instance_id) {
-      console.log(`[/trainer-sessions/manage-status] Updating slot_instances status for slot ${log.slot_instance_id} to ${newStatus}`);
-      const slotUpdateResult = await db.query(`
-        UPDATE slot_instances
-        SET status = $1
-        WHERE id = $2
-        RETURNING id, status
-      `, [newStatus, log.slot_instance_id]);
-      console.log(`[/trainer-sessions/manage-status] Slot update result:`, slotUpdateResult.rows);
-    } else {
-      console.log(`[/trainer-sessions/manage-status] WARNING: No slot_instance_id found for session log ${logId}`);
-    }
+    // Note: We don't update slot_instances status because it has a constrained set of values
+    // The actual session status (COMPLETED, ABSENT, CANCELLED) is tracked in student_trainer_session_logs
+    // The slot_instances keeps its status as BOOKED to show it was used
 
     // If status is COMPLETED or ABSENT, decrement remaining_sessions
     if ((newStatus === 'COMPLETED' || newStatus === 'ABSENT') && log.remaining_sessions > 0) {
