@@ -2,7 +2,14 @@ import { useState } from 'react';
 import styles from '../styles/CreditCardModal.module.css';
 
 export default function CreditCardModal({ userId, isOpen, onClose, onCardSaved }) {
-  const [cardNumber, setCardNumber] = useState('');
+  const [formData, setFormData] = useState({
+    cardNumber: '',
+    cardholderName: '',
+    expiryMonth: '',
+    expiryYear: '',
+    cvv: '',
+    address: '',
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -13,8 +20,16 @@ export default function CreditCardModal({ userId, isOpen, onClose, onCardSaved }
   };
 
   const handleInputChange = (e) => {
-    const value = e.target.value.replace(/\s/g, '').slice(0, 16);
-    setCardNumber(value);
+    const { name, value } = e.target;
+    let processedValue = value;
+
+    if (name === 'cardNumber') {
+      processedValue = value.replace(/\s/g, '').slice(0, 16);
+    } else if (name === 'cvv') {
+      processedValue = value.replace(/\D/g, '').slice(0, 4);
+    }
+
+    setFormData(prev => ({ ...prev, [name]: processedValue }));
   };
 
   const handleSubmit = async (e) => {
@@ -22,13 +37,18 @@ export default function CreditCardModal({ userId, isOpen, onClose, onCardSaved }
     setError('');
     setSuccess('');
 
-    if (!cardNumber) {
-      setError('Card number is required');
+    if (!formData.cardNumber || !formData.cardholderName || !formData.expiryMonth || !formData.expiryYear || !formData.cvv || !formData.address) {
+      setError('All fields are required');
       return;
     }
 
-    if (cardNumber.replace(/\s/g, '').length !== 16) {
+    if (formData.cardNumber.replace(/\s/g, '').length !== 16) {
       setError('Card number must be 16 digits');
+      return;
+    }
+
+    if (formData.cvv.length < 3) {
+      setError('CVV must be at least 3 digits');
       return;
     }
 
@@ -42,7 +62,12 @@ export default function CreditCardModal({ userId, isOpen, onClose, onCardSaved }
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          card_number: cardNumber.replace(/\s/g, ''),
+          card_number: formData.cardNumber.replace(/\s/g, ''),
+          cardholder_name: formData.cardholderName,
+          expiry_month: formData.expiryMonth,
+          expiry_year: formData.expiryYear,
+          cvv: formData.cvv,
+          address: formData.address,
         }),
       });
 
@@ -53,7 +78,14 @@ export default function CreditCardModal({ userId, isOpen, onClose, onCardSaved }
 
       const data = await res.json();
       setSuccess('Card saved successfully!');
-      setCardNumber('');
+      setFormData({
+        cardNumber: '',
+        cardholderName: '',
+        expiryMonth: '',
+        expiryYear: '',
+        cvv: '',
+        address: '',
+      });
       setTimeout(() => {
         onClose();
         if (onCardSaved) {
@@ -92,14 +124,95 @@ export default function CreditCardModal({ userId, isOpen, onClose, onCardSaved }
             <input
               id="cardNumber"
               type="text"
-              value={formatCardNumber(cardNumber)}
+              name="cardNumber"
+              value={formatCardNumber(formData.cardNumber)}
               onChange={handleInputChange}
               placeholder="1234 5678 9012 3456"
               className={styles.input}
               maxLength="19"
               disabled={loading}
             />
-            <p className={styles.hint}>Enter your 16-digit card number</p>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="cardholderName">Cardholder Name</label>
+            <input
+              id="cardholderName"
+              type="text"
+              name="cardholderName"
+              value={formData.cardholderName}
+              onChange={handleInputChange}
+              placeholder="John Doe"
+              className={styles.input}
+              disabled={loading}
+            />
+          </div>
+
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label htmlFor="expiryMonth">Expiry Month</label>
+              <select
+                id="expiryMonth"
+                name="expiryMonth"
+                value={formData.expiryMonth}
+                onChange={handleInputChange}
+                className={styles.input}
+                disabled={loading}
+              >
+                <option value="">MM</option>
+                {[...Array(12)].map((_, i) => {
+                  const month = String(i + 1).padStart(2, '0');
+                  return <option key={i} value={month}>{month}</option>;
+                })}
+              </select>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="expiryYear">Expiry Year</label>
+              <select
+                id="expiryYear"
+                name="expiryYear"
+                value={formData.expiryYear}
+                onChange={handleInputChange}
+                className={styles.input}
+                disabled={loading}
+              >
+                <option value="">YYYY</option>
+                {[...Array(10)].map((_, i) => {
+                  const year = new Date().getFullYear() + i;
+                  return <option key={i} value={year}>{year}</option>;
+                })}
+              </select>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="cvv">CVV</label>
+              <input
+                id="cvv"
+                type="password"
+                name="cvv"
+                value={formData.cvv}
+                onChange={handleInputChange}
+                placeholder="123"
+                className={styles.input}
+                maxLength="4"
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="address">Address</label>
+            <input
+              id="address"
+              type="text"
+              name="address"
+              value={formData.address}
+              onChange={handleInputChange}
+              placeholder="123 Main Street, City, State ZIP"
+              className={styles.input}
+              disabled={loading}
+            />
           </div>
 
           <div className={styles.actions}>

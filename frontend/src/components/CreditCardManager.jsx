@@ -33,8 +33,11 @@ export default function CreditCardManager({ userId, onAddCard }) {
     }
   };
 
-  const maskCardNumber = (cardNumber) => {
-    return cardNumber.replace(/\d(?=\d{3})/g, 'X');
+  const maskCardNumberWithLast3 = (cardNumber) => {
+    const cleanNumber = cardNumber.replace(/\D/g, '');
+    if (cleanNumber.length !== 16) return cardNumber;
+    const last3 = cleanNumber.slice(-3);
+    return 'XXXXXXXXXXXX' + last3;
   };
 
   return (
@@ -59,7 +62,7 @@ export default function CreditCardManager({ userId, onAddCard }) {
           <div className={styles.cardDisplay}>
             <div className={styles.cardBrand}>{savedCard.card_type}</div>
             <div className={styles.cardNumber}>
-              {maskCardNumber(savedCard.card_number_masked)}
+              {maskCardNumberWithLast3(savedCard.card_number_masked)}
             </div>
             <div className={styles.cardFooter}>
               <span className={styles.cardholder}>{savedCard.cardholder_name}</span>

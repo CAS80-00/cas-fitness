@@ -332,6 +332,7 @@ CREATE TABLE IF NOT EXISTS student_credit_cards (
     card_type VARCHAR(20) NOT NULL,
     expiry_month INT NOT NULL CHECK (expiry_month BETWEEN 1 AND 12),
     expiry_year INT NOT NULL,
+    address TEXT,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()

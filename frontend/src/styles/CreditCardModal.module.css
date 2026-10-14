@@ -59,8 +59,12 @@
   background-color: #1a1a1a;
   border-color: #404040;
   color: #e5e7eb;
+}
+
+.input[type="text"],
+.input[type="password"] {
   font-family: 'Courier New', monospace;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
 }
 
 .input:focus {
@@ -78,9 +82,12 @@
   color: #6b7280;
 }
 
-.hint {
-  @apply text-xs;
-  color: #9ca3af;
+.formRow {
+  @apply grid grid-cols-3 gap-2;
+}
+
+.formRow .formGroup {
+  @apply space-y-2;
 }
 
 .error {
@@ -147,5 +154,9 @@
 
   .form {
     @apply p-4;
+  }
+
+  .formRow {
+    @apply grid-cols-3;
   }
 }
