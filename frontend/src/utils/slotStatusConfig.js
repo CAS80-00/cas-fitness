@@ -37,8 +37,8 @@ export const SLOT_STATUSES = {
   },
   COMPLETED: {
     label: "Completed",
-    color: "#10b981",
-    borderColor: "#047857",
+    color: "#a855f7",
+    borderColor: "#6d28d9",
     roles: ["superuser", "employee", "trainer"],
     publicDisplay: "Completed",
     description: "Session completed",

@@ -223,8 +223,8 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
             statusLabel = "Booked";
             break;
           case 'COMPLETED':
-            backgroundColor = "#10b981"; // green for completed
-            borderColor = "#047857";
+            backgroundColor = "#a855f7"; // purple for completed
+            borderColor = "#6d28d9";
             statusLabel = "Completed";
             break;
           case 'ABSENT':
