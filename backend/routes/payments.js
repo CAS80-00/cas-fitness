@@ -145,15 +145,15 @@ router.get("/credit-card/:userId", authenticateToken, async (req, res) => {
 
 // Save new credit card for a student
 router.post("/credit-card", authenticateToken, async (req, res) => {
-  const { cardholder_name, card_number, expiry_month, expiry_year, cvv } = req.body;
+  const { card_number } = req.body;
   const studentId = req.user?.userId;
 
   if (!studentId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  if (!cardholder_name || !card_number || !expiry_month || !expiry_year || !cvv) {
-    return res.status(400).json({ error: "Missing required fields" });
+  if (!card_number) {
+    return res.status(400).json({ error: "Card number is required" });
   }
 
   try {
@@ -161,21 +161,6 @@ router.post("/credit-card", authenticateToken, async (req, res) => {
     const normalizedCard = String(card_number).replace(/\s/g, '');
     if (!/^\d{16}$/.test(normalizedCard)) {
       return res.status(400).json({ error: "Invalid card number format" });
-    }
-
-    // Validate CVV
-    if (!/^\d{3,4}$/.test(cvv)) {
-      return res.status(400).json({ error: "Invalid CVV format" });
-    }
-
-    // Validate expiry
-    if (!/^\d{2}$/.test(expiry_month) || parseInt(expiry_month) < 1 || parseInt(expiry_month) > 12) {
-      return res.status(400).json({ error: "Invalid expiry month" });
-    }
-
-    const currentYear = new Date().getFullYear();
-    if (!/^\d{4}$/.test(expiry_year) || parseInt(expiry_year) < currentYear) {
-      return res.status(400).json({ error: "Invalid expiry year" });
     }
 
     // Determine card type
@@ -197,11 +182,12 @@ router.post("/credit-card", authenticateToken, async (req, res) => {
     );
 
     // Insert new card with encrypted card number
+    // Use default cardholder name and expiry
     const result = await db.query(
       `INSERT INTO student_credit_cards (student_id, cardholder_name, card_number_encrypted, card_number_last_4, card_type, expiry_month, expiry_year, is_active)
        VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
        RETURNING cardholder_name, card_number_last_4, card_type, expiry_month, expiry_year`,
-      [studentId, cardholder_name, encryptedCardNumber, last4, cardType, expiry_month, expiry_year]
+      [studentId, 'Card on File', encryptedCardNumber, last4, cardType, 12, 2099]
     );
 
     const card = result.rows[0];

@@ -10,11 +10,7 @@ export default function CreditCardManager({ userId }) {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 
   const [formData, setFormData] = useState({
-    cardholderName: '',
     cardNumber: '',
-    expiryMonth: '',
-    expiryYear: '',
-    cvv: '',
   });
 
   // Load saved card on mount
@@ -45,12 +41,6 @@ export default function CreditCardManager({ userId }) {
 
     if (name === 'cardNumber') {
       processedValue = value.replace(/\s/g, '').slice(0, 16);
-    } else if (name === 'expiryMonth') {
-      processedValue = value.slice(0, 2);
-    } else if (name === 'expiryYear') {
-      processedValue = value.slice(0, 4);
-    } else if (name === 'cvv') {
-      processedValue = value.replace(/\D/g, '').slice(0, 4);
     }
 
     setFormData(prev => ({ ...prev, [name]: processedValue }));
@@ -65,18 +55,13 @@ export default function CreditCardManager({ userId }) {
     setError('');
     setSuccess('');
 
-    if (!formData.cardholderName || !formData.cardNumber || !formData.expiryMonth || !formData.expiryYear || !formData.cvv) {
-      setError('All fields are required');
+    if (!formData.cardNumber) {
+      setError('Card number is required');
       return;
     }
 
     if (formData.cardNumber.replace(/\s/g, '').length !== 16) {
       setError('Card number must be 16 digits');
-      return;
-    }
-
-    if (formData.cvv.length < 3) {
-      setError('CVV must be at least 3 digits');
       return;
     }
 
@@ -90,11 +75,7 @@ export default function CreditCardManager({ userId }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          cardholder_name: formData.cardholderName,
           card_number: formData.cardNumber.replace(/\s/g, ''),
-          expiry_month: formData.expiryMonth,
-          expiry_year: formData.expiryYear,
-          cvv: formData.cvv,
         }),
       });
 
@@ -108,11 +89,7 @@ export default function CreditCardManager({ userId }) {
       setSuccess('Card saved successfully!');
       setShowForm(false);
       setFormData({
-        cardholderName: '',
         cardNumber: '',
-        expiryMonth: '',
-        expiryYear: '',
-        cvv: '',
       });
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -173,18 +150,6 @@ export default function CreditCardManager({ userId }) {
       ) : (
         <form onSubmit={handleSaveCard} className={styles.form}>
           <div className={styles.formGroup}>
-            <label>Cardholder Name</label>
-            <input
-              type="text"
-              name="cardholderName"
-              value={formData.cardholderName}
-              onChange={handleInputChange}
-              placeholder="John Doe"
-              className={styles.input}
-            />
-          </div>
-
-          <div className={styles.formGroup}>
             <label>Card Number</label>
             <input
               type="text"
@@ -195,53 +160,6 @@ export default function CreditCardManager({ userId }) {
               className={styles.input}
               maxLength="19"
             />
-          </div>
-
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label>Expiry Month</label>
-              <select
-                name="expiryMonth"
-                value={formData.expiryMonth}
-                onChange={handleInputChange}
-                className={styles.input}
-              >
-                <option value="">MM</option>
-                {[...Array(12)].map((_, i) => {
-                  const month = String(i + 1).padStart(2, '0');
-                  return <option key={i} value={month}>{month}</option>;
-                })}
-              </select>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>Expiry Year</label>
-              <select
-                name="expiryYear"
-                value={formData.expiryYear}
-                onChange={handleInputChange}
-                className={styles.input}
-              >
-                <option value="">YYYY</option>
-                {[...Array(10)].map((_, i) => {
-                  const year = new Date().getFullYear() + i;
-                  return <option key={i} value={year}>{year}</option>;
-                })}
-              </select>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>CVV</label>
-              <input
-                type="password"
-                name="cvv"
-                value={formData.cvv}
-                onChange={handleInputChange}
-                placeholder="123"
-                className={styles.input}
-                maxLength="4"
-              />
-            </div>
           </div>
 
           <div className={styles.formActions}>
