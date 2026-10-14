@@ -176,12 +176,20 @@ router.get('/student/:studentId', authenticateToken, async (req, res) => {
         sts.notes, sts.created_at, sts.updated_at,
         tsp.name as package_name,
         trainer.first_name as trainer_first_name, trainer.last_name as trainer_last_name,
-        assigned.first_name as assigned_by_first_name, assigned.last_name as assigned_by_last_name
+        assigned.first_name as assigned_by_first_name, assigned.last_name as assigned_by_last_name,
+        COALESCE(COUNT(CASE WHEN stsl.status = 'COMPLETED' THEN 1 END), 0) as used_sessions,
+        COALESCE(COUNT(CASE WHEN stsl.status = 'SCHEDULED' THEN 1 END), 0) as scheduled_sessions
       FROM student_trainer_sessions sts
       LEFT JOIN trainer_session_packages tsp ON sts.package_id = tsp.id
       LEFT JOIN users trainer ON sts.trainer_id = trainer.id
       LEFT JOIN users assigned ON sts.assigned_by = assigned.id
+      LEFT JOIN student_trainer_session_logs stsl ON sts.id = stsl.student_trainer_session_id
       WHERE sts.student_id = $1
+      GROUP BY sts.id, sts.student_id, sts.trainer_id, sts.package_id,
+               sts.total_sessions, sts.remaining_sessions, sts.start_date, sts.expiration_date,
+               sts.status, sts.notes, sts.created_at, sts.updated_at,
+               tsp.name, trainer.first_name, trainer.last_name,
+               assigned.first_name, assigned.last_name
       ORDER BY sts.created_at DESC
     `, [studentId]);
     
