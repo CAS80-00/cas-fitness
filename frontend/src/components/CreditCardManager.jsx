@@ -60,6 +60,13 @@ export default function CreditCardManager({ userId, onAddCard }) {
       ) : (
         <div className={styles.savedCard}>
           <div className={styles.cardDisplay}>
+            <button
+              type="button"
+              onClick={handleAddCard}
+              className={styles.updateCardButton}
+            >
+              ✎
+            </button>
             <div className={styles.cardBrand}>{savedCard.card_type}</div>
             <div className={styles.cardNumberContainer}>
               <div className={styles.cardNumber}>
@@ -79,13 +86,6 @@ export default function CreditCardManager({ userId, onAddCard }) {
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handleAddCard}
-            className={styles.updateButton}
-          >
-            Update Card
-          </button>
         </div>
       )}
     </div>

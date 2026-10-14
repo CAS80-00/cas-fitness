@@ -136,6 +136,20 @@
   background-color: #2563eb;
 }
 
+.updateCardButton {
+  @apply absolute top-3 left-3 rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold transition;
+  background-color: rgba(59, 130, 246, 0.9);
+  color: white;
+  border: none;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.updateCardButton:hover {
+  background-color: #3b82f6;
+  transform: scale(1.1);
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .cardNumber {
