@@ -100,7 +100,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ status: newStatus }),
+          body: JSON.stringify({ newStatus }),
         }
       );
 
