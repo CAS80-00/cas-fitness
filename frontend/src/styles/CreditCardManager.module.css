@@ -48,6 +48,13 @@
   @apply space-y-2;
 }
 
+.expiredAlert {
+  @apply w-full rounded-lg p-3 text-center font-semibold text-sm;
+  background-color: #7f1d1d;
+  color: #fecaca;
+  border: 1px solid #991b1b;
+}
+
 .cardDisplay {
   @apply relative w-full rounded-lg border-0 p-3;
   background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);

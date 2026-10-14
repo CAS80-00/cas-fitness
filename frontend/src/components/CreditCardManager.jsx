@@ -40,6 +40,25 @@ export default function CreditCardManager({ userId, onAddCard }) {
     return 'XXXXXXXXXXXX' + last3;
   };
 
+  const isCardExpired = () => {
+    if (!savedCard || !savedCard.expiry_month || !savedCard.expiry_year) {
+      return false;
+    }
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+    const cardYear = parseInt(savedCard.expiry_year, 10);
+    const cardMonth = parseInt(savedCard.expiry_month, 10);
+
+    if (cardYear < currentYear) {
+      return true;
+    }
+    if (cardYear === currentYear && cardMonth < currentMonth) {
+      return true;
+    }
+    return false;
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.titleRow}>
@@ -59,6 +78,11 @@ export default function CreditCardManager({ userId, onAddCard }) {
         </div>
       ) : (
         <div className={styles.savedCard}>
+          {isCardExpired() && (
+            <div className={styles.expiredAlert}>
+              ⚠️ Card is expired
+            </div>
+          )}
           <div className={styles.cardDisplay}>
             <button
               type="button"
