@@ -11,9 +11,6 @@ import SuperuserDashboard from "./pages/SuperuserDashboard";
 const INACTIVITY_MS = 20 * 60 * 1000;
 
 function App() {
-  const [route, setRoute] = useState("home");
-  const [cartItem, setCartItem] = useState(null);
-  const [cartRequested, setCartRequested] = useState(false);
   const [currentUser, setCurrentUser] = useState(() => {
     const raw = localStorage.getItem("cas_user");
     if (!raw) return null;
@@ -22,6 +19,12 @@ function App() {
     } catch {
       return null;
     }
+  });
+  
+  const [route, setRoute] = useState(() => {
+    // If user is already logged in, start at profile; otherwise at home
+    const raw = localStorage.getItem("cas_user");
+    return raw ? "profile" : "home";
   });
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [graceSeconds, setGraceSeconds] = useState(120);
@@ -124,6 +127,8 @@ function App() {
     (user) => {
       setCurrentUser(user);
       localStorage.setItem("cas_user", JSON.stringify(user));
+      // Automatically navigate to profile for authenticated users
+      setRoute("profile");
     },
     [],
   );
