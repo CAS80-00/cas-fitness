@@ -3,6 +3,7 @@ import AccessQRCode from "../components/AccessQRCode";
 import TrainerSessionScheduler from "../components/TrainerSessionScheduler";
 import StudentSessionManagement from "../components/StudentSessionManagement";
 import SessionHistory from "../components/SessionHistory";
+import CreditCardManager from "../components/CreditCardManager";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import styles from "../styles/StudentProfile.module.css";
@@ -140,6 +141,8 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
               Auto-Renewal
             </label>
           </div>
+
+          <CreditCardManager userId={currentUser?.id} />
         </div>
 
         <div className={styles.dashboardGrid}>

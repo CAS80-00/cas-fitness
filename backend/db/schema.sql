@@ -321,3 +321,21 @@ ALTER TABLE student_trainer_session_logs ADD COLUMN IF NOT EXISTS slot_instance_
 -- Ensure BOOKED status exists in slot_instances
 ALTER TABLE slot_instances DROP CONSTRAINT IF EXISTS slot_instances_status_check;
 ALTER TABLE slot_instances ADD CONSTRAINT slot_instances_status_check CHECK (status IN ('APPROVED', 'CONSULTATION', 'WORKOUT', 'BREAK', 'LUNCH', 'SICK', 'NO_SHOW', 'VACATION', 'PERSONAL_TIME', 'BOOKED', 'REMOVED'));
+
+-- Student Credit Card Storage Table
+CREATE TABLE IF NOT EXISTS student_credit_cards (
+    id SERIAL PRIMARY KEY,
+    student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    cardholder_name VARCHAR(150) NOT NULL,
+    card_number_encrypted TEXT NOT NULL,
+    card_number_last_4 VARCHAR(4) NOT NULL,
+    card_type VARCHAR(20) NOT NULL,
+    expiry_month INT NOT NULL CHECK (expiry_month BETWEEN 1 AND 12),
+    expiry_year INT NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_student_credit_cards_student ON student_credit_cards(student_id);
+CREATE INDEX IF NOT EXISTS idx_student_credit_cards_active ON student_credit_cards(student_id, is_active);
