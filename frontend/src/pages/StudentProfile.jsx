@@ -41,6 +41,22 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
   }, [showHistory, currentUser?.id, apiBaseUrl]);
 
   useEffect(() => {
+    const autoCompletePastSessions = async () => {
+      if (!currentUser?.id) return;
+      try {
+        const token = localStorage.getItem("cas_jwt");
+        await fetch(`${apiBaseUrl}/trainer-sessions/auto-complete/${currentUser.id}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (error) {
+        console.error("Error auto-completing sessions:", error);
+      }
+    };
+    autoCompletePastSessions();
+  }, [currentUser?.id, apiBaseUrl]);
+
+  useEffect(() => {
     const loadTrainerSessions = async () => {
       if (!currentUser?.id) return;
       try {

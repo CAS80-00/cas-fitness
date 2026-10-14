@@ -1027,4 +1027,91 @@ router.get('/history/student/:studentId', authenticateToken, async (req, res) =>
   }
 });
 
+// ============================================================================
+// AUTO-COMPLETE PAST SESSIONS
+// ============================================================================
+
+// Auto-complete sessions that have passed their scheduled time
+router.post('/auto-complete/:studentId', authenticateToken, async (req, res) => {
+  const { studentId } = req.params;
+
+  // Allow a student to auto-complete their own sessions, or allow SUPERUSER/STAFF
+  if (req.user.userId !== studentId) {
+    try {
+      const roleRes = await db.query(
+        "SELECT role_name FROM roles WHERE id = $1",
+        [req.user.roleId]
+      );
+      
+      if (roleRes.rows.length === 0 || !['SUPERUSER', 'STAFF'].includes(roleRes.rows[0].role_name)) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    } catch (err) {
+      console.error('[TRAINER-SESSIONS] Error checking role:', err);
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  }
+
+  try {
+    const now = new Date();
+
+    // Find all SCHEDULED sessions that have passed their end time
+    const pastSessionsResult = await db.query(`
+      SELECT 
+        stsl.id,
+        stsl.student_trainer_session_id,
+        stsl.status
+      FROM student_trainer_session_logs stsl
+      JOIN student_trainer_sessions sts ON stsl.student_trainer_session_id = sts.id
+      WHERE sts.student_id = $1
+        AND stsl.status = 'SCHEDULED'
+        AND stsl.scheduled_date < $2
+      ORDER BY stsl.scheduled_date ASC
+    `, [studentId, now]);
+
+    const updatedSessions = [];
+
+    // Update each past session to COMPLETED
+    for (const session of pastSessionsResult.rows) {
+      const updateResult = await db.query(`
+        UPDATE student_trainer_session_logs
+        SET status = 'COMPLETED', completed_date = $1
+        WHERE id = $2
+        RETURNING id, status, scheduled_date
+      `, [now, session.id]);
+
+      if (updateResult.rows.length > 0) {
+        updatedSessions.push(updateResult.rows[0]);
+      }
+    }
+
+    // Recalculate remaining_sessions for the student's packages
+    if (updatedSessions.length > 0) {
+      await db.query(`
+        UPDATE student_trainer_sessions sts
+        SET remaining_sessions = (
+          SELECT 
+            sts2.total_sessions - 
+            (SELECT COUNT(*) FROM student_trainer_session_logs stsl 
+             WHERE stsl.student_trainer_session_id = sts2.id 
+             AND stsl.status IN ('COMPLETED', 'ABSENT'))
+          FROM student_trainer_sessions sts2
+          WHERE sts2.id = sts.id
+        )
+        WHERE sts.student_id = $1
+      `, [studentId]);
+    }
+
+    res.json({
+      success: true,
+      message: `Auto-completed ${updatedSessions.length} past session(s)`,
+      completedCount: updatedSessions.length,
+      sessions: updatedSessions
+    });
+  } catch (err) {
+    console.error('[TRAINER-SESSIONS] Error auto-completing sessions:', err);
+    res.status(500).json({ error: 'Failed to auto-complete sessions' });
+  }
+});
+
 module.exports = router;
