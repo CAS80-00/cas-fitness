@@ -950,7 +950,7 @@ router.put('/session-log/:logId/manage-status', authenticateToken, async (req, r
 
     const updatedLog = updateResult.rows[0];
 
-    console.log(`[TRAINER-SESSIONS] Session status updated by ${userRole}:`, {
+    console.log(`[TRAINER-SESSIONS] Session status updated by roleId ${userRoleId}:`, {
       logId: logId,
       newStatus: newStatus,
       userId: userId,
