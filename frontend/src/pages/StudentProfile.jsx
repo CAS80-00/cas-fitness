@@ -18,13 +18,39 @@ import styles from "../styles/StudentProfile.module.css";
 export default function StudentProfile({ currentUser, onLogout, onNavigate, onAuthenticated }) {
   const [showHistory, setShowHistory] = useState(false);
   const [scanHistory, setScanHistory] = useState([]);
+  const [subscription, setSubscription] = useState(null);
   const [autoRenew, setAutoRenew] = useState(true);
-  const [subscription] = useState({ status: "ACTIVE", title: "Pro Performance" });
+  const [updatingAutoRenew, setUpdatingAutoRenew] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [trainerSessions, setTrainerSessions] = useState([]);
   const [showScheduler, setShowScheduler] = useState(false);
   const [showCardModal, setShowCardModal] = useState(false);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
+
+  // Load active subscription on mount
+  useEffect(() => {
+    const loadSubscription = async () => {
+      if (!currentUser?.id) return;
+      try {
+        const token = localStorage.getItem("cas_jwt");
+        const res = await fetch(`${apiBaseUrl}/subscriptions/student/${currentUser.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const activeSubscription = data.subscriptions?.find(sub => sub.status === 'ACTIVE');
+          if (activeSubscription) {
+            setSubscription(activeSubscription);
+            setAutoRenew(activeSubscription.auto_renew ?? true);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading subscription:', err);
+      }
+    };
+    loadSubscription();
+  }, [currentUser?.id, apiBaseUrl]);
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -126,10 +152,10 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
               <strong>Email:</strong> {currentUser?.email || "—"}
             </p>
             <p>
-              <strong>Status:</strong> <span className={styles.statusActive}>{subscription.status}</span>
+              <strong>Status:</strong> <span className={styles.statusActive}>{subscription?.status || 'No Active Subscription'}</span>
             </p>
             <p>
-              <strong>Plan:</strong> {subscription.title}
+              <strong>Plan:</strong> {subscription?.title || '—'}
             </p>
             <p>
               <strong>Renewal Date:</strong> 2026-12-31
@@ -138,7 +164,37 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
               <input
                 type="checkbox"
                 checked={autoRenew}
-                onChange={() => setAutoRenew((prev) => !prev)}
+                onChange={async () => {
+                  if (!subscription?.id) return;
+                  const newValue = !autoRenew;
+                  setUpdatingAutoRenew(true);
+                  try {
+                    const token = localStorage.getItem("cas_jwt");
+                    const res = await fetch(`${apiBaseUrl}/subscriptions/${subscription.id}/auto-renew`, {
+                      method: 'PUT',
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ autoRenew: newValue }),
+                    });
+
+                    if (res.ok) {
+                      setAutoRenew(newValue);
+                      setSubscription({ ...subscription, auto_renew: newValue });
+                      setStatusMessage(`Auto-renewal ${newValue ? 'enabled' : 'disabled'}`);
+                    } else {
+                      const data = await res.json();
+                      setStatusMessage(data.error || 'Failed to update auto-renewal');
+                    }
+                  } catch (err) {
+                    setStatusMessage('Error updating auto-renewal setting');
+                    console.error('Error:', err);
+                  } finally {
+                    setUpdatingAutoRenew(false);
+                  }
+                }}
+                disabled={updatingAutoRenew}
                 className={styles.checkbox}
               />
               Auto-Renewal

@@ -203,4 +203,37 @@ router.get('/:subscriptionId/price-status', authenticateToken, async (req, res) 
   }
 });
 
+// PUT: Update subscription auto_renew setting
+router.put('/:subscriptionId/auto-renew', authenticateToken, async (req, res) => {
+  const { subscriptionId } = req.params;
+  const { autoRenew } = req.body;
+
+  if (autoRenew === undefined || typeof autoRenew !== 'boolean') {
+    return res.status(400).json({ error: 'autoRenew must be a boolean' });
+  }
+
+  try {
+    const result = await db.query(
+      `UPDATE user_subscriptions 
+       SET auto_renew = $1
+       WHERE id = $2
+       RETURNING id, auto_renew`,
+      [autoRenew, subscriptionId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Subscription not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: `Auto-renewal ${autoRenew ? 'enabled' : 'disabled'}`,
+      subscription: result.rows[0] 
+    });
+  } catch (err) {
+    console.error('Error updating auto-renew:', err);
+    res.status(500).json({ error: 'Failed to update auto-renewal setting' });
+  }
+});
+
 module.exports = router;
