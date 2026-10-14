@@ -5,6 +5,7 @@ import StudentSessionManagement from "../components/StudentSessionManagement";
 import SessionHistory from "../components/SessionHistory";
 import CreditCardManager from "../components/CreditCardManager";
 import CreditCardModal from "../components/CreditCardModal";
+import SubscriptionManagement from "../components/SubscriptionManagement";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import styles from "../styles/StudentProfile.module.css";
@@ -145,6 +146,8 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
           </div>
 
           <CreditCardManager userId={currentUser?.id} onAddCard={() => setShowCardModal(true)} />
+
+          <SubscriptionManagement userId={currentUser?.id} />
         </div>
 
         <div className={styles.dashboardGrid}>

@@ -185,12 +185,10 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS status_starts_at TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS status_ends_at TIMESTAMPTZ;
 ALTER TABLE promotions ADD COLUMN IF NOT EXISTS plan_id INT REFERENCES plans(id) ON DELETE CASCADE;
 ALTER TABLE promotions ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
-ALTER TABLE plans ADD COLUMN IF NOT EXISTS photo_url TEXT;
-ALTER TABLE plans ADD COLUMN IF NOT EXISTS photo_storage_key TEXT;
-ALTER TABLE plans ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
-ALTER TABLE plans ADD COLUMN IF NOT EXISTS display_order INT DEFAULT 0;
-ALTER TABLE plans ADD COLUMN IF NOT EXISTS details TEXT;
-ALTER TABLE workout_sessions ADD COLUMN IF NOT EXISTS auto_completed_at TIMESTAMPTZ;
+ALTER TABLE plans ADD COLUMN IF NOT EXISTS is_discontinued BOOLEAN DEFAULT FALSE;
+ALTER TABLE user_subscriptions ADD COLUMN IF NOT EXISTS locked_price NUMERIC(10, 2);
+ALTER TABLE user_subscriptions ADD COLUMN IF NOT EXISTS price_locked_at TIMESTAMPTZ;
+ALTER TABLE user_subscriptions ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ;
 
 -- Fix foreign key constraint on user_subscriptions to allow cascading deletes
 ALTER TABLE user_subscriptions DROP CONSTRAINT IF EXISTS user_subscriptions_plan_id_fkey;

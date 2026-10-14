@@ -1,0 +1,165 @@
+@reference "./global.css";
+/* ==========================================================================
+   Subscription Management Module
+   Student subscription viewing and cancellation
+   ========================================================================== */
+
+.container {
+  @apply rounded-lg border p-4;
+  background-color: #1a1a1a;
+  border-color: #404040;
+}
+
+.title {
+  @apply mb-6 text-lg font-bold;
+  color: #e5e7eb;
+}
+
+.error {
+  @apply mb-4 rounded-lg border border-red-800 bg-red-900/30 p-4 text-sm;
+  color: #fecaca;
+}
+
+.emptyState {
+  @apply rounded-lg border border-dashed p-8 text-center;
+  border-color: #404040;
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.emptyState p {
+  @apply text-sm;
+  color: #9ca3af;
+}
+
+.subscriptionsList {
+  @apply space-y-4;
+}
+
+.subscriptionCard {
+  @apply rounded-lg border p-4;
+  background-color: #222;
+  border-color: #3b82f6;
+  overflow: hidden;
+}
+
+.cardHeader {
+  @apply mb-4 flex items-start justify-between;
+}
+
+.planTitle {
+  @apply text-base font-bold;
+  color: #e5e7eb;
+  margin-bottom: 0.5rem;
+}
+
+.planDescription {
+  @apply text-xs;
+  color: #9ca3af;
+}
+
+.statusBadge {
+  @apply inline-block rounded-full px-3 py-1 text-xs font-semibold;
+  background-color: #374151;
+  color: #d1d5db;
+}
+
+.statusActive {
+  background-color: #065f46;
+  color: #86efac;
+}
+
+.statusCancelled {
+  background-color: #7f1d1d;
+  color: #fecaca;
+}
+
+.statusInactive {
+  background-color: #44403c;
+  color: #d1d5db;
+}
+
+.statusLocked {
+  background-color: #92400e;
+  color: #fbbf24;
+}
+
+.cardBody {
+  @apply mb-4 space-y-3 border-b border-t;
+  border-color: #404040;
+  padding: 1rem 0;
+}
+
+.infoRow {
+  @apply flex items-center justify-between;
+}
+
+.label {
+  @apply text-sm font-semibold;
+  color: #9ca3af;
+}
+
+.value {
+  @apply text-sm;
+  color: #e5e7eb;
+  font-weight: 500;
+}
+
+.lockedIcon {
+  @apply ml-2 inline-block;
+  color: #fbbf24;
+  font-size: 0.75rem;
+}
+
+.discontinuedWarning {
+  @apply rounded-lg border border-yellow-800 bg-yellow-900/20 p-3 text-sm;
+  color: #fcd34d;
+  border-color: #b45309;
+}
+
+.cardFooter {
+  @apply flex justify-end gap-2;
+}
+
+.cancelButton {
+  @apply rounded-lg px-4 py-2 text-sm font-semibold transition;
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+
+.cancelButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .container {
+    @apply p-3;
+  }
+
+  .title {
+    @apply text-base;
+  }
+
+  .cardHeader {
+    @apply flex-col;
+  }
+
+  .statusBadge {
+    @apply mt-2;
+  }
+
+  .infoRow {
+    @apply flex-col items-start;
+  }
+
+  .value {
+    @apply mt-1;
+  }
+}

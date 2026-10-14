@@ -17,6 +17,7 @@ const adminRoutes = require("./routes/admin");
 const promotionsRoutes = require("./routes/promotions");
 const plansRoutes = require("./routes/plans");
 const trainerSessionsRoutes = require("./routes/trainerSessions");
+const subscriptionsRoutes = require("./routes/subscriptions");
 
 const app = express();
 
@@ -67,6 +68,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/promotions", promotionsRoutes);
 app.use("/api/plans", plansRoutes);
 app.use("/api/trainer-sessions", trainerSessionsRoutes);
+app.use("/api/subscriptions", subscriptionsRoutes);
 
 // Catch-all 404 handler
 app.use((req, res) => {
