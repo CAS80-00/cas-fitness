@@ -100,10 +100,10 @@ const StudentSessionManagement = () => {
         });
       }
       
-      // Refresh sessions after a brief delay to ensure database updates have completed
+      // Refresh the page after a brief delay to show updated session status
       setTimeout(() => {
-        console.log('[StudentSessionManagement] Refreshing sessions after cancellation');
-        loadSessions();
+        console.log('[StudentSessionManagement] Refreshing page after cancellation');
+        window.location.reload();
       }, 500);
     } catch (err) {
       setError(err.message);
