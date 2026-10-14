@@ -52,6 +52,18 @@ export default function CreditCardModal({ userId, isOpen, onClose, onCardSaved }
       return;
     }
 
+    // Check if card is expired
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+    const cardYear = parseInt(formData.expiryYear, 10);
+    const cardMonth = parseInt(formData.expiryMonth, 10);
+
+    if (cardYear < currentYear || (cardYear === currentYear && cardMonth < currentMonth)) {
+      setError('Card is expired. Please enter a valid card.');
+      return;
+    }
+
     setLoading(true);
     try {
       const token = localStorage.getItem('cas_jwt');
