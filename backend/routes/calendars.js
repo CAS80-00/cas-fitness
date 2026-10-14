@@ -989,6 +989,11 @@ router.get("/my-slots", authenticateToken, async (req, res) => {
 
     const result = await db.query(query, [userId]);
     
+    // Disable caching to ensure fresh slot data is always fetched
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    
     res.json({ instances: result.rows });
   } catch (err) {
     console.error("Error fetching employee slots:", err.message);

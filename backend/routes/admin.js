@@ -1285,6 +1285,12 @@ router.get("/slot-instances/:userId", authenticateToken, async (req, res) => {
     }));
     
     console.log(`[/admin/slot-instances] Sample instance after mapping:`, instances.slice(0, 2));
+    
+    // Disable caching to ensure fresh slot data is always fetched
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    
     res.json({ instances });
   } catch (err) {
     console.error("Error fetching slot instances:", err);
@@ -1292,6 +1298,7 @@ router.get("/slot-instances/:userId", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Failed to fetch slot instances: " + err.message });
   }
 });
+
 
 // PUT: Update a slot instance (member or superuser)
 // Members can set: CONSULTATION, WORKOUT, BREAK, LUNCH
