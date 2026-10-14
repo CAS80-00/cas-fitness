@@ -49,42 +49,81 @@
 }
 
 .cardDisplay {
-  @apply rounded-lg border p-3;
+  @apply relative w-full rounded-xl border-0 p-4;
   background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
-  border-color: #3b82f6;
   color: white;
+  aspect-ratio: 1.586 / 1;
+  max-width: 340px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .cardBrand {
-  @apply mb-2 text-xs font-bold;
+  @apply text-xs font-bold;
   color: #bfdbfe;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  font-size: 10px;
+  letter-spacing: 2px;
+  font-size: 11px;
+  align-self: flex-end;
+}
+
+.cardNumberContainer {
+  @apply flex-1 flex items-center justify-center;
 }
 
 .cardNumber {
-  @apply mb-2 font-mono tracking-wider;
+  @apply font-mono tracking-wider text-center;
   color: #f3f4f6;
-  word-spacing: 0.4em;
-  font-size: 12px;
+  word-spacing: 0.6em;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 2px;
 }
 
 .cardFooter {
-  @apply flex items-center justify-between;
+  @apply flex items-end justify-between pt-2;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.cardholderContainer {
+  @apply flex flex-col;
+}
+
+.cardholderLabel {
+  @apply text-xs;
+  color: #9ca3af;
+  font-size: 8px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .cardholder {
-  @apply text-xs;
-  color: #d1d5db;
+  @apply text-xs font-semibold;
+  color: #f3f4f6;
   text-transform: uppercase;
-  font-size: 9px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.expiryContainer {
+  @apply flex flex-col items-end;
+}
+
+.expiryLabel {
+  @apply text-xs;
+  color: #9ca3af;
+  font-size: 8px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .expiry {
   @apply text-xs font-semibold;
-  color: #d1d5db;
-  font-size: 9px;
+  color: #f3f4f6;
+  font-size: 11px;
+  letter-spacing: 0.5px;
 }
 
 .updateButton {

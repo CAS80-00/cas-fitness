@@ -61,14 +61,22 @@ export default function CreditCardManager({ userId, onAddCard }) {
         <div className={styles.savedCard}>
           <div className={styles.cardDisplay}>
             <div className={styles.cardBrand}>{savedCard.card_type}</div>
-            <div className={styles.cardNumber}>
-              {maskCardNumberWithLast3(savedCard.card_number_masked)}
+            <div className={styles.cardNumberContainer}>
+              <div className={styles.cardNumber}>
+                {maskCardNumberWithLast3(savedCard.card_number_masked)}
+              </div>
             </div>
             <div className={styles.cardFooter}>
-              <span className={styles.cardholder}>{savedCard.cardholder_name}</span>
-              <span className={styles.expiry}>
-                {savedCard.expiry_month}/{savedCard.expiry_year}
-              </span>
+              <div className={styles.cardholderContainer}>
+                <div className={styles.cardholderLabel}>Cardholder</div>
+                <div className={styles.cardholder}>{savedCard.cardholder_name}</div>
+              </div>
+              <div className={styles.expiryContainer}>
+                <div className={styles.expiryLabel}>Expires</div>
+                <div className={styles.expiry}>
+                  {savedCard.expiry_month}/{savedCard.expiry_year}
+                </div>
+              </div>
             </div>
           </div>
           <button
