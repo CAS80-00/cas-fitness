@@ -5,7 +5,7 @@
    ========================================================================== */
 
 .container {
-  @apply space-y-4 rounded-lg border p-4;
+  @apply space-y-2 rounded-lg border p-3;
   background-color: #1a1a1a;
   border-color: #404040;
 }
@@ -15,7 +15,7 @@
 }
 
 .title {
-  @apply text-sm font-bold;
+  @apply text-xs font-bold;
   color: #e5e7eb;
 }
 
@@ -45,27 +45,29 @@
 
 /* Saved Card Display */
 .savedCard {
-  @apply space-y-3;
+  @apply space-y-2;
 }
 
 .cardDisplay {
-  @apply rounded-lg border p-4;
+  @apply rounded-lg border p-3;
   background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
   border-color: #3b82f6;
   color: white;
 }
 
 .cardBrand {
-  @apply mb-6 text-xs font-bold;
+  @apply mb-2 text-xs font-bold;
   color: #bfdbfe;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
+  font-size: 10px;
 }
 
 .cardNumber {
-  @apply mb-4 font-mono text-lg tracking-widest;
+  @apply mb-2 font-mono tracking-wider;
   color: #f3f4f6;
-  word-spacing: 0.5em;
+  word-spacing: 0.4em;
+  font-size: 12px;
 }
 
 .cardFooter {
@@ -76,15 +78,17 @@
   @apply text-xs;
   color: #d1d5db;
   text-transform: uppercase;
+  font-size: 9px;
 }
 
 .expiry {
   @apply text-xs font-semibold;
   color: #d1d5db;
+  font-size: 9px;
 }
 
 .updateButton {
-  @apply w-full rounded py-2 text-xs font-semibold transition;
+  @apply w-full rounded py-1 text-xs font-semibold transition;
   background-color: #3b82f6;
   color: white;
 }
