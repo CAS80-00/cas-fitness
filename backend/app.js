@@ -18,37 +18,27 @@ const promotionsRoutes = require("./routes/promotions");
 const plansRoutes = require("./routes/plans");
 const trainerSessionsRoutes = require("./routes/trainerSessions");
 const subscriptionsRoutes = require("./routes/subscriptions");
+const bannersRoutes = require("./routes/banners");
 
 const app = express();
 
-console.log("[APP.JS] Starting express app configuration");
-
-try {
-  // Placeholder for any initialization logic
-} catch (e) {
-  console.error("[APP.JS] Error during app initialization:", e.message, e.stack);
-}
-
-// Security Hardening & Headers Configuration. Cross-Origin-Resource-Policy is
-// relaxed so uploaded carousel images (served below) can be embedded by the
-// frontend's dev origin.
+// Cross-Origin-Resource-Policy is relaxed so uploaded carousel images (served
+// below) can be embedded by the frontend's dev origin.
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
 
-// Request logging middleware - Log ALL requests
-app.use((req, res, next) => {
-  try {
-    console.log(`[REQUEST] ${req.method} ${req.path}`);
-    if (req.path.includes('/trainer-sessions')) {
-      console.log(`[TRAINER-SESSIONS] ${req.method} ${req.path} | Body:`, req.body);
-    }
-    next();
-  } catch (e) {
-    console.error('[MIDDLEWARE] Error:', e.message);
-    next();
-  }
-});
+// CORS_ORIGIN is a comma-separated allow-list. Without it, any origin is
+// reflected outside production and cross-origin access is denied in production.
+const allowedOrigins = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+app.use(
+  cors({
+    origin: allowedOrigins.length > 0 ? allowedOrigins : process.env.NODE_ENV !== "production",
+    credentials: true,
+  }),
+);
+app.use(express.json());
 
 // Serves locally stored Object Storage uploads (see services/objectStorage.js).
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -69,10 +59,10 @@ app.use("/api/promotions", promotionsRoutes);
 app.use("/api/plans", plansRoutes);
 app.use("/api/trainer-sessions", trainerSessionsRoutes);
 app.use("/api/subscriptions", subscriptionsRoutes);
+app.use("/api/banners", bannersRoutes);
 
 // Catch-all 404 handler
 app.use((req, res) => {
-  console.log(`[APP.JS] 404: ${req.method} ${req.path}`);
   res.status(404).json({ error: "Route not found" });
 });
 

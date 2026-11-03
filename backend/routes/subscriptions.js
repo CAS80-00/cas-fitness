@@ -1,174 +1,170 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const db = require('../db/client');
-const { authenticateToken } = require('../middleware/authMiddleware');
+const db = require("../db/client");
+const {
+  ROLE,
+  authenticateToken,
+  requireSuperuser,
+  canAccessUser,
+} = require("../middleware/authMiddleware");
 
-// GET: Student's active subscriptions with plan details
-router.get('/student/:userId', authenticateToken, async (req, res) => {
+const SUBSCRIPTION_WITH_PLAN_SELECT = `
+  SELECT
+    us.id,
+    us.user_id,
+    us.plan_id,
+    us.status,
+    us.start_date,
+    us.end_date,
+    us.auto_renew,
+    us.remaining_sessions,
+    us.locked_price,
+    us.price_locked_at,
+    us.cancelled_at,
+    p.title,
+    p.description,
+    p.price,
+    p.billing_cycle,
+    p.session_count,
+    p.is_discontinued
+  FROM user_subscriptions us
+  JOIN plans p ON us.plan_id = p.id
+`;
+
+// Members may only pause/resume their own subscription; any other status
+// change (e.g. reactivating a cancelled one) is staff-only.
+const MEMBER_ALLOWED_TRANSITIONS = {
+  ACTIVE: ["PAUSED"],
+  PAUSED: ["ACTIVE"],
+};
+
+// Loads a subscription and verifies the caller may act on it. Sends the error
+// response and resolves to null when the subscription is missing or off-limits.
+async function loadAuthorizedSubscription(req, res) {
+  const result = await db.query(
+    "SELECT id, user_id, status FROM user_subscriptions WHERE id = $1",
+    [req.params.subscriptionId],
+  );
+
+  if (result.rows.length === 0) {
+    res.status(404).json({ error: "Subscription not found" });
+    return null;
+  }
+
+  const subscription = result.rows[0];
+  if (!canAccessUser(req, subscription.user_id)) {
+    res.status(403).json({ error: "Access denied." });
+    return null;
+  }
+  return subscription;
+}
+
+router.get("/student/:userId", authenticateToken, async (req, res) => {
   const { userId } = req.params;
+
+  if (!canAccessUser(req, userId)) {
+    return res.status(403).json({ error: "Access denied." });
+  }
 
   try {
     const result = await db.query(
-      `SELECT 
-        us.id,
-        us.user_id,
-        us.plan_id,
-        us.status,
-        us.start_date,
-        us.end_date,
-        us.auto_renew,
-        us.remaining_sessions,
-        us.locked_price,
-        us.price_locked_at,
-        us.cancelled_at,
-        p.title,
-        p.description,
-        p.price,
-        p.billing_cycle,
-        p.session_count,
-        p.is_discontinued
-      FROM user_subscriptions us
-      JOIN plans p ON us.plan_id = p.id
-      WHERE us.user_id = $1
-      ORDER BY us.start_date DESC`,
-      [userId]
+      `${SUBSCRIPTION_WITH_PLAN_SELECT} WHERE us.user_id = $1 ORDER BY us.start_date DESC`,
+      [userId],
     );
 
     res.json({ subscriptions: result.rows });
   } catch (err) {
-    console.error('Error fetching subscriptions:', err);
-    res.status(500).json({ error: 'Failed to fetch subscriptions' });
+    console.error("Error fetching subscriptions:", err);
+    res.status(500).json({ error: "Failed to fetch subscriptions" });
   }
 });
 
-// GET: Single subscription details
-router.get('/:subscriptionId', authenticateToken, async (req, res) => {
-  const { subscriptionId } = req.params;
-
+router.get("/:subscriptionId", authenticateToken, async (req, res) => {
   try {
-    const result = await db.query(
-      `SELECT 
-        us.id,
-        us.user_id,
-        us.plan_id,
-        us.status,
-        us.start_date,
-        us.end_date,
-        us.auto_renew,
-        us.remaining_sessions,
-        us.locked_price,
-        us.price_locked_at,
-        us.cancelled_at,
-        p.title,
-        p.description,
-        p.price,
-        p.billing_cycle,
-        p.session_count,
-        p.is_discontinued
-      FROM user_subscriptions us
-      JOIN plans p ON us.plan_id = p.id
-      WHERE us.id = $1`,
-      [subscriptionId]
-    );
+    const result = await db.query(`${SUBSCRIPTION_WITH_PLAN_SELECT} WHERE us.id = $1`, [
+      req.params.subscriptionId,
+    ]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Subscription not found' });
+      return res.status(404).json({ error: "Subscription not found" });
     }
 
     const subscription = result.rows[0];
+    if (!canAccessUser(req, subscription.user_id)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+
     res.json({ subscription });
   } catch (err) {
-    console.error('Error fetching subscription:', err);
-    res.status(500).json({ error: 'Failed to fetch subscription' });
+    console.error("Error fetching subscription:", err);
+    res.status(500).json({ error: "Failed to fetch subscription" });
   }
 });
 
-// POST: Cancel a subscription
-router.post('/:subscriptionId/cancel', authenticateToken, async (req, res) => {
-  const { subscriptionId } = req.params;
-
+router.post("/:subscriptionId/cancel", authenticateToken, async (req, res) => {
   try {
-    // Get subscription details first
-    const subRes = await db.query(
-      'SELECT id, status FROM user_subscriptions WHERE id = $1',
-      [subscriptionId]
-    );
+    const subscription = await loadAuthorizedSubscription(req, res);
+    if (!subscription) return;
 
-    if (subRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Subscription not found' });
+    if (subscription.status === "CANCELLED") {
+      return res.status(400).json({ error: "Subscription is already cancelled" });
     }
 
-    if (subRes.rows[0].status === 'CANCELLED') {
-      return res.status(400).json({ error: 'Subscription is already cancelled' });
-    }
-
-    // Cancel subscription
     const result = await db.query(
-      `UPDATE user_subscriptions 
+      `UPDATE user_subscriptions
        SET status = 'CANCELLED', cancelled_at = NOW()
        WHERE id = $1
        RETURNING id, user_id, plan_id, status, cancelled_at`,
-      [subscriptionId]
+      [subscription.id],
     );
 
-    const subscription = result.rows[0];
-    res.json({ 
-      success: true, 
-      message: 'Subscription cancelled successfully',
-      subscription 
+    res.json({
+      success: true,
+      message: "Subscription cancelled successfully",
+      subscription: result.rows[0],
     });
   } catch (err) {
-    console.error('Error cancelling subscription:', err);
-    res.status(500).json({ error: 'Failed to cancel subscription' });
+    console.error("Error cancelling subscription:", err);
+    res.status(500).json({ error: "Failed to cancel subscription" });
   }
 });
 
-// POST: Auto-lock price if plan is discontinued
-// Called by admin when discontinuing a plan
-router.post('/lock-price-for-plan/:planId', async (req, res) => {
+// Locks the current price for every active subscriber of a plan; called when
+// a plan is discontinued.
+router.post("/lock-price-for-plan/:planId", authenticateToken, requireSuperuser, async (req, res) => {
   const { planId } = req.params;
 
   try {
-    // Get plan details
-    const planRes = await db.query(
-      'SELECT id, price FROM plans WHERE id = $1',
-      [planId]
-    );
-
+    const planRes = await db.query("SELECT id, price FROM plans WHERE id = $1", [planId]);
     if (planRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Plan not found' });
+      return res.status(404).json({ error: "Plan not found" });
     }
 
-    const plan = planRes.rows[0];
-
-    // Update all active subscriptions for this plan to lock the price
     const result = await db.query(
-      `UPDATE user_subscriptions 
+      `UPDATE user_subscriptions
        SET locked_price = $1, price_locked_at = NOW()
        WHERE plan_id = $2 AND status = 'ACTIVE' AND locked_price IS NULL
        RETURNING id, user_id, locked_price, price_locked_at`,
-      [plan.price, planId]
+      [planRes.rows[0].price, planId],
     );
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `Price locked for ${result.rowCount} active subscriptions`,
-      lockedSubscriptions: result.rows 
+      lockedSubscriptions: result.rows,
     });
   } catch (err) {
-    console.error('Error locking prices:', err);
-    res.status(500).json({ error: 'Failed to lock prices' });
+    console.error("Error locking prices:", err);
+    res.status(500).json({ error: "Failed to lock prices" });
   }
 });
 
-// GET: Check if subscription plan is discontinued and price is locked
-router.get('/:subscriptionId/price-status', authenticateToken, async (req, res) => {
-  const { subscriptionId } = req.params;
-
+router.get("/:subscriptionId/price-status", authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT 
+      `SELECT
         us.id,
+        us.user_id,
         us.locked_price,
         us.price_locked_at,
         p.is_discontinued,
@@ -177,44 +173,51 @@ router.get('/:subscriptionId/price-status', authenticateToken, async (req, res) 
       FROM user_subscriptions us
       JOIN plans p ON us.plan_id = p.id
       WHERE us.id = $1`,
-      [subscriptionId]
+      [req.params.subscriptionId],
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Subscription not found' });
+      return res.status(404).json({ error: "Subscription not found" });
     }
 
     const sub = result.rows[0];
-    const priceStatus = {
-      subscriptionId: sub.id,
-      isDiscontinued: sub.is_discontinued,
-      isPriceLocked: sub.locked_price !== null,
-      lockedPrice: sub.locked_price,
-      priceLockedAt: sub.price_locked_at,
-      currentPrice: sub.current_price,
-      planTitle: sub.title,
-      displayPrice: sub.locked_price || sub.current_price,
-    };
+    if (!canAccessUser(req, sub.user_id)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
 
-    res.json({ priceStatus });
+    res.json({
+      priceStatus: {
+        subscriptionId: sub.id,
+        isDiscontinued: sub.is_discontinued,
+        isPriceLocked: sub.locked_price !== null,
+        lockedPrice: sub.locked_price,
+        priceLockedAt: sub.price_locked_at,
+        currentPrice: sub.current_price,
+        planTitle: sub.title,
+        displayPrice: sub.locked_price || sub.current_price,
+      },
+    });
   } catch (err) {
-    console.error('Error checking price status:', err);
-    res.status(500).json({ error: 'Failed to check price status' });
+    console.error("Error checking price status:", err);
+    res.status(500).json({ error: "Failed to check price status" });
   }
 });
 
-// GET: Check card expiry and pause subscription if needed
-router.post('/check-card-status/:userId', authenticateToken, async (req, res) => {
+// Pauses the user's active subscription when their saved card has expired.
+router.post("/check-card-status/:userId", authenticateToken, async (req, res) => {
   const { userId } = req.params;
 
+  if (!canAccessUser(req, userId)) {
+    return res.status(403).json({ error: "Access denied." });
+  }
+
   try {
-    // Get active card
     const cardRes = await db.query(
-      `SELECT id, expiry_month, expiry_year, is_active 
-       FROM student_credit_cards 
+      `SELECT expiry_month, expiry_year
+       FROM student_credit_cards
        WHERE student_id = $1 AND is_active = TRUE
        LIMIT 1`,
-      [userId]
+      [userId],
     );
 
     if (cardRes.rows.length === 0) {
@@ -222,67 +225,84 @@ router.post('/check-card-status/:userId', authenticateToken, async (req, res) =>
     }
 
     const card = cardRes.rows[0];
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth() + 1;
+    const now = new Date();
     const cardYear = parseInt(card.expiry_year, 10);
     const cardMonth = parseInt(card.expiry_month, 10);
+    const isExpired =
+      cardYear < now.getFullYear() ||
+      (cardYear === now.getFullYear() && cardMonth < now.getMonth() + 1);
 
-    const isExpired = cardYear < currentYear || (cardYear === currentYear && cardMonth < currentMonth);
-
-    // If card is expired and subscription is active, pause it
     if (isExpired) {
       await db.query(
-        `UPDATE user_subscriptions 
+        `UPDATE user_subscriptions
          SET status = 'PAUSED', auto_renew = FALSE
-         WHERE user_id = $1 AND status = 'ACTIVE'
-         RETURNING id`,
-        [userId]
+         WHERE user_id = $1 AND status = 'ACTIVE'`,
+        [userId],
       );
     }
 
-    res.json({ 
-      hasCard: true, 
-      isExpired, 
-      message: isExpired ? 'Subscription paused due to expired card' : 'Card is valid' 
+    res.json({
+      hasCard: true,
+      isExpired,
+      message: isExpired ? "Subscription paused due to expired card" : "Card is valid",
     });
   } catch (err) {
-    console.error('Error checking card status:', err);
-    res.status(500).json({ error: 'Failed to check card status' });
+    console.error("Error checking card status:", err);
+    res.status(500).json({ error: "Failed to check card status" });
   }
 });
 
-// PUT: Update subscription status (for pausing/resuming)
-router.put('/:subscriptionId/status', authenticateToken, async (req, res) => {
-  const { subscriptionId } = req.params;
-  const { status } = req.body;
-
-  const validStatuses = ['ACTIVE', 'PAUSED', 'CANCELLED', 'INACTIVE', 'EXPIRED'];
-  if (!validStatuses.includes(status)) {
-    return res.status(400).json({ error: 'Invalid status' });
+router.put("/:subscriptionId/auto-renew", authenticateToken, async (req, res) => {
+  if (typeof req.body.autoRenew !== "boolean") {
+    return res.status(400).json({ error: "autoRenew must be a boolean." });
   }
 
   try {
+    const subscription = await loadAuthorizedSubscription(req, res);
+    if (!subscription) return;
+
     const result = await db.query(
-      `UPDATE user_subscriptions 
-       SET status = $1
-       WHERE id = $2
-       RETURNING id, status`,
-      [status, subscriptionId]
+      "UPDATE user_subscriptions SET auto_renew = $1 WHERE id = $2 RETURNING id, auto_renew",
+      [req.body.autoRenew, subscription.id],
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Subscription not found' });
+    res.json({ success: true, subscription: result.rows[0] });
+  } catch (err) {
+    console.error("Error updating auto-renew:", err);
+    res.status(500).json({ error: "Failed to update auto-renewal" });
+  }
+});
+
+router.put("/:subscriptionId/status", authenticateToken, async (req, res) => {
+  const { status } = req.body;
+
+  const validStatuses = ["ACTIVE", "PAUSED", "CANCELLED", "INACTIVE", "EXPIRED"];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ error: "Invalid status" });
+  }
+
+  try {
+    const subscription = await loadAuthorizedSubscription(req, res);
+    if (!subscription) return;
+
+    const isStaff = [ROLE.SUPERUSER, ROLE.STAFF].includes(req.user.roleId);
+    if (!isStaff && !MEMBER_ALLOWED_TRANSITIONS[subscription.status]?.includes(status)) {
+      return res.status(403).json({ error: "You cannot change the subscription to that status." });
     }
 
-    res.json({ 
-      success: true, 
+    const result = await db.query(
+      "UPDATE user_subscriptions SET status = $1 WHERE id = $2 RETURNING id, status",
+      [status, subscription.id],
+    );
+
+    res.json({
+      success: true,
       message: `Subscription ${status.toLowerCase()}`,
-      subscription: result.rows[0] 
+      subscription: result.rows[0],
     });
   } catch (err) {
-    console.error('Error updating status:', err);
-    res.status(500).json({ error: 'Failed to update subscription status' });
+    console.error("Error updating status:", err);
+    res.status(500).json({ error: "Failed to update subscription status" });
   }
 });
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -30,6 +31,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
@@ -153,11 +155,11 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
     if (isEmployee && employeeId) {
       setSelectedEmployee(employeeId);
       loadSlotInstances(employeeId);
-    } else if (!isEmployee) {
-      // Superuser mode - load all employees
+    } else if (!isEmployee && isExpanded) {
+      // Superuser mode - load all employees only when expanded
       loadEmployees();
     }
-  }, [employeeId, isEmployee]);
+  }, [employeeId, isEmployee, isExpanded]);
 
   // Auto-select first employee when in superuser mode and employees are loaded
   useEffect(() => {
@@ -644,8 +646,16 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>Calendar Slot Management</h2>
+      <button
+        type="button"
+        className={styles.headerButton}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <h2 className={styles.title}>Calendar Slot Management</h2>
+        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+      </button>
 
+      {isExpanded && (
       <div className={styles.grid}>
         {/* Left Panel: Employee Selection - Hidden in employee mode */}
         {!isEmployee && (
@@ -1267,6 +1277,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

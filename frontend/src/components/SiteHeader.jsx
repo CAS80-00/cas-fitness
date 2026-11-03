@@ -6,7 +6,7 @@ import styles from "../styles/SiteHeader.module.css";
  * Resolves which route the "Profile" nav button should send a signed-in
  * user to, based on their role.
  */
-function getProfileRoute(currentUser) {
+function getProfileRoute() {
   // Return generic "profile" route - App.jsx will handle role-based rendering
   return "profile";
 }
@@ -39,8 +39,9 @@ function getProfileRoute(currentUser) {
  *  - onNavigate: function(routeName) for internal navigation
  *  - onLogout: function() to log the user out
  *  - onAuthenticated: function(user) called by the Auth Card on sign in
+ *  - cartItemCount: number of items in the shopping cart
  */
-export default function SiteHeader({ currentUser, onNavigate, onLogout, onAuthenticated }) {
+export default function SiteHeader({ currentUser, onNavigate, onLogout, onAuthenticated, cartItemCount = 0 }) {
   return (
     <header className={`${styles.header} ${currentUser ? styles.authenticated : ""}`}>
       <div className={styles.logoNameGroup}>
@@ -81,7 +82,7 @@ export default function SiteHeader({ currentUser, onNavigate, onLogout, onAuthen
         {currentUser ? (
           <button
             type="button"
-            onClick={() => onNavigate(getProfileRoute(currentUser))}
+            onClick={() => onNavigate(getProfileRoute())}
             className={styles.navLink}
           >
             Profile
@@ -94,6 +95,9 @@ export default function SiteHeader({ currentUser, onNavigate, onLogout, onAuthen
           aria-label="Shopping Cart"
         >
           <ShoppingCartIcon size={28} />
+          {cartItemCount > 0 && (
+            <span className={styles.cartBadge}>{cartItemCount}</span>
+          )}
         </button>
       </nav>
     </header>

@@ -10,7 +10,7 @@ import styles from "../styles/EmployeeProfile.module.css";
  * Login guard blocks SUSPENDED/CANCELLED accounts. Renders the read-only
  * employee panel plus slot creation and consolidated calendar.
  */
-export default function EmployeeProfile({ currentUser, onLogout, onNavigate, onAuthenticated }) {
+export default function EmployeeProfile({ currentUser, onLogout, onNavigate, onAuthenticated, cartItems = [] }) {
   const [calendarRefreshTrigger, setCalendarRefreshTrigger] = useState(0);
 
   if (!currentUser || currentUser.status === "SUSPENDED" || currentUser.status === "CANCELLED") {
@@ -21,7 +21,8 @@ export default function EmployeeProfile({ currentUser, onLogout, onNavigate, onA
           onNavigate={onNavigate}
           onLogout={onLogout}
           onAuthenticated={onAuthenticated}
-        />
+            cartItemCount={cartItems.length}
+          />
         <div className={styles.guardCardWrap}>
           <div className={styles.guardCard}>
             Account suspended or inactive. Please contact your system administrator.
@@ -43,6 +44,7 @@ export default function EmployeeProfile({ currentUser, onLogout, onNavigate, onA
         onNavigate={onNavigate}
         onLogout={onLogout}
         onAuthenticated={onAuthenticated}
+        cartItemCount={cartItems.length}
       />
 
       <div className={styles.contentWrap}>

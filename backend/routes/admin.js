@@ -8,6 +8,8 @@ const db = require("../db/client");
 const { authenticateToken, requireSuperuser } = require("../middleware/authMiddleware");
 const { uploadPlanPhoto, deletePlanPhoto } = require("../services/plansStorage");
 
+const isProduction = process.env.NODE_ENV === "production";
+
 // Every route below is Superuser-only.
 router.use(authenticateToken, requireSuperuser);
 
@@ -1103,7 +1105,6 @@ router.post("/slot-templates", async (req, res) => {
 
     // Check if published_at column exists
     const hasPublishedAt = await columnExists('slot_instances', 'published_at');
-    console.log(`Column published_at exists: ${hasPublishedAt}`);
 
     for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
       const dayOfWeek = d.getDay();
@@ -1159,7 +1160,6 @@ router.post("/slot-templates", async (req, res) => {
           } catch (colErr) {
             // Additional error handling
             if (colErr.message.includes('published_at') && hasPublishedAt) {
-              console.log('published_at column query failed, retrying without it');
               const instanceRes = await db.query(
                 `
                 INSERT INTO slot_instances (user_id, template_id, calendar_type, slot_date, start_time, end_time, status)
@@ -1228,7 +1228,6 @@ router.get("/slot-instances/:userId", authenticateToken, async (req, res) => {
 
     // Check if published_at column exists
     const hasPublishedAt = await columnExists('slot_instances', 'published_at');
-    console.log(`Column published_at exists: ${hasPublishedAt}`);
 
     // Build query based on whether published_at column exists
     const publishedAtClause = hasPublishedAt ? `si.published_at` : `NULL as published_at`;
@@ -1275,8 +1274,6 @@ router.get("/slot-instances/:userId", authenticateToken, async (req, res) => {
     query += ` ORDER BY si.slot_date ASC, si.start_time ASC`;
 
     const result = await db.query(query, params);
-    console.log(`Fetched ${result.rows.length} slot instances for user ${userId}`);
-    console.log(`[/admin/slot-instances] Sample slot data:`, result.rows.slice(0, 2));
     
     // Keep both status and calendar_type - don't overwrite status
     // If there's a session log, use its status (COMPLETED, ABSENT, CANCELLED, SCHEDULED)
@@ -1286,7 +1283,6 @@ router.get("/slot-instances/:userId", authenticateToken, async (req, res) => {
       displayStatus: row.session_log_status || (row.status === 'APPROVED' ? row.calendar_type : row.status)
     }));
     
-    console.log(`[/admin/slot-instances] Sample instance after mapping:`, instances.slice(0, 2));
     
     // Disable caching to ensure fresh slot data is always fetched
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -1313,10 +1309,8 @@ router.put("/slot-instances/:slotId", authenticateToken, async (req, res) => {
     const roleId = req.user.roleId;
     const isUserSuperuser = roleId === 1;
 
-    console.log(`[SLOT UPDATE] Attempting to update slot ${slotId} to status ${status} by user ${userId} (superuser: ${isUserSuperuser})`);
 
     if (!status) {
-      console.log(`[SLOT UPDATE] Status is required`);
       return res.status(400).json({ error: "Status is required." });
     }
 
@@ -1326,27 +1320,16 @@ router.put("/slot-instances/:slotId", authenticateToken, async (req, res) => {
     const superuserStatuses = ["CONSULTATION", "WORKOUT", "BREAK", "LUNCH", "SICK", "NO_SHOW", "VACATION", "PERSONAL_TIME", "REMOVED"];
 
     if (!isUserSuperuser && !memberStatuses.includes(status)) {
-      console.log(`[SLOT UPDATE] Member user tried to set invalid status: ${status}`);
       return res.status(403).json({ error: `You can only set these statuses: ${memberStatuses.join(", ")}` });
     }
 
     if (isUserSuperuser && !superuserStatuses.includes(status)) {
-      console.log(`[SLOT UPDATE] Superuser tried to set invalid status: ${status}`);
       return res.status(400).json({ error: `Invalid status. Allowed: ${superuserStatuses.join(", ")}` });
     }
-
-    console.log(`[SLOT UPDATE] Updating slot ${slotId} with valid status ${status}`);
-
-    // First, log the current state of the slot
     const currentSlot = await db.query(
       `SELECT id, calendar_type, status FROM slot_instances WHERE id = $1`,
       [slotId]
     );
-    if (currentSlot.rows.length > 0) {
-      console.log(`[SLOT UPDATE] Current slot state:`, JSON.stringify(currentSlot.rows[0]));
-    } else {
-      console.log(`[SLOT UPDATE] Slot ${slotId} not found before update`);
-    }
 
     // For slots created with status='APPROVED', if status matches calendar_type, update to APPROVED only
     // This avoids violating the CHECK constraint if the database doesn't allow WORKOUT/CONSULTATION as status
@@ -1355,7 +1338,6 @@ router.put("/slot-instances/:slotId", authenticateToken, async (req, res) => {
       const calendarType = currentSlot.rows[0].calendar_type;
       // If trying to set status to match calendar type, keep it as APPROVED but mark via calendar_type
       if (status === calendarType && currentSlot.rows[0].status === 'APPROVED') {
-        console.log(`[SLOT UPDATE] Slot already APPROVED with calendar_type ${calendarType}, no update needed`);
         return res.json({ instance: currentSlot.rows[0], message: `Slot is already available as ${calendarType}.` });
       }
     }
@@ -1376,14 +1358,11 @@ router.put("/slot-instances/:slotId", authenticateToken, async (req, res) => {
       );
 
       if (result.rows.length === 0) {
-        console.log(`[SLOT UPDATE] Slot instance ${slotId} not found`);
         return res.status(404).json({ error: "Slot instance not found." });
       }
 
-      console.log(`[SLOT UPDATE] Successfully updated slot ${slotId} to status ${status}`);
       res.json({ instance: result.rows[0], message: `Slot status updated to ${status}.` });
     } catch (columnErr) {
-      console.log(`[SLOT UPDATE] First attempt with tracking columns failed, trying without: ${columnErr.message}`);
       
       // Fallback: try without modified_by/approved_by columns
       const result = await db.query(
@@ -1395,11 +1374,9 @@ router.put("/slot-instances/:slotId", authenticateToken, async (req, res) => {
       );
 
       if (result.rows.length === 0) {
-        console.log(`[SLOT UPDATE] Slot instance ${slotId} not found (fallback)`);
         return res.status(404).json({ error: "Slot instance not found." });
       }
 
-      console.log(`[SLOT UPDATE] Successfully updated slot ${slotId} to status ${status} (without tracking columns)`);
       res.json({ instance: result.rows[0], message: `Slot status updated to ${status}.` });
     }
   } catch (err) {
@@ -1636,7 +1613,6 @@ router.put("/slot-instances/:slotId/calendar-type", authenticateToken, async (re
     }
 
     const slot = result.rows[0];
-    console.log(`[CALENDAR TYPE CHANGE] Slot ${slotId} changed to calendar_type: ${calendarType}`);
 
     res.json({ 
       success: true,
@@ -1646,6 +1622,230 @@ router.put("/slot-instances/:slotId/calendar-type", authenticateToken, async (re
   } catch (err) {
     console.error("Error changing slot calendar type:", err.message);
     res.status(500).json({ error: "Failed to change slot calendar type: " + err.message });
+  }
+});
+
+// Helper: Encrypt password with JWT secret
+function encryptPassword(password) {
+  const algorithm = 'aes-256-cbc';
+  const key = crypto.scryptSync(process.env.JWT_SECRET, 'salt', 32);
+  const iv = Buffer.alloc(16, 0);
+  const cipher = crypto.createCipheriv(algorithm, key, iv);
+  let encrypted = cipher.update(password, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return encrypted;
+}
+
+// Helper: Decrypt password with JWT secret
+function decryptPassword(encrypted) {
+  try {
+    const algorithm = 'aes-256-cbc';
+    const key = crypto.scryptSync(process.env.JWT_SECRET, 'salt', 32);
+    const iv = Buffer.alloc(16, 0);
+    const decipher = crypto.createDecipheriv(algorithm, key, iv);
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (err) {
+    console.error('Error decrypting password:', err.message);
+    return null;
+  }
+}
+
+// GET email configuration
+router.get("/email-config", async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT id, gmail_user, superuser_email, is_active, created_at, updated_at
+       FROM email_config
+       WHERE is_active = TRUE
+       LIMIT 1`
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ config: null });
+    }
+
+    const config = result.rows[0];
+    res.json({
+      config: {
+        id: config.id,
+        gmailUser: config.gmail_user,
+        superuserEmail: config.superuser_email,
+        isActive: config.is_active,
+        createdAt: config.created_at,
+        updatedAt: config.updated_at
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching email config:', err);
+    res.status(500).json({ error: 'Failed to fetch email configuration' });
+  }
+});
+
+// POST/UPDATE email configuration
+router.post("/email-config", async (req, res) => {
+  const { gmailUser, gmailPassword, superuserEmail } = req.body;
+
+  if (!gmailUser || !gmailPassword || !superuserEmail) {
+    return res.status(400).json({ error: 'Gmail user, password, and superuser email are required' });
+  }
+
+  try {
+    const encryptedPassword = encryptPassword(gmailPassword);
+
+    // Check if config already exists
+    const existing = await db.query(
+      `SELECT id FROM email_config WHERE is_active = TRUE LIMIT 1`
+    );
+
+    let result;
+    if (existing.rows.length > 0) {
+      // Update existing
+      result = await db.query(
+        `UPDATE email_config 
+         SET gmail_user = $1, gmail_password_encrypted = $2, superuser_email = $3, updated_at = NOW()
+         WHERE id = $4
+         RETURNING id, gmail_user, superuser_email, updated_at`,
+        [gmailUser, encryptedPassword, superuserEmail, existing.rows[0].id]
+      );
+    } else {
+      // Insert new
+      result = await db.query(
+        `INSERT INTO email_config (gmail_user, gmail_password_encrypted, superuser_email)
+         VALUES ($1, $2, $3)
+         RETURNING id, gmail_user, superuser_email, updated_at`,
+        [gmailUser, encryptedPassword, superuserEmail]
+      );
+    }
+
+    const config = result.rows[0];
+    res.json({
+      success: true,
+      message: 'Email configuration saved successfully',
+      config: {
+        id: config.id,
+        gmailUser: config.gmail_user,
+        superuserEmail: config.superuser_email,
+        updatedAt: config.updated_at
+      }
+    });
+  } catch (err) {
+    console.error('Error updating email config:', err);
+    res.status(500).json({ error: 'Failed to save email configuration' });
+  }
+});
+
+// ============================================================================
+// BANNER MANAGEMENT ENDPOINTS
+// ============================================================================
+
+// GET all banners
+router.get("/banners", async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT * FROM banners ORDER BY created_at DESC`
+    );
+    res.json({ banners: result.rows });
+  } catch (err) {
+    console.error('Error fetching banners:', err);
+    res.status(500).json({ error: 'Failed to fetch banners' });
+  }
+});
+
+// POST create a new banner (max 3)
+router.post("/banners", async (req, res) => {
+  try {
+    const { title, content, backgroundColor, textColor, startDate, startTime, endDate, endTime, pages } = req.body;
+
+    // Validate required fields
+    if (!title || !content || !startDate || !startTime || !endDate || !endTime || !Array.isArray(pages) || pages.length === 0) {
+      return res.status(400).json({ error: 'All fields are required, including at least one page' });
+    }
+
+    // Check banner count
+    const countResult = await db.query('SELECT COUNT(*) as count FROM banners WHERE is_active = TRUE');
+    if (countResult.rows[0].count >= 3) {
+      return res.status(400).json({ error: 'Maximum 3 active banners allowed' });
+    }
+
+    const result = await db.query(
+      `INSERT INTO banners (title, content, background_color, text_color, start_date, start_time, end_date, end_time, pages)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING *`,
+      [title, content, backgroundColor || '#3B82F6', textColor || '#FFFFFF', startDate, startTime, endDate, endTime, JSON.stringify(pages)]
+    );
+
+    res.json({
+      success: true,
+      message: 'Banner created successfully',
+      banner: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Error creating banner:', err);
+    res.status(500).json({ error: 'Failed to create banner' });
+  }
+});
+
+// PUT update a banner
+router.put("/banners/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content, backgroundColor, textColor, startDate, startTime, endDate, endTime, pages, isActive } = req.body;
+
+    // Validate required fields
+    if (!title || !content || !startDate || !startTime || !endDate || !endTime || !Array.isArray(pages) || pages.length === 0) {
+      return res.status(400).json({ error: 'All fields are required, including at least one page' });
+    }
+
+    const result = await db.query(
+      `UPDATE banners 
+       SET title = $1, content = $2, background_color = $3, text_color = $4, 
+           start_date = $5, start_time = $6, end_date = $7, end_time = $8, 
+           pages = $9, is_active = $10, updated_at = NOW()
+       WHERE id = $11
+       RETURNING *`,
+      [title, content, backgroundColor || '#3B82F6', textColor || '#FFFFFF', 
+       startDate, startTime, endDate, endTime, JSON.stringify(pages), 
+       isActive !== undefined ? isActive : true, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Banner not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Banner updated successfully',
+      banner: result.rows[0]
+    });
+  } catch (err) {
+    console.error('Error updating banner:', err);
+    res.status(500).json({ error: 'Failed to update banner' });
+  }
+});
+
+// DELETE a banner
+router.delete("/banners/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await db.query(
+      `DELETE FROM banners WHERE id = $1 RETURNING id`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Banner not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Banner deleted successfully'
+    });
+  } catch (err) {
+    console.error('Error deleting banner:', err);
+    res.status(500).json({ error: 'Failed to delete banner' });
   }
 });
 

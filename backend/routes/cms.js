@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db/client");
-const { authenticateToken } = require("../middleware/authMiddleware");
+const { authenticateToken, requireSuperuser } = require("../middleware/authMiddleware");
 
 function buildSeoPrompt(primaryKeyword, secondaryKeywords, searchIntent) {
   return `Role: Senior SEO Copywriter.
@@ -23,6 +23,10 @@ You MUST respond ONLY with a raw, valid JSON object. Do not include markdown cod
 // Generate SEO Content via Dynamic Copywriter Logic
 router.post("/generate-seo", async (req, res) => {
   const { primaryKeyword, secondaryKeywords = [], searchIntent } = req.body;
+
+  if (typeof primaryKeyword !== "string" || !primaryKeyword.trim() || !Array.isArray(secondaryKeywords)) {
+    return res.status(400).json({ error: "A primary keyword is required." });
+  }
 
   try {
     const prompt = buildSeoPrompt(
@@ -69,7 +73,7 @@ router.get("/:pageKey", async (req, res) => {
 });
 
 // Save Page CMS Content
-router.post("/save", authenticateToken, async (req, res) => {
+router.post("/save", authenticateToken, requireSuperuser, async (req, res) => {
   const { pageKey, content } = req.body;
   try {
     await db.query(

@@ -25,13 +25,6 @@
   color: var(--color-crimson-red);
 }
 
-.closeButton {
-  @apply text-xl text-neutral-300 transition;
-}
-.closeButton:hover {
-  color: #ffffff;
-}
-
 .emptyState {
   @apply space-y-4;
 }
@@ -52,10 +45,18 @@
   @apply space-y-4;
 }
 
+.itemsList {
+  @apply space-y-3 max-h-64 overflow-y-auto;
+}
+
 .itemCard {
-  @apply rounded-xl border p-4;
+  @apply rounded-xl border p-4 flex items-start justify-between gap-2;
   background-color: #0a0a0a;
   border-color: #262626;
+}
+
+.itemContent {
+  @apply flex-1;
 }
 
 .itemTitle {
@@ -68,6 +69,20 @@
 
 .itemPrice {
   @apply mt-3 text-xl font-bold text-white;
+}
+
+.removeButton {
+  @apply flex-shrink-0 text-2xl text-neutral-400 transition;
+  padding: 0;
+  line-height: 1;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.removeButton:hover {
+  color: var(--color-crimson-red);
 }
 
 .timerBox {
@@ -85,8 +100,22 @@
   color: var(--color-neon-orange);
 }
 
+.actionsContainer {
+  @apply flex gap-3 w-full;
+}
+
+.keepPurchasingButton {
+  @apply h-11 flex-1 rounded font-semibold text-white transition;
+  background-color: var(--color-dark-gray);
+  border: 2px solid var(--color-neutral-600);
+}
+.keepPurchasingButton:hover {
+  border-color: var(--color-neutral-400);
+  background-color: #1a1a1a;
+}
+
 .continueButton {
-  @apply h-11 w-full rounded font-semibold text-white transition;
+  @apply h-11 flex-1 rounded font-semibold text-white transition;
   background-color: var(--color-electric-blue);
 }
 .continueButton:hover {

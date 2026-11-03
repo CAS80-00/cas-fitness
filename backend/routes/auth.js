@@ -16,6 +16,14 @@ const loginLimiter = rateLimit({
   message: { error: "Too many authentication attempts. Try again later." },
 });
 
+// Throttles the unauthenticated OTP / password-reset endpoints, which would
+// otherwise allow code brute-forcing and message spam.
+const otpLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: "Too many requests. Try again later." },
+});
+
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
@@ -164,11 +172,10 @@ async function createOtp({ userId, purpose, code }) {
 
 // Verify Pre-authorized Email Step
 router.post("/verify-email", async (req, res) => {
-  const { email } = req.body;
   try {
     const result = await db.query(
       "SELECT id FROM authorized_emails WHERE email = $1",
-      [email.toLowerCase()],
+      [normalizeEmail(req.body.email)],
     );
     if (result.rows.length === 0) {
       return res
@@ -351,7 +358,7 @@ router.post("/login", loginLimiter, async (req, res) => {
   }
 });
 
-router.post("/resend-otp", async (req, res) => {
+router.post("/resend-otp", otpLimiter, async (req, res) => {
   const userId = req.body.userId;
   const deliveryMethod = req.body.deliveryMethod === "sms" ? "sms" : "email";
 
@@ -375,7 +382,7 @@ router.post("/resend-otp", async (req, res) => {
   }
 });
 
-router.post("/verify-otp", async (req, res) => {
+router.post("/verify-otp", otpLimiter, async (req, res) => {
   const userId = req.body.userId;
   const code = String(req.body.code || "");
   const purpose = req.body.purpose === "PASSWORD_RESET" ? "PASSWORD_RESET" : "2FA";
@@ -471,7 +478,7 @@ router.post("/verify-otp", async (req, res) => {
   }
 });
 
-router.post("/forgot-password", async (req, res) => {
+router.post("/forgot-password", otpLimiter, async (req, res) => {
   const email = normalizeEmail(req.body.email);
   const genericMessage =
     "If the email address is associated with an active account, you will receive password reset instructions. Otherwise, please contact an administrator.";
@@ -495,8 +502,7 @@ router.post("/forgot-password", async (req, res) => {
       return res.json({ message: genericMessage });
     }
 
-    const temporaryPassword = generateOtpCode();
-    const temporaryHash = await bcrypt.hash(temporaryPassword, 10);
+    const temporaryHash = await bcrypt.hash(generateOtpCode(), 10);
 
     await db.query(
       `
@@ -511,13 +517,13 @@ router.post("/forgot-password", async (req, res) => {
     await createOtp({ userId: user.id, purpose: "PASSWORD_RESET", code: otpCode });
     await deliverOtpCode({ user, code: otpCode, deliveryMethod: "email" });
 
-    res.json({ message: genericMessage, temporaryPassword });
+    res.json({ message: genericMessage });
   } catch (err) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-router.post("/change-password", async (req, res) => {
+router.post("/change-password", otpLimiter, async (req, res) => {
   const userId = req.body.userId;
   const newPassword = String(req.body.newPassword || "");
   const otpCode = String(req.body.otpCode || "");
@@ -559,11 +565,18 @@ router.post("/change-password", async (req, res) => {
     }
 
     const otp = otpRes.rows[0];
-    if (otp.is_used || otp.code !== otpCode) {
+    if (otp.is_used || otp.failed_attempts >= 3) {
       return res.status(400).json({ error: "Invalid reset verification code." });
     }
     if (new Date(otp.expires_at) < new Date()) {
       return res.status(400).json({ error: "Reset verification code expired." });
+    }
+    if (otp.code !== otpCode) {
+      await db.query(
+        "UPDATE otp_codes SET failed_attempts = failed_attempts + 1 WHERE id = $1",
+        [otp.id],
+      );
+      return res.status(400).json({ error: "Invalid reset verification code." });
     }
 
     const hash = await bcrypt.hash(newPassword, 10);
@@ -586,7 +599,7 @@ router.post("/change-password", async (req, res) => {
   }
 });
 
-router.post("/request-password-reset-otp", async (req, res) => {
+router.post("/request-password-reset-otp", otpLimiter, async (req, res) => {
   const userId = req.body.userId;
   const deliveryMethod = req.body.deliveryMethod === "sms" ? "sms" : "email";
 

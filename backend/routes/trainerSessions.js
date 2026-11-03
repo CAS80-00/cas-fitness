@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/client');
-const { authenticateToken, requireRole } = require('../middleware/authMiddleware');
+const { authenticateToken, requireRole, canAccessUser } = require('../middleware/authMiddleware');
 
 // ============================================================================
 // TRAINERS - List Available Trainers (Superuser/Staff Only)
@@ -137,12 +137,9 @@ router.put('/packages/:packageId', authenticateToken, requireRole(['SUPERUSER', 
 router.get('/student/:studentId', authenticateToken, async (req, res) => {
   const { studentId } = req.params;
 
-  console.log('[TRAINER-SESSIONS] Student sessions request - req.user:', req.user);
-  console.log('[TRAINER-SESSIONS] Looking for student:', studentId);
 
   // Allow a student to view their own sessions, or allow SUPERUSER/STAFF to view any student's
   if (req.user.userId !== studentId) {
-    console.log('[TRAINER-SESSIONS] User is not viewing their own profile, checking role...');
     // Not their own profile, check if they have admin role
     try {
       const roleRes = await db.query(
@@ -151,14 +148,11 @@ router.get('/student/:studentId', authenticateToken, async (req, res) => {
       );
       
       if (roleRes.rows.length === 0) {
-        console.log('[TRAINER-SESSIONS] Role not found for roleId:', req.user.roleId);
         return res.status(403).json({ error: 'Forbidden' });
       }
       
       const roleName = roleRes.rows[0].role_name;
-      console.log('[TRAINER-SESSIONS] User role:', roleName);
       if (!['SUPERUSER', 'STAFF'].includes(roleName)) {
-        console.log('[TRAINER-SESSIONS] User role not authorized');
         return res.status(403).json({ error: 'Forbidden' });
       }
     } catch (err) {
@@ -193,7 +187,6 @@ router.get('/student/:studentId', authenticateToken, async (req, res) => {
       ORDER BY sts.created_at DESC
     `, [studentId]);
     
-    console.log('[TRAINER-SESSIONS] Returning', result.rows.length, 'sessions');
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching student trainer sessions:', err);
@@ -224,6 +217,11 @@ router.get('/session/:sessionId', authenticateToken, async (req, res) => {
     
     if (sessionResult.rows.length === 0) {
       return res.status(404).json({ error: 'Trainer session not found' });
+    }
+
+    const sessionOwner = sessionResult.rows[0];
+    if (!canAccessUser(req, sessionOwner.student_id) && String(sessionOwner.trainer_id) !== String(req.user.userId)) {
+      return res.status(403).json({ error: 'Forbidden' });
     }
 
     const logsResult = await db.query(`
@@ -267,11 +265,8 @@ router.get('/session/:sessionId', authenticateToken, async (req, res) => {
 router.post('/assign', authenticateToken, requireRole(['SUPERUSER', 'STAFF']), async (req, res) => {
   const { student_id, trainer_id, package_id, total_sessions, start_date, expiration_date, notes } = req.body;
 
-  console.log('POST /assign received full body:', JSON.stringify(req.body, null, 2));
-  console.log('Parsed values:', { student_id, total_sessions, start_date, expiration_date });
 
   if (!student_id || !total_sessions || !start_date || !expiration_date) {
-    console.log('Validation failed - missing fields');
     return res.status(400).json({ 
       error: 'VALIDATION_ERROR_v2: Missing required fields: student_id, total_sessions, start_date, expiration_date' 
     });
@@ -469,24 +464,7 @@ router.get('/available-trainers', authenticateToken, async (req, res) => {
       GROUP BY u.id, u.first_name, u.last_name, u.email, u.phone, u.status
       ORDER BY u.first_name, u.last_name
     `);
-    
-    console.log(`[TRAINER-SESSIONS] Available trainers query returned ${result.rows.length} trainers`);
-    
-    if (result.rows.length === 0) {
-      console.log('[TRAINER-SESSIONS] DEBUG: No trainers found. Checking database:');
-      
-      // Debug: Check if there are any trainers at all
-      const allTrainers = await db.query(`
-        SELECT u.id, u.first_name, COUNT(si.id) as slot_count, COUNT(si.id) FILTER (WHERE si.status = 'WORKOUT') as workout_slots, COUNT(si.id) FILTER (WHERE si.status = 'APPROVED') as approved_slots
-        FROM users u
-        LEFT JOIN roles r ON u.role_id = r.id
-        LEFT JOIN slot_instances si ON u.id = si.user_id AND si.calendar_type = 'WORKOUT' AND si.slot_date >= CURRENT_DATE
-        WHERE r.role_name = 'TRAINER'
-        GROUP BY u.id, u.first_name
-      `);
-      console.log('[TRAINER-SESSIONS] All trainers with WORKOUT slot count:', allTrainers.rows);
-    }
-    
+
     res.json(result.rows.map(row => ({
       id: row.id,
       firstName: row.first_name,
@@ -534,7 +512,6 @@ router.get('/trainer-schedule/:trainerId', authenticateToken, async (req, res) =
 
     const trainer = trainerResult.rows[0];
 
-    console.log(`[TRAINER-SESSIONS] Fetching slots for trainer ${trainerId} from ${startDate} to ${endDate}`);
 
     // Get WORKOUT and BOOKED slots for the date range from master calendar
     // Available slots (WORKOUT, APPROVED) show as available
@@ -560,7 +537,6 @@ router.get('/trainer-schedule/:trainerId', authenticateToken, async (req, res) =
       ORDER BY slot_date, start_time
     `, [trainerId, startDate, endDate]);
 
-    console.log(`[TRAINER-SESSIONS] Found ${slotsResult.rows.length} slots for trainer ${trainerId}`);
 
     res.json({
       trainer: {
@@ -622,8 +598,6 @@ router.post('/book-session', authenticateToken, async (req, res) => {
         SET trainer_id = $1
         WHERE id = $2
       `, [trainerId, sessionPackageId]);
-      
-      console.log('[TRAINER-SESSIONS] Updated session package with trainer_id:', trainerId);
     }
 
     // Verify the slot instance exists and is available (from master calendar)
@@ -635,11 +609,6 @@ router.post('/book-session', authenticateToken, async (req, res) => {
         AND si.calendar_type = 'WORKOUT'
         AND si.status IN ('WORKOUT', 'APPROVED')
     `, [slotInstanceId, trainerId]);
-
-    console.log('[TRAINER-SESSIONS] Slot check result:', slotResult.rows.length, 'found for slotInstanceId:', slotInstanceId, 'trainerId:', trainerId);
-    if (slotResult.rows.length > 0) {
-      console.log('[TRAINER-SESSIONS] Slot details:', slotResult.rows[0]);
-    }
 
     if (slotResult.rows.length === 0) {
       return res.status(404).json({ error: 'Slot instance not found or not available' });
@@ -671,7 +640,6 @@ router.post('/book-session', authenticateToken, async (req, res) => {
     // start_time is already in HH:MM:SS format from the TIME column
     const scheduledDateTime = `${slotDatePart}T${slot.start_time}`;
     
-    console.log('[TRAINER-SESSIONS] Input scheduledDateTime:', scheduledDateTime);
 
     // Create session log with slot_instance_id link
     // When JavaScript parses "2026-10-16T13:00:00" (without timezone marker),
@@ -681,9 +649,6 @@ router.post('/book-session', authenticateToken, async (req, res) => {
     const dateObj = new Date(scheduledDateTime);
     const utcDateString = dateObj.toISOString().split('.')[0];  // Remove milliseconds
     
-    console.log('[TRAINER-SESSIONS] Timezone handling:');
-    console.log('[TRAINER-SESSIONS]   Input (user\'s local time):', scheduledDateTime);
-    console.log('[TRAINER-SESSIONS]   Converted to UTC for storage:', utcDateString);
 
     const logResult = await db.query(`
       INSERT INTO student_trainer_session_logs (
@@ -705,12 +670,6 @@ router.post('/book-session', authenticateToken, async (req, res) => {
     // Log what was actually stored in the database
     const storedDate = logResult.rows[0].scheduled_date;
     const storedSlotId = logResult.rows[0].slot_instance_id;
-    console.log('[TRAINER-SESSIONS] Stored session log:', {
-      id: logResult.rows[0].id,
-      slot_instance_id: storedSlotId,
-      scheduled_date: storedDate,
-      sessionNumber: logResult.rows[0].session_number
-    });
 
     // Mark the slot as BOOKED in the master calendar
     await db.query(`
@@ -766,14 +725,6 @@ router.post('/session-log/:logId/cancel', authenticateToken, async (req, res) =>
 
     const log = logResult.rows[0];
     
-    console.log('[TRAINER-SESSIONS] Cancellation request details:', {
-      logId: logId,
-      status: log.status,
-      slotInstanceId: log.slot_instance_id,
-      trainerId: log.trainer_id,
-      studentId: log.student_id,
-      scheduledDate: log.scheduled_date
-    });
 
     // Verify this is the student's session
     if (log.student_id !== studentId) {
@@ -802,40 +753,15 @@ router.post('/session-log/:logId/cancel', authenticateToken, async (req, res) =>
       SET status = 'CANCELLED', updated_at = NOW()
       WHERE id = $1
     `, [logId]);
-    
-    console.log('[TRAINER-SESSIONS] Updated session log to CANCELLED:', logId);
 
     // Release the slot back to available in trainer's calendar
     // This makes it show as WORKOUT (available) instead of BOOKED
     if (log.slot_instance_id) {
-      const slotUpdateResult = await db.query(`
+      await db.query(`
         UPDATE slot_instances
         SET status = 'WORKOUT', modified_by = $2, modified_at = NOW()
         WHERE id = $1
-        RETURNING id, status, slot_date, start_time, user_id
       `, [log.slot_instance_id, studentId]);
-      
-      if (slotUpdateResult.rows.length > 0) {
-        const updatedSlot = slotUpdateResult.rows[0];
-        console.log('[TRAINER-SESSIONS] ✅ Released slot back to WORKOUT:', {
-          slotId: log.slot_instance_id,
-          trainerId: updatedSlot.user_id,
-          status: updatedSlot.status,
-          date: updatedSlot.slot_date,
-          time: updatedSlot.start_time
-        });
-      } else {
-        console.log('[TRAINER-SESSIONS] ⚠️ Slot update query returned no rows. Checking if slot exists...');
-        const checkSlot = await db.query('SELECT id, status FROM slot_instances WHERE id = $1', [log.slot_instance_id]);
-        if (checkSlot.rows.length === 0) {
-          console.log('[TRAINER-SESSIONS] ❌ Slot ID not found in database:', log.slot_instance_id);
-        } else {
-          console.log('[TRAINER-SESSIONS] Slot exists but update failed:', checkSlot.rows[0]);
-        }
-      }
-    } else {
-      console.log('[TRAINER-SESSIONS] ❌ CRITICAL: No slot_instance_id found for session log:', logId);
-      console.log('[TRAINER-SESSIONS] Session log details:', log);
     }
 
     // Restore remaining sessions
@@ -845,7 +771,6 @@ router.post('/session-log/:logId/cancel', authenticateToken, async (req, res) =>
       WHERE id = $1
     `, [log.student_trainer_session_id]);
 
-    console.log('[TRAINER-SESSIONS] Session cancelled:', logId, 'Trainer:', log.trainer_id);
 
     res.json({
       success: true,

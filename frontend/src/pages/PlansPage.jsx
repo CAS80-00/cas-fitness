@@ -17,13 +17,13 @@ import styles from "../styles/PlansPage.module.css";
  */
 export default function PlansPage({
   currentUser,
-  cartItem,
+  cartItems = [],
+  onAddToCart,
   onNavigate,
-  onSetCartItem,
   onLogout,
   onAuthenticated,
   cartRequested,
-  onCartRequestHandled,
+  onCartRequested,
 }) {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
   const [plans, setPlans] = useState([]);
@@ -36,12 +36,17 @@ export default function PlansPage({
   const [activePromotions, setActivePromotions] = useState([]);
   const [plansLoading, setPlansLoading] = useState(true);
 
+  const handleRemoveFromCart = (cartId) => {
+    // This would typically call a parent handler to update cartItems in App.jsx
+    // For now, we'll just log it - the parent (App.jsx) manages cart state
+  };
+
   // Opens the cart drawer when the header's cart icon routes here.
   useEffect(() => {
     if (!cartRequested) return;
     setShowCart(true);
-    onCartRequestHandled?.();
-  }, [cartRequested, onCartRequestHandled]);
+    onCartRequested?.();
+  }, [cartRequested, onCartRequested]);
 
   // Load plans from API
   useEffect(() => {
@@ -127,6 +132,7 @@ export default function PlansPage({
         onNavigate={onNavigate}
         onLogout={onLogout}
         onAuthenticated={onAuthenticated}
+        cartItemCount={cartItems.length}
       />
 
       <div className={styles.contentWrap}>
@@ -158,10 +164,14 @@ export default function PlansPage({
               plans.map((plan) => (
                 <MembershipCard
                   key={plan.id}
-                  {...plan}
+                  id={plan.id}
+                  title={plan.title}
+                  description={plan.description}
+                  price={plan.price}
+                  billing_cycle={plan.billing_cycle}
+                  photo_url={plan.photo_url}
+                  onAddToCart={onAddToCart}
                   autoPromotion={promotionForPlan(plan.id)}
-                  onAddToCart={startSubscription}
-                  onSeeDetails={setSelectedPlanDetails}
                 />
               ))
             )}
@@ -205,17 +215,22 @@ export default function PlansPage({
 
       {showCart && (
         <ShoppingCart
-          cartItem={cartItem}
+          cartItems={cartItems}
           onClose={() => setShowCart(false)}
-          onClear={() => onSetCartItem(null)}
+          onClear={() => {
+            // Clear all cart items by navigating back - parent will handle this
+            setShowCart(false);
+          }}
+          onRemoveItem={handleRemoveFromCart}
           onContinue={() => {
             setShowCart(false);
-            if (cartItem) {
+            if (cartItems.length > 0) {
+              const firstItem = cartItems[0];
               setSelectedPlan({
-                id: cartItem.id,
-                title: cartItem.title,
-                billingCycle: cartItem.billing_cycle || "monthly",
-                basePrice: Number(cartItem.activePrice ?? cartItem.price),
+                id: firstItem.id,
+                title: firstItem.title,
+                billingCycle: firstItem.billing_cycle || "monthly",
+                basePrice: Number(firstItem.activePrice ?? firstItem.price),
               });
             }
             setCheckoutStep("subscription");

@@ -1,5 +1,10 @@
 require("dotenv").config();
 
+if (!process.env.JWT_SECRET) {
+  console.error("JWT_SECRET is not set. Refusing to start.");
+  process.exit(1);
+}
+
 const app = require("./app");
 const db = require("./db/client");
 

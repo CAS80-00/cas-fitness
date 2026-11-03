@@ -29,7 +29,7 @@ const FALLBACK_IMAGES = [heroImage];
  *    Changes" is clicked. Attempting to log out, navigate away, or close
  *    the tab with unsaved headline edits triggers a confirmation modal.
  */
-export default function LandingPage({ currentUser, onAuthenticated, onLogout, onNavigate }) {
+export default function LandingPage({ currentUser, onAuthenticated, onLogout, onNavigate, cartItems = [] }) {
   const isSuperuser = currentUser?.roleId === 1;
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 
@@ -213,6 +213,7 @@ export default function LandingPage({ currentUser, onAuthenticated, onLogout, on
         onNavigate={guardedNavigate}
         onLogout={guardedLogout}
         onAuthenticated={onAuthenticated}
+        cartItemCount={cartItems.length}
       />
 
       <main className={styles.main}>

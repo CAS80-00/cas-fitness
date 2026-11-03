@@ -1,48 +1,57 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../db/client");
-const { authenticateToken } = require("../middleware/authMiddleware");
 const crypto = require("crypto");
+const db = require("../db/client");
+const { authenticateToken, optionalAuthenticate, canAccessUser } = require("../middleware/authMiddleware");
+const { sendUserConfirmationEmail, sendSuperuserNotificationEmail } = require("../services/emailService");
 
-// Card encryption/decryption utilities
-const ENCRYPTION_KEY = process.env.CARD_ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
-const ENCRYPTION_ALGORITHM = 'aes-256-cbc';
+const isProduction = process.env.NODE_ENV === "production";
+
+// Card numbers are stored with AES-256-GCM. Production must provide its own
+// 32-byte (64 hex chars) key; outside production a key derived from JWT_SECRET
+// keeps local data readable across restarts.
+function getEncryptionKey() {
+  const configured = process.env.CARD_ENCRYPTION_KEY;
+  if (configured) {
+    const key = Buffer.from(configured, "hex");
+    if (key.length !== 32) {
+      throw new Error("CARD_ENCRYPTION_KEY must be 64 hex characters (32 bytes).");
+    }
+    return key;
+  }
+  if (isProduction) {
+    throw new Error("CARD_ENCRYPTION_KEY is not configured.");
+  }
+  return crypto.createHash("sha256").update(String(process.env.JWT_SECRET)).digest();
+}
 
 function encryptCardNumber(cardNumber) {
-  const iv = crypto.randomBytes(16);
-  const key = Buffer.from(ENCRYPTION_KEY, 'hex');
-  const cipher = crypto.createCipheriv(ENCRYPTION_ALGORITHM, key, iv);
-  let encrypted = cipher.update(cardNumber, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  return iv.toString('hex') + ':' + encrypted;
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", getEncryptionKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(cardNumber, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return [iv, tag, encrypted].map((part) => part.toString("hex")).join(":");
 }
 
-function decryptCardNumber(encryptedData) {
-  const parts = encryptedData.split(':');
-  const iv = Buffer.from(parts[0], 'hex');
-  const key = Buffer.from(ENCRYPTION_KEY, 'hex');
-  const decipher = crypto.createDecipheriv(ENCRYPTION_ALGORITHM, key, iv);
-  let decrypted = decipher.update(parts[1], 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  return decrypted;
-}
+// Mock gateway: only the configured test card is accepted, and never in production.
+const TEST_CARD = {
+  number: process.env.TEST_CARD_NUMBER || "4539148273410928",
+  exp: process.env.TEST_CARD_EXP || "12/28",
+  cvc: process.env.TEST_CARD_CVC || "123",
+  zip: process.env.TEST_CARD_ZIP || "10001",
+};
 
-router.post("/process", async (req, res) => {
-  const { cardNumber, expDate, cvc, zip, amount, planId, userId, promoCode } =
-    req.body;
+// Public so guests can check out, but the subscription is only recorded for
+// the authenticated caller; a userId in the body is never trusted.
+router.post("/process", optionalAuthenticate, async (req, res) => {
+  const { cardNumber, expDate, cvc, zip, planId, promoCode } = req.body;
 
   try {
-    const normalizedCard = String(cardNumber || "").replace(/\s/g, "");
-    const testCardNumber =
-      process.env.TEST_CARD_NUMBER ||
-      process.env.REACT_APP_TEST_CARD_NUMBER ||
-      "4539148273410928";
-    const testCardExp =
-      process.env.TEST_CARD_EXP || process.env.REACT_APP_TEST_CARD_EXP || "12/28";
-    const testCardCvc =
-      process.env.TEST_CARD_CVC || process.env.REACT_APP_TEST_CARD_CVC || "123";
-    const testCardZip =
-      process.env.TEST_CARD_ZIP || process.env.REACT_APP_TEST_CARD_ZIP || "10001";
+    const planRes = await db.query("SELECT id, price FROM plans WHERE id = $1", [planId]);
+    if (planRes.rows.length === 0) {
+      return res.status(400).json({ error: "Selected plan does not exist." });
+    }
+    const planPrice = Number(planRes.rows[0].price);
 
     let discountAmount = 0;
     if (promoCode) {
@@ -54,39 +63,37 @@ router.post("/process", async (req, res) => {
           AND is_active = TRUE
           AND start_time <= NOW()
           AND end_time >= NOW()
+          AND (plan_id IS NULL OR plan_id = $2)
         LIMIT 1
       `,
-        [String(promoCode).toUpperCase()],
+        [String(promoCode).toUpperCase(), planId],
       );
 
       if (promoRes.rows.length > 0) {
         const promo = promoRes.rows[0];
-        if (promo.discount_type === "AMOUNT") {
-          discountAmount = Number(promo.discount_value);
-        } else {
-          discountAmount = (Number(amount) * Number(promo.discount_value)) / 100;
-        }
+        discountAmount =
+          promo.discount_type === "AMOUNT"
+            ? Number(promo.discount_value)
+            : (planPrice * Number(promo.discount_value)) / 100;
       }
     }
 
-    // Development/Test Card Bypass Mode
     const isTestCard =
-      normalizedCard === testCardNumber &&
-      expDate === testCardExp &&
-      cvc === testCardCvc &&
-      zip === testCardZip;
+      String(cardNumber || "").replace(/\s/g, "") === TEST_CARD.number &&
+      expDate === TEST_CARD.exp &&
+      cvc === TEST_CARD.cvc &&
+      zip === TEST_CARD.zip;
 
-    if (process.env.NODE_ENV !== "production" && isTestCard) {
-      const paidAmount = Math.max(Number(amount) - discountAmount, 0);
+    if (!isProduction && isTestCard) {
+      const paidAmount = Math.max(planPrice - discountAmount, 0);
 
-      // Record Subscription
-      if (userId) {
+      if (req.user) {
         await db.query(
           `
           INSERT INTO user_subscriptions (user_id, plan_id, status, start_date, end_date)
           VALUES ($1, $2, 'ACTIVE', NOW(), NOW() + INTERVAL '1 MONTH')
         `,
-          [userId, planId],
+          [req.user.userId, planId],
         );
       }
 
@@ -98,13 +105,12 @@ router.post("/process", async (req, res) => {
       });
     }
 
-    // Live Payment Gateway Integration Logic Here
-    res
-      .status(400)
-      .json({
-        error: "Payment failed, review your information and try again.",
-      });
+    // Live payment gateway integration goes here.
+    res.status(400).json({
+      error: "Payment failed, review your information and try again.",
+    });
   } catch (err) {
+    console.error("Payment processing error:", err.message);
     res.status(500).json({ error: "Internal Payment Processing Error" });
   }
 });
@@ -112,6 +118,10 @@ router.post("/process", async (req, res) => {
 // Get saved credit card for a student
 router.get("/credit-card/:userId", authenticateToken, async (req, res) => {
   const { userId } = req.params;
+
+  if (!canAccessUser(req, userId)) {
+    return res.status(403).json({ error: "Access denied." });
+  }
 
   try {
     const result = await db.query(
@@ -143,17 +153,19 @@ router.get("/credit-card/:userId", authenticateToken, async (req, res) => {
   }
 });
 
-// Save new credit card for a student
-router.post("/credit-card", authenticateToken, async (req, res) => {
-  const { card_number, cardholder_name, expiry_month, expiry_year, cvv, address } = req.body;
+// Save new credit card for a student or guest
+router.post("/credit-card", optionalAuthenticate, async (req, res) => {
+  const { student_name, email, phone, card_number, cardholder_name, expiry_month, expiry_year, cvv, country, street, city, state, zip_code, planTitle, planPrice, billingCycle } = req.body;
   const studentId = req.user?.userId;
 
-  if (!studentId) {
-    return res.status(401).json({ error: "Unauthorized" });
+  // Validate required fields
+  if (!student_name || !email || !phone || !card_number || !cardholder_name || !expiry_month || !expiry_year || !cvv || !country || !street || !city || !zip_code) {
+    return res.status(400).json({ error: "All fields are required" });
   }
 
-  if (!card_number || !cardholder_name || !expiry_month || !expiry_year || !cvv || !address) {
-    return res.status(400).json({ error: "All fields are required" });
+  // State is required for US addresses
+  if (country === 'US' && !state) {
+    return res.status(400).json({ error: "State is required for US addresses" });
   }
 
   try {
@@ -185,37 +197,96 @@ router.post("/credit-card", authenticateToken, async (req, res) => {
     if (/^3[47]/.test(normalizedCard)) cardType = 'AX'; // American Express
     if (/^6(?:011|5)/.test(normalizedCard)) cardType = 'DI'; // Discover
 
-    const last4 = normalizedCard.slice(-4);
+    // Construct full address
+    const address = `${street}, ${city}, ${state ? state + ', ' : ''}${zip_code}, ${country}`;
 
     // Encrypt card number
     const encryptedCardNumber = encryptCardNumber(normalizedCard);
 
-    // Deactivate previous cards
-    await db.query(
-      `UPDATE student_credit_cards SET is_active = FALSE WHERE student_id = $1`,
-      [studentId]
-    );
+    // If authenticated user, save card to their profile
+    if (studentId) {
+      // Deactivate previous cards
+      await db.query(
+        `UPDATE student_credit_cards SET is_active = FALSE WHERE student_id = $1`,
+        [studentId]
+      );
 
-    // Insert new card with encrypted card number
-    const result = await db.query(
-      `INSERT INTO student_credit_cards (student_id, cardholder_name, card_number_encrypted, card_number_last_4, card_type, expiry_month, expiry_year, address, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
-       RETURNING cardholder_name, card_number_last_4, card_type, expiry_month, expiry_year`,
-      [studentId, cardholder_name, encryptedCardNumber, last4, cardType, expiry_month, expiry_year, address]
-    );
+      // Insert new card with encrypted card number
+      const result = await db.query(
+        `INSERT INTO student_credit_cards (student_id, cardholder_name, card_number_encrypted, card_number_last_4, card_type, expiry_month, expiry_year, address, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
+         RETURNING cardholder_name, card_number_last_4, card_type, expiry_month, expiry_year`,
+        [studentId, cardholder_name, encryptedCardNumber, last4, cardType, expiry_month, expiry_year, address]
+      );
 
-    const card = result.rows[0];
-    res.json({
-      success: true,
-      message: "Card saved successfully",
-      card: {
-        cardholder_name: card.cardholder_name,
-        card_number_masked: card.card_number_last_4,
-        card_type: card.card_type,
-        expiry_month: String(card.expiry_month).padStart(2, '0'),
-        expiry_year: card.expiry_year,
+      const card = result.rows[0];
+      
+      // Send confirmation emails
+      try {
+        await sendUserConfirmationEmail(email, student_name, {
+          title: planTitle || 'Membership Plan',
+          price: planPrice || '0.00',
+          billing_cycle: billingCycle || 'Monthly',
+        });
+
+        await sendSuperuserNotificationEmail({
+          student_name,
+          email,
+          phone,
+          planTitle: planTitle || 'Membership Plan',
+          planPrice: planPrice || '0.00',
+          billingCycle: billingCycle || 'Monthly',
+          address,
+        });
+      } catch (emailError) {
+        console.error('Email sending error (non-blocking):', emailError);
       }
-    });
+
+      res.json({
+        success: true,
+        message: "Payment processed successfully",
+        card: {
+          cardholder_name: card.cardholder_name,
+          card_number_masked: card.card_number_last_4,
+          card_type: card.card_type,
+          expiry_month: String(card.expiry_month).padStart(2, '0'),
+          expiry_year: card.expiry_year,
+        }
+      });
+    } else {
+      // For guest users, process payment without saving card
+      // Send confirmation emails
+      try {
+        await sendUserConfirmationEmail(email, student_name, {
+          title: planTitle || 'Membership Plan',
+          price: planPrice || '0.00',
+          billing_cycle: billingCycle || 'Monthly',
+        });
+
+        await sendSuperuserNotificationEmail({
+          student_name,
+          email,
+          phone,
+          planTitle: planTitle || 'Membership Plan',
+          planPrice: planPrice || '0.00',
+          billingCycle: billingCycle || 'Monthly',
+          address,
+        });
+      } catch (emailError) {
+        console.error('Email sending error (non-blocking):', emailError);
+      }
+
+      res.json({
+        success: true,
+        message: "Payment processed successfully",
+        card: {
+          cardholder_name: cardholder_name,
+          card_type: cardType,
+          expiry_month: String(expiry_month).padStart(2, '0'),
+          expiry_year: expiry_year,
+        }
+      });
+    }
   } catch (err) {
     console.error("Error saving credit card:", err);
     res.status(500).json({ error: "Failed to save credit card" });

@@ -338,3 +338,36 @@ CREATE TABLE IF NOT EXISTS student_credit_cards (
 
 CREATE INDEX IF NOT EXISTS idx_student_credit_cards_student ON student_credit_cards(student_id);
 CREATE INDEX IF NOT EXISTS idx_student_credit_cards_active ON student_credit_cards(student_id, is_active);
+-- Email Configuration Table (Superuser Settings)
+CREATE TABLE IF NOT EXISTS email_config (
+    id SERIAL PRIMARY KEY,
+    gmail_user VARCHAR(255) NOT NULL,
+    gmail_password_encrypted TEXT NOT NULL,
+    superuser_email VARCHAR(255) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_config_active ON email_config(is_active);
+
+-- Banners Table for Superuser Announcements
+-- Superuser can create up to 3 banners with start/end times and specific page targeting
+CREATE TABLE IF NOT EXISTS banners (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    background_color VARCHAR(20) DEFAULT '#3B82F6' CHECK (background_color ~ '^#[0-9A-Fa-f]{6}$'),
+    text_color VARCHAR(20) DEFAULT '#FFFFFF' CHECK (text_color ~ '^#[0-9A-Fa-f]{6}$'),
+    start_date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_date DATE NOT NULL,
+    end_time TIME NOT NULL,
+    pages JSONB DEFAULT '[]'::jsonb,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_banners_active ON banners(is_active);
+CREATE INDEX IF NOT EXISTS idx_banners_dates ON banners(start_date, end_date);

@@ -25,8 +25,7 @@ export default function WorkoutCalendar({
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedTrainer, setSelectedTrainer] = useState(trainerId || "");
-  const [trainers, setTrainers] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
 
   // Trainer availability UI state
   const [showAvailabilitySetup, setShowAvailabilitySetup] = useState(false);

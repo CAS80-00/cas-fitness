@@ -62,7 +62,6 @@ export default function UserManagementSection({
   const [detailForm, setDetailForm] = useState(null);
   const [detailError, setDetailError] = useState("");
   const [detailSuccess, setDetailSuccess] = useState("");
-  const [viewingEmployeeId, setViewingEmployeeId] = useState(null);
 
   const authHeaders = () => {
     const token = localStorage.getItem("cas_jwt");

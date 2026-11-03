@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db/client");
-const { authenticateToken } = require("../middleware/authMiddleware");
+const { authenticateToken, requireRole, requireSuperuser } = require("../middleware/authMiddleware");
 
 function getCalendarTable(type) {
   return type === "workout" ? "workout_sessions" : "consultation_appointments";
@@ -70,7 +70,8 @@ router.post("/hold-slot", authenticateToken, async (req, res) => {
   }
 });
 
-router.get("/consultations", async (req, res) => {
+// Includes client names, so it is limited to staff-facing roles.
+router.get("/consultations", authenticateToken, requireRole(["SUPERUSER", "STAFF", "TRAINER"]), async (req, res) => {
   try {
     const result = await db.query(
       `
@@ -280,11 +281,7 @@ router.get("/workouts", authenticateToken, async (req, res) => {
         const studentName = session.student_first_name && session.student_last_name 
           ? `${session.student_first_name} ${session.student_last_name}` 
           : 'Unknown Student';
-        
-        if (session.student_id) {
-          console.log(`[/workouts] Session ID: ${session.id}, Trainer: ${trainerName}, Student: ${studentName}, Start: ${session.start_time}`);
-        }
-        
+
         return {
           id: session.id,
           trainer_id: session.trainer_id,
@@ -303,11 +300,7 @@ router.get("/workouts", authenticateToken, async (req, res) => {
         const studentName = booking.student_first_name && booking.student_last_name 
           ? `${booking.student_first_name} ${booking.student_last_name}` 
           : 'Unknown Student';
-        
-        if (booking.student_id) {
-            console.log(`[/workouts] Trainer Session ID: ${booking.id}, Trainer: ${trainerName}, Student: ${studentName}, Start: ${booking.start_time}`);
-          }
-        
+
         return {
           id: booking.id,
           trainer_id: booking.trainer_id,
@@ -321,8 +314,6 @@ router.get("/workouts", authenticateToken, async (req, res) => {
       })
     ];
 
-    console.log(`[/workouts] Returning ${sessions.length} sessions (${result.rows.length} workout sessions + ${trainerBookings.rows.length} trainer sessions)`);
-    console.log('[/workouts] Sample response:', JSON.stringify(sessions.slice(0, 1), null, 2));
     
     // Disable caching to ensure fresh session data is always fetched
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -431,20 +422,10 @@ router.get("/settings", async (req, res) => {
 });
 
 // 4. Update Superuser Calendar Settings (Superuser only)
-router.put("/settings", authenticateToken, async (req, res) => {
+router.put("/settings", authenticateToken, requireSuperuser, async (req, res) => {
   const { slotDurationMinutes, breakDurationMinutes, cancellationCutoffHours } = req.body;
 
-  // Verify user is superuser (role_id = 1, assuming superuser role)
   try {
-    const userRes = await db.query(
-      "SELECT role_id FROM users WHERE id = $1",
-      [req.user.userId]
-    );
-
-    if (!userRes.rows[0] || userRes.rows[0].role_id !== 1) {
-      return res.status(403).json({ error: "Only superusers can modify calendar settings." });
-    }
-
     const existingSettings = await db.query("SELECT id FROM calendar_settings LIMIT 1");
 
     let result;
@@ -1006,8 +987,6 @@ router.get("/trainer-workouts", authenticateToken, async (req, res) => {
     `;
 
     const result = await db.query(query, [trainer_id]);
-    console.log(`[/trainer-workouts] Trainer ID: ${trainer_id}, Found ${result.rows.length} sessions`);
-    console.log(`[/trainer-workouts] Session data:`, result.rows);
     
     const workouts = result.rows.map((session) => ({
       id: session.id,
@@ -1020,7 +999,6 @@ router.get("/trainer-workouts", authenticateToken, async (req, res) => {
       end_time: session.end_time,
     }));
 
-    console.log(`[/trainer-workouts] Returning ${workouts.length} workouts:`, workouts);
     res.json({ data: workouts });
   } catch (err) {
     console.error("Error fetching trainer workouts:", err.message);
@@ -1087,7 +1065,6 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
     daysOfWeek,
   } = req.body;
 
-  console.log("[CALENDARS] POST /slots/create received body:", JSON.stringify(req.body, null, 2));
 
   // Detailed validation with field-by-field checking
   const missingFields = [];
@@ -1101,7 +1078,6 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
   if (!daysOfWeek || daysOfWeek.length === 0) missingFields.push('daysOfWeek (must have at least one day)');
 
   if (missingFields.length > 0) {
-    console.log("[CALENDARS] Missing fields:", missingFields);
     return res.status(400).json({ 
       error: "Missing required fields",
       missingFields: missingFields,
@@ -1117,19 +1093,6 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
     // Format start time as HH:MM
     const startTime = `${String(startHour).padStart(2, "0")}:${String(startMinute).padStart(2, "0")}`;
     
-    console.log("Employee slot creation request:", {
-      userId,
-      calendarType,
-      startDate,
-      endDate,
-      startHour,
-      startMinute,
-      durationMinutes,
-      endHour,
-      endMinute,
-      locationFormat,
-      daysOfWeek,
-    });
     
     // Create template first (same as superuser flow)
     const templateResult = await db.query(
@@ -1156,7 +1119,6 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
 
     let instancesInserted = 0;
 
-    console.log("Date range:", { startDateObj, endDateObj, startHours, startMinutes, endHours, endMinutes });
 
     // Check if published_at column exists
     const columnRes = await db.query(
@@ -1168,26 +1130,21 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
     const hasPublishedAt = columnRes.rows[0].exists;
 
     // Generate slot instances for all matching dates in the range
-    console.log("Starting date loop. startDateObj:", startDateObj, "endDateObj:", endDateObj);
     
     let dateCount = 0;
     for (let d = new Date(startDateObj.getTime()); d <= endDateObj; d = new Date(d.getTime() + 86400000)) {
       dateCount++;
       if (dateCount > 100) {
-        console.log("Date loop exceeded 100 iterations, breaking");
         break;
       }
       
       const dayOfWeek = d.getDay();
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      console.log(`Date ${dateCount}: ${dateStr}, dayOfWeek=${dayOfWeek}, checking against daysOfWeek=${JSON.stringify(daysOfWeek)}`);
       
       if (daysOfWeek.includes(dayOfWeek)) {
-        console.log(`  ✓ Match! Creating slots for ${dateStr}`);
 
         // Generate slots at the specified time interval
         let currentHour = startHours;
-        console.log("Creating slots for date:", dateStr, "between", currentHour, startMinutes, "and", endHours, endMinutes);
 
         while (currentHour < endHours || (currentHour === endHours && startMinutes < endMinutes)) {
           const slotStartStr = `${String(currentHour).padStart(2, "0")}:${String(startMinutes).padStart(2, "0")}`;
@@ -1237,7 +1194,6 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
       }
     }
 
-    console.log("Slot creation complete:", { instancesInserted, templateId: template.id });
 
     res.json({
       success: true,
@@ -1254,7 +1210,6 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
 
 // Master Calendar Endpoint - Get all trainer slots including blocked times
 router.get("/master-calendar-slots", async (req, res) => {
-  console.log("[MASTER-CALENDAR-SLOTS] Endpoint hit!");
   try {
     // Get ALL slots from all trainers (including blocked/unavailable times)
     const query = `
@@ -1276,7 +1231,6 @@ router.get("/master-calendar-slots", async (req, res) => {
     `;
 
     const result = await db.query(query);
-    console.log("[MASTER-CALENDAR-SLOTS] Query returned", result.rows.length, "rows");
 
     const slots = result.rows.map((slot) => {
       // Format dates and times
@@ -1312,7 +1266,6 @@ router.get("/master-calendar-slots", async (req, res) => {
       };
     });
 
-    console.log("[MASTER-CALENDAR-SLOTS] Mapped", slots.length, "slots");
     
     // Disable caching to ensure fresh slot data is always fetched
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

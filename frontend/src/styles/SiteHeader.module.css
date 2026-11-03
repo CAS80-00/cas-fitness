@@ -132,9 +132,19 @@
 
 .cartButton {
   @apply flex shrink-0 items-center justify-center rounded-lg p-1.5 text-white transition sm:p-2;
+  position: relative;
 }
 .cartButton:hover {
   color: var(--color-header-accent);
+}
+
+.cartBadge {
+  @apply absolute right-0 top-0 flex items-center justify-center rounded-full text-xs font-bold text-white;
+  width: 1.25rem;
+  height: 1.25rem;
+  background-color: var(--color-crimson-red);
+  font-size: 0.75rem;
+  line-height: 1;
 }
 
 /* Desktop: brand centered on its own row, nav below; auth area pulled out

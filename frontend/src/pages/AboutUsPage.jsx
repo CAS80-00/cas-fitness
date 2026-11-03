@@ -12,7 +12,7 @@ import styles from "../styles/AboutUsPage.module.css";
  * unsaved-changes-aware Save/Cancel flow. Image upload/delete persists
  * immediately to Object Storage + PostgreSQL.
  */
-export default function AboutUsPage({ currentUser, onNavigate, onLogout, onAuthenticated }) {
+export default function AboutUsPage({ currentUser, onNavigate, onLogout, onAuthenticated, cartItems = [] }) {
   const isSuperuser = currentUser?.roleId === 1;
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 
@@ -143,6 +143,7 @@ export default function AboutUsPage({ currentUser, onNavigate, onLogout, onAuthe
         onNavigate={onNavigate}
         onLogout={onLogout}
         onAuthenticated={onAuthenticated}
+        cartItemCount={cartItems.length}
       />
 
       <div className={styles.contentWrap}>

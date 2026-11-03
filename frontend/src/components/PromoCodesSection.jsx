@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ChevronDown, ChevronUp, Plus } from "lucide-react";
 import styles from "../styles/PromoCodesSection.module.css";
 
 const emptyForm = {
@@ -37,6 +38,7 @@ export default function PromoCodesSection({ plans, onSessionInvalidated }) {
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [form, setForm] = useState(emptyForm);
 
   const authHeaders = () => {
@@ -82,9 +84,11 @@ export default function PromoCodesSection({ plans, onSessionInvalidated }) {
   };
 
   useEffect(() => {
-    loadPromotions();
+    if (isExpanded) {
+      loadPromotions();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isExpanded]);
 
   const startAdd = () => {
     setEditingId(null);
@@ -170,16 +174,25 @@ export default function PromoCodesSection({ plans, onSessionInvalidated }) {
 
   return (
     <div className={styles.card}>
-      <div className={styles.headerRow}>
+      <button
+        type="button"
+        className={styles.headerButton}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         <h2 className={styles.title}>Promocodes &amp; Campaigns</h2>
-        <button type="button" onClick={startAdd} className={styles.addButton}>
-          Add Promo Code
-        </button>
-      </div>
+        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+      </button>
 
-      {error && <p className={styles.errorText}>{error}</p>}
+      {isExpanded && (
+        <div className={styles.collapsibleContent}>
+          {error && <p className={styles.errorText}>{error}</p>}
 
-      <div className={styles.tableWrap}>
+          <button type="button" onClick={startAdd} className={styles.addButton}>
+            <Plus size={18} />
+            Add Promo Code
+          </button>
+
+          <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
             <tr>
@@ -228,7 +241,9 @@ export default function PromoCodesSection({ plans, onSessionInvalidated }) {
             ))}
           </tbody>
         </table>
-      </div>
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <div className={styles.overlay}>

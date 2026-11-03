@@ -2,10 +2,17 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const router = express.Router();
 const db = require("../db/client");
-const { authenticateToken } = require("../middleware/authMiddleware");
+const { authenticateToken, canAccessUser } = require("../middleware/authMiddleware");
+
+// Marks door-pass tokens so a regular session JWT cannot be replayed at the scanner.
+const DOOR_PASS_PURPOSE = "door-pass";
 
 router.post("/generate-pass", authenticateToken, async (req, res) => {
   const userId = req.body.userId || req.user.userId;
+
+  if (!canAccessUser(req, userId)) {
+    return res.status(403).json({ error: "Access denied." });
+  }
 
   try {
     const subscriptionRes = await db.query(
@@ -24,7 +31,7 @@ router.post("/generate-pass", authenticateToken, async (req, res) => {
       return res.status(403).json({ error: "No active subscription found for this user." });
     }
 
-    const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "30s" });
+    const token = jwt.sign({ userId, purpose: DOOR_PASS_PURPOSE }, process.env.JWT_SECRET, { expiresIn: "30s" });
     res.json({ token, expiresInSeconds: 30 });
   } catch (err) {
     res.status(500).json({ error: "Unable to generate access pass." });
@@ -40,12 +47,16 @@ router.post("/verify-scan", async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.purpose !== DOOR_PASS_PURPOSE) {
+      throw new Error("Not a door pass token.");
+    }
     const userRes = await db.query(
       `
       SELECT u.id, u.first_name, u.last_name
       FROM users u
       JOIN user_subscriptions s ON s.user_id = u.id
       WHERE u.id = $1
+        AND u.status = 'ACTIVE'
         AND s.status = 'ACTIVE'
       ORDER BY s.start_date DESC
       LIMIT 1
@@ -71,6 +82,10 @@ router.post("/verify-scan", async (req, res) => {
 });
 
 router.get("/scan-history/:userId", authenticateToken, async (req, res) => {
+  if (!canAccessUser(req, req.params.userId)) {
+    return res.status(403).json({ error: "Access denied." });
+  }
+
   try {
     const history = await db.query(
       `

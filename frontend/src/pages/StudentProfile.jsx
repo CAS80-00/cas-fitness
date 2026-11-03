@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import AccessQRCode from "../components/AccessQRCode";
 import TrainerSessionScheduler from "../components/TrainerSessionScheduler";
 import StudentSessionManagement from "../components/StudentSessionManagement";
@@ -15,7 +15,7 @@ import styles from "../styles/StudentProfile.module.css";
  * Member dashboard: read-only profile panel, door-access QR pass with a
  * 30-day scan history modal, and the personal-trainer workout calendar.
  */
-export default function StudentProfile({ currentUser, onLogout, onNavigate, onAuthenticated }) {
+export default function StudentProfile({ currentUser, onLogout, onNavigate, onAuthenticated, cartItems = [] }) {
   const [showHistory, setShowHistory] = useState(false);
   const [scanHistory, setScanHistory] = useState([]);
   const [subscription, setSubscription] = useState(null);
@@ -145,6 +145,7 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
         onNavigate={onNavigate}
         onLogout={onLogout}
         onAuthenticated={onAuthenticated}
+        cartItemCount={cartItems.length}
       />
 
       <div className={styles.contentWrap}>

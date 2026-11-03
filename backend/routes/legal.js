@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db/client");
-const { authenticateToken } = require("../middleware/authMiddleware");
+const { authenticateToken, requireSuperuser } = require("../middleware/authMiddleware");
 
 router.get("/:pageKey", async (req, res) => {
   try {
@@ -22,7 +22,7 @@ router.get("/:pageKey", async (req, res) => {
   }
 });
 
-router.post("/:pageKey", authenticateToken, async (req, res) => {
+router.post("/:pageKey", authenticateToken, requireSuperuser, async (req, res) => {
   const pageKey = req.params.pageKey;
   const content = req.body.content;
 

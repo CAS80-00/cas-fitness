@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Trash2 } from "lucide-react";
 import styles from "../styles/ShoppingCart.module.css";
 
 const HOLD_SECONDS = 10 * 60;
@@ -9,13 +10,14 @@ const HOLD_SECONDS = 10 * 60;
  * the active-reservation state shows a 10-minute MM:SS countdown and
  * purges the cart automatically on expiry.
  */
-export default function ShoppingCart({ cartItem, onClose, onClear, onContinue }) {
+export default function ShoppingCart({ cartItems = [], onClose, onClear, onRemoveItem, onContinue, onKeepPurchasing }) {
   const [remainingSeconds, setRemainingSeconds] = useState(HOLD_SECONDS);
+  const firstItem = cartItems?.[0];
 
   useEffect(() => {
-    if (!cartItem?.addedAt) return undefined;
+    if (!firstItem?.addedAt) return undefined;
     const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - cartItem.addedAt) / 1000);
+      const elapsed = Math.floor((Date.now() - firstItem.addedAt) / 1000);
       const remaining = HOLD_SECONDS - elapsed;
       setRemainingSeconds(remaining);
       if (remaining <= 0) {
@@ -24,7 +26,7 @@ export default function ShoppingCart({ cartItem, onClose, onClear, onContinue })
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [cartItem, onClear]);
+  }, [firstItem, onClear]);
 
   const mm = String(Math.max(Math.floor(remainingSeconds / 60), 0)).padStart(2, "0");
   const ss = String(Math.max(remainingSeconds % 60, 0)).padStart(2, "0");
@@ -34,24 +36,35 @@ export default function ShoppingCart({ cartItem, onClose, onClear, onContinue })
       <div className={styles.drawer}>
         <div className={styles.header}>
           <span className={styles.logo}>CAS</span>
-          <button type="button" onClick={onClose} className={styles.closeButton}>
-            ×
-          </button>
         </div>
 
-        {!cartItem ? (
+        {!cartItems || cartItems.length === 0 ? (
           <div className={styles.emptyState}>
             <p className={styles.emptyText}>Your cart is empty</p>
-            <button type="button" onClick={onClose} className={styles.viewPlansButton}>
+            <button type="button" onClick={onKeepPurchasing} className={styles.viewPlansButton}>
               View Plans
             </button>
           </div>
         ) : (
           <div className={styles.activeState}>
-            <div className={styles.itemCard}>
-              <h4 className={styles.itemTitle}>{cartItem.title}</h4>
-              <p className={styles.itemDescription}>{cartItem.description}</p>
-              <p className={styles.itemPrice}>${cartItem.activePrice?.toFixed(2)}</p>
+            <div className={styles.itemsList}>
+              {cartItems.map((item) => (
+                <div key={item.cartId} className={styles.itemCard}>
+                  <div className={styles.itemContent}>
+                    <h4 className={styles.itemTitle}>{item.title}</h4>
+                    <p className={styles.itemDescription}>{item.description}</p>
+                    <p className={styles.itemPrice}>${item.activePrice?.toFixed(2)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveItem?.(item.cartId)}
+                    className={styles.removeButton}
+                    aria-label="Remove item"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </div>
+              ))}
             </div>
             <div className={styles.timerBox}>
               <p className={styles.timerLabel}>Remaining time to complete purchase</p>
@@ -59,9 +72,14 @@ export default function ShoppingCart({ cartItem, onClose, onClear, onContinue })
                 {mm}:{ss}
               </p>
             </div>
-            <button type="button" onClick={onContinue} className={styles.continueButton}>
-              Continue to payment
-            </button>
+            <div className={styles.actionsContainer}>
+              <button type="button" onClick={onKeepPurchasing} className={styles.keepPurchasingButton}>
+                Keep Purchasing
+              </button>
+              <button type="button" onClick={onContinue} className={styles.continueButton}>
+                Continue to payment
+              </button>
+            </div>
           </div>
         )}
       </div>

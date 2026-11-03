@@ -90,6 +90,17 @@
   @apply space-y-2;
 }
 
+.sectionDivider {
+  @apply mt-6 mb-3 text-xs font-bold uppercase tracking-wider;
+  color: #9ca3af;
+  border-bottom: 1px solid #404040;
+  padding-bottom: 0.5rem;
+}
+
+.required {
+  @apply text-red-500;
+}
+
 .error {
   @apply rounded px-3 py-2 text-xs;
   background-color: rgba(239, 68, 68, 0.1);

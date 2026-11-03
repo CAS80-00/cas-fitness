@@ -68,18 +68,20 @@ export default function FOPCard({ selectedPlan, userData }) {
     if (expError) return;
 
     try {
+      const token = localStorage.getItem("cas_jwt");
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "/api"}/payments/process`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
         body: JSON.stringify({
           cardNumber,
           expDate,
           cvc,
           zip,
           country,
-          amount: discountedPrice,
           planId: selectedPlan?.id,
-          userId: userData?.id,
           promoCode,
         }),
       });

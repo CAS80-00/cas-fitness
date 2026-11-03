@@ -10,6 +10,8 @@ import MasterConsultationCalendar from "../components/MasterConsultationCalendar
 import MasterWorkoutCalendar from "../components/MasterWorkoutCalendar";
 import CalendarSlotManagement from "../components/CalendarSlotManagement";
 import PromoCodesSection from "../components/PromoCodesSection";
+import EmailSettings from "../components/EmailSettings";
+import BannerManager from "../components/BannerManager";
 import styles from "../styles/SuperuserDashboard.module.css";
 
 const EMPLOYEE_STATUS_OPTIONS = ["ACTIVE", "PENDING", "SUSPENDED", "CANCELLED"];
@@ -24,7 +26,7 @@ const MEMBER_STATUS_OPTIONS = ["ACTIVE", "PENDING", "SUSPENDED", "INACTIVE", "CA
  * calendars, and Promocodes & Campaigns — all synced to PostgreSQL (Neon)
  * via /api/admin/*.
  */
-export default function SuperuserDashboard({ currentUser, onLogout, onNavigate, onAuthenticated }) {
+export default function SuperuserDashboard({ currentUser, onLogout, onNavigate, onAuthenticated, cartItems = [] }) {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
   const [profile, setProfile] = useState(currentUser);
   const [roles, setRoles] = useState([]);
@@ -97,6 +99,7 @@ export default function SuperuserDashboard({ currentUser, onLogout, onNavigate, 
           onNavigate={onNavigate}
           onLogout={onLogout}
           onAuthenticated={onAuthenticated}
+          cartItemCount={cartItems.length}
         />
 
         <div className={styles.contentWrap}>
@@ -121,6 +124,7 @@ export default function SuperuserDashboard({ currentUser, onLogout, onNavigate, 
           onNavigate={onNavigate}
           onLogout={onLogout}
           onAuthenticated={onAuthenticated}
+          cartItemCount={cartItems.length}
         />
 
         <div className={styles.contentWrap}>
@@ -142,6 +146,7 @@ export default function SuperuserDashboard({ currentUser, onLogout, onNavigate, 
         onNavigate={onNavigate}
         onLogout={onLogout}
         onAuthenticated={onAuthenticated}
+        cartItemCount={cartItems.length}
       />
 
       <div className={styles.contentWrap}>
@@ -173,6 +178,10 @@ export default function SuperuserDashboard({ currentUser, onLogout, onNavigate, 
         <CalendarSlotManagement onSlotChanged={triggerCalendarRefresh} />
 
         <PromoCodesSection plans={plans} onSessionInvalidated={handleSessionInvalidated} />
+
+        <EmailSettings currentUser={profile} />
+
+        <BannerManager />
       </div>
 
       <SiteFooter isSuperuser={true} />

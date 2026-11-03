@@ -23,7 +23,11 @@ async function seed() {
     );
 
     // 3. Superuser Creation
-    const hashedPassword = await bcrypt.hash("User@123", 10);
+    const superuserPassword = process.env.SEED_SUPERUSER_PASSWORD;
+    if (!superuserPassword && process.env.NODE_ENV === "production") {
+      throw new Error("SEED_SUPERUSER_PASSWORD must be set when seeding in production.");
+    }
+    const hashedPassword = await bcrypt.hash(superuserPassword || "User@123", 10);
     await db.query(
       `
       INSERT INTO users (email, password_hash, first_name, last_name, role_id, status)

@@ -17,7 +17,6 @@ export default function TrainerSessionManagement({ studentId, onClose }) {
 
   const [sessions, setSessions] = useState([]);
   const [packages, setPackages] = useState([]);
-  const [trainers, setTrainers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -394,8 +393,6 @@ export default function TrainerSessionManagement({ studentId, onClose }) {
           session={selectedSession}
           formData={formData}
           setFormData={setFormData}
-          trainers={trainers}
-          packages={packages}
           isLoading={isLoading}
           onSubmit={handleSubmit}
           onClose={() => setIsModalOpen(false)}
@@ -415,8 +412,6 @@ function SessionModal({
   session,
   formData,
   setFormData,
-  trainers,
-  packages,
   isLoading,
   onSubmit,
   onClose,

@@ -24,6 +24,10 @@ Full-stack CAS Fitness implementation with:
 ```env
 PORT=5000
 JWT_SECRET=your_super_secret_jwt_key
+CORS_ORIGIN=http://localhost:5173
+CARD_ENCRYPTION_KEY=64_hex_characters_32_bytes
+SMS_WEBHOOK_SECRET=shared_secret_for_sms_reply_webhook
+SEED_SUPERUSER_PASSWORD=initial_superuser_password
 DATABASE_URL=postgres://user:pass@host/db?sslmode=require
 TWILIO_ACCOUNT_SID=your_twilio_sid
 TWILIO_AUTH_TOKEN=your_twilio_auth_token

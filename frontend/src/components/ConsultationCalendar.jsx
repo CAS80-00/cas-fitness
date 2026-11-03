@@ -6,7 +6,6 @@ import interactionPlugin from "@fullcalendar/interaction";
 import styles from "../styles/ConsultationCalendar.module.css";
 import PhoneInputWithCountryCode from "./PhoneInputWithCountryCode";
 
-const SLOT_MINUTES = 30;
 const HOLD_SECONDS = 5 * 60;
 
 /**
@@ -211,7 +210,7 @@ export default function ConsultationCalendar({ employeeId }) {
                 dayCellClassNames="fc-day-cell"
                 showNonCurrentDates={true}
                 fixedWeekCount={false}
-                datesSet={(info) => {
+                datesSet={() => {
                   const monthYear = document.querySelector(".fc-toolbar-title");
                   if (monthYear) {
                     monthYear.style.fontSize = "1.2em";

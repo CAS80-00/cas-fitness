@@ -7,6 +7,9 @@ import AboutUsPage from "./pages/AboutUsPage";
 import StudentProfile from "./pages/StudentProfile";
 import EmployeeProfile from "./pages/EmployeeProfile";
 import SuperuserDashboard from "./pages/SuperuserDashboard";
+import ConfirmationPage from "./pages/ConfirmationPage";
+import ShoppingCart from "./components/ShoppingCart";
+import CreditCardModal from "./components/CreditCardModal";
 
 const INACTIVITY_MS = 20 * 60 * 1000;
 
@@ -26,12 +29,12 @@ function App() {
     const raw = localStorage.getItem("cas_user");
     return raw ? "profile" : "home";
   });
-  const [cartItem, setCartItem] = useState(null);
-  const [cartRequested, setCartRequested] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
+  const [showCartDrawer, setShowCartDrawer] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [graceSeconds, setGraceSeconds] = useState(120);
 
-  const isSuperuser = currentUser?.roleId === 1;
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 
   const logout = useCallback(async () => {
@@ -120,9 +123,11 @@ function App() {
   }, [showInactivityModal]);
 
   const handleNavigate = useCallback((newRoute) => {
-    setRoute(newRoute);
-    setCartItem(null);
-    setCartRequested(false);
+    if (newRoute === "cart") {
+      setShowCartDrawer(true);
+    } else {
+      setRoute(newRoute);
+    }
   }, []);
 
   const handleAuthenticated = useCallback(
@@ -136,17 +141,27 @@ function App() {
   );
 
   const handleAddToCart = useCallback((item) => {
-    setCartItem(item);
-    setCartRequested(true);
+    const newItem = {
+      ...item,
+      addedAt: Date.now(),
+      cartId: Date.now(), // Unique ID for cart items
+    };
+    setCartItems((prev) => [...prev, newItem]);
+  }, []);
+
+  const handleRemoveFromCart = useCallback((cartId) => {
+    setCartItems((prev) => prev.filter((item) => item.cartId !== cartId));
   }, []);
 
   const renderPage = useMemo(() => {
     if (!currentUser) {
       switch (route) {
+        case "confirmation":
+          return <ConfirmationPage onNavigate={handleNavigate} currentUser={currentUser} onLogout={logout} onAuthenticated={handleAuthenticated} cartItems={cartItems} />;
         case "plans":
-          return <PlansPage currentUser={currentUser} onAddToCart={handleAddToCart} onNavigate={handleNavigate} />;
+          return <PlansPage currentUser={currentUser} cartItems={cartItems} onAddToCart={handleAddToCart} onNavigate={handleNavigate} />;
         case "about":
-          return <AboutUsPage currentUser={currentUser} onNavigate={handleNavigate} />;
+          return <AboutUsPage currentUser={currentUser} cartItems={cartItems} onNavigate={handleNavigate} />;
         default:
           return (
             <LandingPage
@@ -154,9 +169,7 @@ function App() {
               onNavigate={handleNavigate}
               onLogout={logout}
               onAuthenticated={handleAuthenticated}
-              cartItem={cartItem}
-              cartRequested={cartRequested}
-              onCartRequested={() => setCartRequested(false)}
+              cartItems={cartItems}
             />
           );
       }
@@ -164,10 +177,13 @@ function App() {
 
     // Authenticated user routing
     switch (route) {
+      case "confirmation":
+        return <ConfirmationPage onNavigate={handleNavigate} currentUser={currentUser} onLogout={logout} onAuthenticated={handleAuthenticated} cartItems={cartItems} />;
       case "profile":
         return currentUser.roleId === 1 ? (
           <SuperuserDashboard
             currentUser={currentUser}
+            cartItems={cartItems}
             onLogout={logout}
             onNavigate={handleNavigate}
             onAuthenticated={handleAuthenticated}
@@ -175,6 +191,7 @@ function App() {
         ) : currentUser.roleId === 4 ? (
           <StudentProfile
             currentUser={currentUser}
+            cartItems={cartItems}
             onLogout={logout}
             onNavigate={handleNavigate}
             onAuthenticated={handleAuthenticated}
@@ -182,15 +199,16 @@ function App() {
         ) : (
           <EmployeeProfile
             currentUser={currentUser}
+            cartItems={cartItems}
             onLogout={logout}
             onNavigate={handleNavigate}
             onAuthenticated={handleAuthenticated}
           />
         );
       case "plans":
-        return <PlansPage currentUser={currentUser} onAddToCart={handleAddToCart} onNavigate={handleNavigate} onLogout={logout} onAuthenticated={handleAuthenticated} />;
+        return <PlansPage currentUser={currentUser} cartItems={cartItems} onAddToCart={handleAddToCart} onNavigate={handleNavigate} onLogout={logout} onAuthenticated={handleAuthenticated} />;
       case "about":
-        return <AboutUsPage currentUser={currentUser} onNavigate={handleNavigate} onLogout={logout} onAuthenticated={handleAuthenticated} />;
+        return <AboutUsPage currentUser={currentUser} cartItems={cartItems} onNavigate={handleNavigate} onLogout={logout} onAuthenticated={handleAuthenticated} />;
       case "home":
       default:
         return (
@@ -199,17 +217,14 @@ function App() {
             onNavigate={handleNavigate}
             onLogout={logout}
             onAuthenticated={handleAuthenticated}
-            cartItem={cartItem}
-            cartRequested={cartRequested}
-            onCartRequested={() => setCartRequested(false)}
+            cartItems={cartItems}
           />
         );
     }
   }, [
     currentUser,
     route,
-    cartItem,
-    cartRequested,
+    cartItems,
     handleNavigate,
     handleAuthenticated,
     handleAddToCart,
@@ -229,6 +244,43 @@ function App() {
       >
         {renderPage}
       </AppLayout>
+      
+      {showCartDrawer && (
+        <ShoppingCart
+          cartItems={cartItems}
+          onClose={() => setShowCartDrawer(false)}
+          onClear={() => {
+            setCartItems([]);
+            setShowCartDrawer(false);
+          }}
+          onRemoveItem={handleRemoveFromCart}
+          onKeepPurchasing={() => {
+            setShowCartDrawer(false);
+            setRoute("plans");
+          }}
+          onContinue={() => {
+            setShowCartDrawer(false);
+            if (cartItems.length > 0) {
+              // Show payment modal instead of navigating
+              setShowPaymentModal(true);
+            }
+          }}
+        />
+      )}
+
+      {showPaymentModal && (
+        <CreditCardModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          cartItems={cartItems}
+          onNavigate={handleNavigate}
+          onCardSaved={() => {
+            // After card is saved, clear cart and show confirmation
+            setCartItems([]);
+            setShowPaymentModal(false);
+          }}
+        />
+      )}
     </HelmetProvider>
   );
 }
