@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, forwardRef, useImperativeHandle, useRef } from "react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -15,8 +16,8 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
   const [sessions, setSessions] = useState([]);
   const [trainerSlots, setTrainerSlots] = useState([]);
   const [selectedTrainerId, setSelectedTrainerId] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
   const [error, setError] = useState("");
-  const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
   const loadDataRef = useRef(null);
@@ -75,8 +76,10 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [apiBaseUrl, refreshTrigger, loadData]);
+    if (isExpanded) {
+      loadData();
+    }
+  }, [apiBaseUrl, refreshTrigger, loadData, isExpanded]);
 
   const events = useMemo(() => {
     const allEvents = [];
@@ -290,21 +293,31 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
 
   return (
     <div className={styles.card}>
-      <div className={styles.header}>
+      <button
+        type="button"
+        className={styles.headerButton}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         <h2 className={styles.title}>Master Workout Calendar</h2>
-        <select
-          value={selectedTrainerId}
-          onChange={(e) => setSelectedTrainerId(e.target.value)}
-          className={styles.select}
-        >
-          <option value="">All Trainers</option>
-          {trainers.map((trainer) => (
-            <option key={trainer.id} value={trainer.id}>
-              {trainer.firstName} {trainer.lastName}
-            </option>
-          ))}
-        </select>
-      </div>
+        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+      </button>
+
+      {isExpanded && (
+      <div className={styles.collapsibleContent}>
+        <div className={styles.header}>
+          <select
+            value={selectedTrainerId}
+            onChange={(e) => setSelectedTrainerId(e.target.value)}
+            className={styles.select}
+          >
+            <option value="">All Trainers</option>
+            {trainers.map((trainer) => (
+              <option key={trainer.id} value={trainer.id}>
+                {trainer.firstName} {trainer.lastName}
+              </option>
+            ))}
+          </select>
+        </div>
       {error && <p className={styles.errorText}>{error}</p>}
       <div style={{ marginBottom: "1rem", fontSize: "0.875rem", color: "#888" }}>
         <div style={{ marginBottom: "0.75rem", fontWeight: "600" }}>Trainer Calendar Status:</div>
@@ -425,8 +438,7 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
         height="auto"
         showNonCurrentDates={true}
         fixedWeekCount={false}
-        datesSet={(info) => {
-          setCurrentWeekStart(info.start);
+        datesSet={() => {
           const monthYear = document.querySelector(".fc-toolbar-title");
           if (monthYear) {
             monthYear.style.fontSize = "1.2em";
@@ -434,6 +446,8 @@ const MasterWorkoutCalendar = forwardRef(({ trainers, refreshTrigger = 0 }, ref)
           }
         }}
       />
+      </div>
+      )}
 
       {/* Booked Session Details Modal */}
       {showDetailsModal && selectedSession && (

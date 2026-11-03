@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import styles from "../styles/MasterCalendar.module.css";
 
 /**
@@ -18,14 +19,19 @@ export default function MasterConsultationCalendar({ staff, refreshTrigger = 0 }
   const [error, setError] = useState("");
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
+    if (!isExpanded) return;
+    
     const load = async () => {
       try {
         const token = localStorage.getItem("cas_jwt");
         
         // Load booked consultations
-        const appointmentsRes = await fetch(`${apiBaseUrl}/calendars/consultations`);
+        const appointmentsRes = await fetch(`${apiBaseUrl}/calendars/consultations`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const appointmentsData = await appointmentsRes.json();
         if (!appointmentsRes.ok) throw new Error(appointmentsData.error || "Failed to load consultations.");
         setAppointments(appointmentsData.appointments || []);
@@ -43,7 +49,7 @@ export default function MasterConsultationCalendar({ staff, refreshTrigger = 0 }
       }
     };
     load();
-  }, [apiBaseUrl, refreshTrigger]);
+  }, [apiBaseUrl, refreshTrigger, isExpanded]);
 
   const handleEventClick = (info) => {
     if (info.event.extendedProps.type === "booked") {
@@ -126,22 +132,32 @@ export default function MasterConsultationCalendar({ staff, refreshTrigger = 0 }
 
   return (
     <div className={styles.card}>
-      <div className={styles.header}>
+      <button
+        type="button"
+        className={styles.headerButton}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         <h2 className={styles.title}>Master Consultation Calendar</h2>
-        <select
-          value={selectedStaffId}
-          onChange={(e) => setSelectedStaffId(e.target.value)}
-          className={styles.select}
-        >
-          <option value="">All Staff</option>
-          {staff && staff.map((member) => (
-            <option key={member.id} value={member.id}>
-              {member.first_name || member.firstName} {member.last_name || member.lastName}
-            </option>
-          ))}
-        </select>
-      </div>
-      {error && <p className={styles.errorText}>{error}</p>}
+        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+      </button>
+
+      {isExpanded && (
+      <div className={styles.collapsibleContent}>
+        <div className={styles.header}>
+          <select
+            value={selectedStaffId}
+            onChange={(e) => setSelectedStaffId(e.target.value)}
+            className={styles.select}
+          >
+            <option value="">All Staff</option>
+            {staff && staff.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.first_name || member.firstName} {member.last_name || member.lastName}
+              </option>
+            ))}
+          </select>
+        </div>
+        {error && <p className={styles.errorText}>{error}</p>}
       
       <div className={styles.legend} style={{ marginBottom: "1rem" }}>
         <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap" }}>
@@ -165,7 +181,7 @@ export default function MasterConsultationCalendar({ staff, refreshTrigger = 0 }
         height="auto"
         showNonCurrentDates={true}
         fixedWeekCount={false}
-        datesSet={(info) => {
+        datesSet={() => {
           // Ensure month and year are displayed prominently
           const monthYear = document.querySelector(".fc-toolbar-title");
           if (monthYear) {
@@ -174,6 +190,8 @@ export default function MasterConsultationCalendar({ staff, refreshTrigger = 0 }
           }
         }}
       />
+      </div>
+      )}
 
       {showDetailsModal && selectedBooking && (
         <div className={styles.modal}>
