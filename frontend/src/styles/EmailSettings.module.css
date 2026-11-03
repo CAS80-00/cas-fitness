@@ -1,0 +1,180 @@
+@reference "./global.css";
+/* ==========================================================================
+   EmailSettings Module
+   Email configuration settings for Superuser (collapsible)
+   ========================================================================== */
+
+.container {
+  @apply rounded-2xl border;
+  background-color: var(--color-dark-slate);
+  border-color: #262626;
+  margin-top: 24px;
+}
+
+.headerButton {
+  @apply w-full flex items-center justify-between p-6 text-left transition;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.headerButton:hover {
+  background-color: rgba(30, 64, 175, 0.05);
+}
+
+.headerContent {
+  @apply flex items-center gap-3;
+}
+
+.headerContent h2 {
+  @apply m-0 text-xl font-bold text-white;
+}
+
+.headerButton svg {
+  color: var(--color-electric-blue);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.headerButton:hover svg {
+  transform: scale(1.1);
+}
+
+.collapsibleContent {
+  @apply border-t px-6 py-6;
+  border-color: #262626;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+.description {
+  @apply mb-6 text-sm text-neutral-400;
+  margin: 0 0 24px 0;
+}
+
+.alert {
+  @apply mb-6 flex items-center gap-3 rounded-lg border-l-4 px-4 py-3;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.form {
+  @apply space-y-6;
+}
+
+.formGroup {
+  @apply space-y-2;
+}
+
+.formGroup label {
+  @apply block text-sm font-semibold text-white;
+}
+
+.formGroup input {
+  @apply w-full rounded-lg border px-4 py-2 text-base font-normal text-white placeholder-neutral-500 transition;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-color: #404040;
+}
+
+.formGroup input:focus {
+  outline: none;
+  border-color: var(--color-electric-blue);
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+}
+
+.formGroup input:disabled {
+  @apply cursor-not-allowed opacity-50;
+  background-color: rgba(0, 0, 0, 0.15);
+}
+
+.hint {
+  @apply m-0 text-xs text-neutral-500;
+}
+
+.hint a {
+  @apply underline transition;
+  color: var(--color-electric-blue);
+}
+
+.hint a:hover {
+  color: var(--color-electric-blue-hover);
+}
+
+.infoBox {
+  @apply rounded-lg border border-l-4 p-4;
+  background-color: rgba(30, 64, 175, 0.08);
+  border-color: #1e40af;
+  border-left-color: var(--color-electric-blue);
+}
+
+.infoBox h4 {
+  @apply mb-3 mt-0 font-semibold text-white;
+}
+
+.infoBox ol {
+  @apply m-0 pl-5;
+}
+
+.infoBox li {
+  @apply mb-2 text-sm text-neutral-300;
+}
+
+.infoBox li:last-child {
+  @apply mb-0;
+}
+
+.infoBox a {
+  @apply underline transition;
+  color: var(--color-electric-blue);
+}
+
+.infoBox a:hover {
+  color: var(--color-electric-blue-hover);
+}
+
+.submitButton {
+  @apply mt-4 flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-base font-bold text-white transition-all duration-200;
+  background-color: var(--color-electric-blue);
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+}
+
+.submitButton:hover:not(:disabled) {
+  background-color: var(--color-electric-blue-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(30, 64, 175, 0.4);
+}
+
+.submitButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submitButton:disabled {
+  @apply cursor-not-allowed opacity-50;
+}
+
+@media (max-width: 768px) {
+  .headerButton {
+    @apply p-4;
+  }
+
+  .headerContent {
+    @apply gap-2;
+  }
+
+  .headerContent h2 {
+    @apply text-xl;
+  }
+
+  .collapsibleContent {
+    @apply px-4 py-4;
+  }
+}
