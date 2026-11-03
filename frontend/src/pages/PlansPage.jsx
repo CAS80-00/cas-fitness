@@ -173,7 +173,9 @@ export default function PlansPage({
                   price={plan.price}
                   billing_cycle={plan.billing_cycle}
                   photo_url={plan.photo_url}
+                  details={plan.details}
                   onAddToCart={onAddToCart}
+                  onSeeDetails={setSelectedPlanDetails}
                   autoPromotion={promotionForPlan(plan.id)}
                 />
               ))
