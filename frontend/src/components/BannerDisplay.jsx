@@ -40,20 +40,28 @@ export default function BannerDisplay({ page }) {
           className={styles.banner}
           style={{ backgroundColor: banner.background_color }}
         >
-          <div className={styles.content}>
-            <h3 style={{ color: banner.text_color }}>{banner.title}</h3>
-            <p style={{ color: banner.text_color }}>{banner.content}</p>
-          </div>
           <button
             onClick={() => dismissBanner(banner.id)}
             className={styles.dismissButton}
             style={{ color: banner.text_color }}
             aria-label="Dismiss banner"
           >
-            <X size={20} />
+            <X size={24} />
           </button>
+          
+          <div className={styles.marqueeContainer}>
+            <div className={styles.marqueeContent} style={{ color: banner.text_color }}>
+              <span className={styles.marqueeText}>
+                <strong>{banner.title}:</strong> {banner.content}
+              </span>
+              <span className={styles.marqueeText}>
+                <strong>{banner.title}:</strong> {banner.content}
+              </span>
+            </div>
+          </div>
         </div>
       ))}
     </div>
   );
 }
+
