@@ -8,6 +8,7 @@ import FOPCard from "../components/FOPCard";
 import ShoppingCart from "../components/ShoppingCart";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
+import BannerDisplay from "../components/BannerDisplay";
 import styles from "../styles/PlansPage.module.css";
 
 /**
@@ -134,6 +135,8 @@ export default function PlansPage({
         onAuthenticated={onAuthenticated}
         cartItemCount={cartItems.length}
       />
+
+      <BannerDisplay page="plans" />
 
       <div className={styles.contentWrap}>
         {/* Superuser Plan Management Panel */}

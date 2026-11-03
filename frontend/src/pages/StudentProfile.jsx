@@ -8,6 +8,7 @@ import CreditCardModal from "../components/CreditCardModal";
 import SubscriptionManagement from "../components/SubscriptionManagement";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
+import BannerDisplay from "../components/BannerDisplay";
 import styles from "../styles/StudentProfile.module.css";
 
 /**
@@ -147,6 +148,8 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
         onAuthenticated={onAuthenticated}
         cartItemCount={cartItems.length}
       />
+
+      <BannerDisplay page="dashboard" />
 
       <div className={styles.contentWrap}>
         <div className={styles.header}>

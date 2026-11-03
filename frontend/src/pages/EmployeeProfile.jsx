@@ -3,6 +3,7 @@ import CalendarSlotManagement from "../components/CalendarSlotManagement";
 import TrainerConsolidatedCalendar from "../components/TrainerConsolidatedCalendar";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
+import BannerDisplay from "../components/BannerDisplay";
 import styles from "../styles/EmployeeProfile.module.css";
 
 /**
@@ -46,6 +47,8 @@ export default function EmployeeProfile({ currentUser, onLogout, onNavigate, onA
         onAuthenticated={onAuthenticated}
         cartItemCount={cartItems.length}
       />
+
+      <BannerDisplay page="profile" />
 
       <div className={styles.contentWrap}>
         <div className={styles.header}>

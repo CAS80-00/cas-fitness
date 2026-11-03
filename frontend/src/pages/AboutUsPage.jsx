@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { ImageOff, Loader2, Trash2, Upload } from "lucide-react";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
+import BannerDisplay from "../components/BannerDisplay";
 import styles from "../styles/AboutUsPage.module.css";
 
 /**
@@ -145,6 +146,8 @@ export default function AboutUsPage({ currentUser, onNavigate, onLogout, onAuthe
         onAuthenticated={onAuthenticated}
         cartItemCount={cartItems.length}
       />
+
+      <BannerDisplay page="home" />
 
       <div className={styles.contentWrap}>
         <h1 className={styles.title}>About Us. Our Mission</h1>

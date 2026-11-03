@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { Plus } from "lucide-react";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
+import BannerDisplay from "../components/BannerDisplay";
 import CarouselRibbon from "../components/CarouselRibbon";
 import PictureCard from "../components/PictureCard";
 import UnsavedChangesModal from "../components/UnsavedChangesModal";
@@ -215,6 +216,8 @@ export default function LandingPage({ currentUser, onAuthenticated, onLogout, on
         onAuthenticated={onAuthenticated}
         cartItemCount={cartItems.length}
       />
+
+      <BannerDisplay page="home" />
 
       <main className={styles.main}>
         {isSuperuser ? (

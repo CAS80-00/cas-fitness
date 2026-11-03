@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { CheckCircle, Home } from 'lucide-react';
 import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
+import BannerDisplay from '../components/BannerDisplay';
 import styles from '../styles/ConfirmationPage.module.css';
 
 export default function ConfirmationPage({ onNavigate, currentUser, onLogout, onAuthenticated, cartItems = [] }) {
@@ -18,6 +19,8 @@ export default function ConfirmationPage({ onNavigate, currentUser, onLogout, on
         onAuthenticated={onAuthenticated}
         cartItemCount={cartItems.length}
       />
+
+      <BannerDisplay page="checkout" />
 
       <main className={styles.main}>
         <div className={styles.contentWrap}>
