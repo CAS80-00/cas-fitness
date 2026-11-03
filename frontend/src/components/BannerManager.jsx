@@ -116,6 +116,16 @@ export default function BannerManager() {
     }
   };
 
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return '';
+    // If it's ISO format (2026-11-02T05:00:00.000Z), extract just the date part
+    if (dateString.includes('T')) {
+      return dateString.split('T')[0];
+    }
+    // Otherwise assume it's already in yyyy-MM-dd format
+    return dateString;
+  };
+
   const handleEdit = (banner) => {
     setEditingId(banner.id);
     setFormData({
@@ -123,9 +133,9 @@ export default function BannerManager() {
       content: banner.content,
       backgroundColor: banner.background_color,
       textColor: banner.text_color,
-      startDate: banner.start_date,
+      startDate: formatDateForInput(banner.start_date),
       startTime: banner.start_time,
-      endDate: banner.end_date,
+      endDate: formatDateForInput(banner.end_date),
       endTime: banner.end_time,
       pages: banner.pages
     });
