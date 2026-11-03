@@ -116,14 +116,26 @@ export default function BannerManager() {
     }
   };
 
-  const formatDateForInput = (dateString) => {
+  const formatDateForInput = (dateString, timeString) => {
     if (!dateString) return '';
-    // If it's ISO format (2026-11-02T05:00:00.000Z), extract just the date part
+    
+    // If it's ISO format (2026-11-02T05:00:00.000Z), convert to local time
     if (dateString.includes('T')) {
-      return dateString.split('T')[0];
+      const utcDate = new Date(dateString);
+      // Convert UTC to local time by getting the local date/time components
+      const year = utcDate.getFullYear();
+      const month = String(utcDate.getMonth() + 1).padStart(2, '0');
+      const day = String(utcDate.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     }
     // Otherwise assume it's already in yyyy-MM-dd format
     return dateString;
+  };
+
+  const formatTimeForInput = (timeString) => {
+    if (!timeString) return '00:00';
+    // Extract HH:mm from HH:mm:ss format
+    return timeString.substring(0, 5);
   };
 
   const handleEdit = (banner) => {
@@ -133,10 +145,10 @@ export default function BannerManager() {
       content: banner.content,
       backgroundColor: banner.background_color,
       textColor: banner.text_color,
-      startDate: formatDateForInput(banner.start_date),
-      startTime: banner.start_time,
-      endDate: formatDateForInput(banner.end_date),
-      endTime: banner.end_time,
+      startDate: formatDateForInput(banner.start_date, banner.start_time),
+      startTime: formatTimeForInput(banner.start_time),
+      endDate: formatDateForInput(banner.end_date, banner.end_time),
+      endTime: formatTimeForInput(banner.end_time),
       pages: banner.pages
     });
     setShowForm(true);
