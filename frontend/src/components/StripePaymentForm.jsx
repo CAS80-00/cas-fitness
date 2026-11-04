@@ -21,38 +21,26 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
 
   // Load Stripe
   useEffect(() => {
-    const loadStripe = async () => {
-      if (window.Stripe) {
-        const stripeInstance = window.Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-        setStripe(stripeInstance);
-        setupElements(stripeInstance);
-        return;
-      }
+    if (window.Stripe) {
+      const stripeInstance = window.Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+      setStripe(stripeInstance);
+      return;
+    }
 
-      const script = document.createElement('script');
-      script.src = 'https://js.stripe.com/v3/';
-      script.async = true;
-      script.onload = () => {
-        const stripeInstance = window.Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-        setStripe(stripeInstance);
-        setupElements(stripeInstance);
-      };
-      document.body.appendChild(script);
+    const script = document.createElement('script');
+    script.src = 'https://js.stripe.com/v3/';
+    script.async = true;
+    script.onload = () => {
+      const stripeInstance = window.Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+      setStripe(stripeInstance);
     };
+    document.body.appendChild(script);
+  }, []);
 
-    loadStripe();
-    
-    return () => {
-      if (cardNumberElement) cardNumberElement.unmount();
-      if (cardExpiryElement) cardExpiryElement.unmount();
-      if (cardCvcElement) cardCvcElement.unmount();
-    };
-  }, [cardNumberElement, cardExpiryElement, cardCvcElement]);
+  // Mount Stripe elements after DOM is ready
+  useEffect(() => {
+    if (!stripe) return;
 
-  const setupElements = (stripeInstance) => {
-    const elementsInstance = stripeInstance.elements();
-    setElements(elementsInstance);
-    
     const elementStyle = {
       base: {
         fontSize: '16px',
@@ -68,19 +56,30 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
         },
       },
     };
+
+    const elementsInstance = stripe.elements();
+    setElements(elementsInstance);
     
     const cardNumberEl = elementsInstance.create('cardNumber', { style: elementStyle });
     const cardExpiryEl = elementsInstance.create('cardExpiry', { style: elementStyle });
     const cardCvcEl = elementsInstance.create('cardCvc', { style: elementStyle });
     
-    cardNumberEl.mount('#card-number-element');
-    cardExpiryEl.mount('#card-expiry-element');
-    cardCvcEl.mount('#card-cvc-element');
+    if (document.getElementById('card-number-element')) {
+      cardNumberEl.mount('#card-number-element');
+      cardExpiryEl.mount('#card-expiry-element');
+      cardCvcEl.mount('#card-cvc-element');
+      
+      setCardNumberElement(cardNumberEl);
+      setCardExpiryElement(cardExpiryEl);
+      setCardCvcElement(cardCvcEl);
+    }
     
-    setCardNumberElement(cardNumberEl);
-    setCardExpiryElement(cardExpiryEl);
-    setCardCvcElement(cardCvcEl);
-  };
+    return () => {
+      if (cardNumberEl) cardNumberEl.unmount();
+      if (cardExpiryEl) cardExpiryEl.unmount();
+      if (cardCvcEl) cardCvcEl.unmount();
+    };
+  }, [stripe]);
 
   // Create payment intent on mount
   useEffect(() => {
