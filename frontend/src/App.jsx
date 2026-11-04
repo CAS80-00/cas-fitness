@@ -128,6 +128,10 @@ function App() {
       setCartRequestedByHeader(true);
     } else {
       setConfirmationData(data);
+      // Clear cart when navigating to confirmation page after successful payment
+      if (newRoute === "confirmation") {
+        setCartItems([]);
+      }
       setRoute(newRoute);
     }
   }, []);
