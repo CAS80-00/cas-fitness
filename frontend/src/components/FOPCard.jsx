@@ -8,7 +8,6 @@ import styles from "../styles/FOPCard.module.css";
  * Handles multiple items and calculates total for payment.
  */
 export default function FOPCard({ selectedPlan, userData, currentUser }) {
-  const [promoCode, setPromoCode] = useState("");
   const [discountedPrice, setDiscountedPrice] = useState(0);
   const [statusMsg, setStatusMsg] = useState(null);
   const [cartItems, setCartItems] = useState([]);
@@ -38,23 +37,6 @@ export default function FOPCard({ selectedPlan, userData, currentUser }) {
       setIsMultiItem(false);
     }
   }, [selectedPlan]);
-
-  const handleApplyPromo = () => {
-    const code = promoCode.trim().toUpperCase();
-    const baseAmount = selectedPlan.items 
-      ? selectedPlan.totalAmount 
-      : selectedPlan?.basePrice || 0;
-    
-    if (code === "CASFIT20") {
-      const discount = baseAmount * 0.8;
-      setDiscountedPrice(discount);
-      setStatusMsg({ type: "success", text: "20% promo code applied!" });
-    } else if (code === "") {
-      setStatusMsg({ type: "error", text: "Please enter a promo code" });
-    } else {
-      setStatusMsg({ type: "error", text: "Invalid promo code" });
-    }
-  };
 
   const handlePaymentSuccess = (data) => {
     setStatusMsg({
@@ -113,20 +95,6 @@ export default function FOPCard({ selectedPlan, userData, currentUser }) {
           </div>
         </div>
       )}
-
-      {/* Promo Code Input */}
-      <div className={styles.promoRow}>
-        <input
-          type="text"
-          placeholder="Promo Code"
-          value={promoCode}
-          onChange={(e) => setPromoCode(e.target.value)}
-          className={styles.promoInput}
-        />
-        <button type="button" onClick={handleApplyPromo} className={styles.promoButton}>
-          Apply
-        </button>
-      </div>
 
       {statusMsg && (
         <div className={statusMsg.type === "success" ? styles.statusSuccess : styles.statusError}>
