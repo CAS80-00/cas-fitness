@@ -18,13 +18,18 @@ export default function FOPCard({ selectedPlan, userData }) {
   useEffect(() => {
     if (!selectedPlan) return;
     
+    console.log('FOPCard: selectedPlan received:', JSON.stringify(selectedPlan, null, 2));
+    
     if (selectedPlan.items && Array.isArray(selectedPlan.items)) {
       // Multiple items from cart
+      console.log('FOPCard: Detected multiple items:', selectedPlan.items.length);
+      console.log('FOPCard items detail:', JSON.stringify(selectedPlan.items, null, 2));
       setCartItems(selectedPlan.items);
       setDiscountedPrice(selectedPlan.totalAmount);
       setIsMultiItem(true);
     } else {
       // Single plan (legacy format)
+      console.log('FOPCard: Single plan detected');
       setCartItems([]);
       setDiscountedPrice(selectedPlan?.basePrice || 0);
       setIsMultiItem(false);

@@ -12,6 +12,11 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 
+  // Log props for debugging
+  useEffect(() => {
+    console.log('StripePaymentForm props:', { amount, planId, cartItems: cartItems?.length, cartItemsList: cartItems });
+  }, [amount, planId, cartItems]);
+
   // Load Stripe
   useEffect(() => {
     const script = document.createElement('script');
@@ -119,17 +124,21 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
 
       if (paymentIntent.status === 'succeeded') {
         // Confirm payment on backend
+        const confirmPayload = {
+          paymentIntentId: paymentIntent.id,
+          planId,
+          userEmail,
+          userName,
+          isGuest,
+          cartItems: cartItems.length > 0 ? cartItems : undefined,
+        };
+        
+        console.log('Sending confirm-payment with payload:', confirmPayload);
+        
         const confirmResponse = await fetch(`${apiBaseUrl}/stripe/confirm-payment`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            paymentIntentId: paymentIntent.id,
-            planId,
-            userEmail,
-            userName,
-            isGuest,
-            cartItems: cartItems.length > 0 ? cartItems : undefined,
-          }),
+          body: JSON.stringify(confirmPayload),
         });
 
         if (!confirmResponse.ok) {
