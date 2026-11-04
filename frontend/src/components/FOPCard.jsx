@@ -4,26 +4,41 @@ import styles from "../styles/FOPCard.module.css";
 
 /**
  * FOPCard - Updated to use Stripe
- * Props: selectedPlan ({ id, title, basePrice, billingCycle }), userData.
- * Handles promo application and Stripe payment processing.
+ * Props: selectedPlan (can be single plan or object with items array), userData.
+ * Handles multiple items and calculates total for payment.
  */
 export default function FOPCard({ selectedPlan, userData }) {
   const [promoCode, setPromoCode] = useState("");
-  const [discountedPrice, setDiscountedPrice] = useState(selectedPlan?.basePrice);
+  const [discountedPrice, setDiscountedPrice] = useState(0);
   const [statusMsg, setStatusMsg] = useState(null);
+  const [cartItems, setCartItems] = useState([]);
+  const [isMultiItem, setIsMultiItem] = useState(false);
 
-  // Ensure price is set correctly when selectedPlan changes
+  // Determine if we have multiple items or single plan
   useEffect(() => {
-    setDiscountedPrice(selectedPlan?.basePrice);
-    setPromoCode(""); // Clear any pre-filled promo codes
-    setStatusMsg(null);
-  }, [selectedPlan?.id]);
+    if (!selectedPlan) return;
+    
+    if (selectedPlan.items && Array.isArray(selectedPlan.items)) {
+      // Multiple items from cart
+      setCartItems(selectedPlan.items);
+      setDiscountedPrice(selectedPlan.totalAmount);
+      setIsMultiItem(true);
+    } else {
+      // Single plan (legacy format)
+      setCartItems([]);
+      setDiscountedPrice(selectedPlan?.basePrice || 0);
+      setIsMultiItem(false);
+    }
+  }, [selectedPlan]);
 
   const handleApplyPromo = () => {
     const code = promoCode.trim().toUpperCase();
+    const baseAmount = selectedPlan.items 
+      ? selectedPlan.totalAmount 
+      : selectedPlan?.basePrice || 0;
     
     if (code === "CASFIT20") {
-      const discount = selectedPlan.basePrice * 0.8;
+      const discount = baseAmount * 0.8;
       setDiscountedPrice(discount);
       setStatusMsg({ type: "success", text: "20% promo code applied!" });
     } else if (code === "") {
@@ -60,19 +75,36 @@ export default function FOPCard({ selectedPlan, userData }) {
         &ldquo;Small daily efforts yield massive long-term results. Let&rsquo;s get those results!&rdquo;
       </p>
 
-      {/* Plan Summary */}
-      <div className={styles.planSummary}>
-        <div>
-          <p className={styles.planTitle}>{selectedPlan?.title || "Gym Membership"}</p>
-          <p className={styles.planCycle}>{selectedPlan?.billingCycle || "Monthly"}</p>
+      {/* Plan Summary or Cart Items */}
+      {isMultiItem && cartItems.length > 0 ? (
+        <div className={styles.cartSummary}>
+          <h3 className={styles.cartTitle}>Order Summary</h3>
+          {cartItems.map((item, idx) => (
+            <div key={idx} className={styles.cartItemRow}>
+              <span className={styles.itemName}>{item.title}</span>
+              <span className={styles.itemPrice}>${Number(item.activePrice || 0).toFixed(2)}</span>
+            </div>
+          ))}
+          <div className={styles.cartDivider}></div>
+          <div className={styles.cartTotalRow}>
+            <span className={styles.totalLabel}>Total:</span>
+            <span className={styles.totalPrice}>${discountedPrice.toFixed(2)}</span>
+          </div>
         </div>
-        <div className={styles.priceColumn}>
-          {discountedPrice < selectedPlan?.basePrice && (
-            <span className={styles.originalPrice}>${selectedPlan?.basePrice}</span>
-          )}
-          <span className={styles.finalPrice}>${discountedPrice}</span>
+      ) : (
+        <div className={styles.planSummary}>
+          <div>
+            <p className={styles.planTitle}>{selectedPlan?.title || "Gym Membership"}</p>
+            <p className={styles.planCycle}>{selectedPlan?.billingCycle || "Monthly"}</p>
+          </div>
+          <div className={styles.priceColumn}>
+            {discountedPrice < (selectedPlan?.basePrice || 0) && (
+              <span className={styles.originalPrice}>${selectedPlan?.basePrice}</span>
+            )}
+            <span className={styles.finalPrice}>${discountedPrice.toFixed(2)}</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Promo Code Input */}
       <div className={styles.promoRow}>

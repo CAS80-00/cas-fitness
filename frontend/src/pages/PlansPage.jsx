@@ -230,12 +230,10 @@ export default function PlansPage({
           onContinue={() => {
             setShowCart(false);
             if (cartItems.length > 0) {
-              const firstItem = cartItems[0];
+              // Pass all cart items, not just the first one
               setSelectedPlan({
-                id: firstItem.id,
-                title: firstItem.title,
-                billingCycle: firstItem.billing_cycle || "monthly",
-                basePrice: Number(firstItem.activePrice ?? firstItem.price),
+                items: cartItems,
+                totalAmount: cartItems.reduce((sum, item) => sum + (Number(item.activePrice) || 0), 0),
               });
             }
             setCheckoutStep("subscription");

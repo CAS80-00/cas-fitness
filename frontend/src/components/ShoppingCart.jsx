@@ -14,6 +14,9 @@ export default function ShoppingCart({ cartItems = [], onClose, onClear, onRemov
   const [remainingSeconds, setRemainingSeconds] = useState(HOLD_SECONDS);
   const firstItem = cartItems?.[0];
 
+  // Calculate total price of all items
+  const totalPrice = cartItems.reduce((sum, item) => sum + (Number(item.activePrice) || 0), 0);
+
   useEffect(() => {
     if (!firstItem?.addedAt) return undefined;
     const interval = setInterval(() => {
@@ -71,6 +74,10 @@ export default function ShoppingCart({ cartItems = [], onClose, onClear, onRemov
               <p className={styles.timerValue}>
                 {mm}:{ss}
               </p>
+            </div>
+            <div className={styles.totalBox}>
+              <p className={styles.totalLabel}>Total to Charge:</p>
+              <p className={styles.totalPrice}>${totalPrice.toFixed(2)}</p>
             </div>
             <div className={styles.actionsContainer}>
               <button type="button" onClick={onKeepPurchasing} className={styles.keepPurchasingButton}>

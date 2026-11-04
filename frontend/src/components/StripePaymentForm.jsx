@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import styles from '../styles/StripePaymentForm.module.css';
 
-export default function StripePaymentForm({ amount, planId, userEmail, userName, onSuccess, onError, isGuest = false }) {
+export default function StripePaymentForm({ amount, planId, userEmail, userName, onSuccess, onError, isGuest = false, cartItems = [] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [clientSecret, setClientSecret] = useState('');
@@ -177,10 +177,29 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
           </div>
 
           <div className={styles.orderSummary}>
-            <div className={styles.summaryRow}>
-              <span className={styles.summaryLabel}>Plan:</span>
-              <span className={styles.summaryValue}>Plan ID: {planId}</span>
-            </div>
+            {cartItems.length > 0 ? (
+              // Show cart items list
+              <>
+                <div className={styles.cartItemsList}>
+                  {cartItems.map((item, idx) => (
+                    <div key={idx} className={styles.cartItemRow}>
+                      <span className={styles.itemName}>{item.title}</span>
+                      <span className={styles.itemPrice}>${Number(item.activePrice || 0).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className={styles.summaryDivider}></div>
+              </>
+            ) : (
+              // Show single plan details
+              <>
+                <div className={styles.summaryRow}>
+                  <span className={styles.summaryLabel}>Plan:</span>
+                  <span className={styles.summaryValue}>Plan ID: {planId}</span>
+                </div>
+                <div className={styles.summaryDivider}></div>
+              </>
+            )}
             <div className={styles.summaryRow}>
               <span className={styles.summaryLabel}>Email:</span>
               <span className={styles.summaryValue}>{userEmail}</span>

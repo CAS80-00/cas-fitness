@@ -100,6 +100,21 @@
   color: var(--color-neon-orange);
 }
 
+.totalBox {
+  @apply rounded-lg border p-4;
+  background-color: rgb(31 41 55 / 50%);
+  border-color: var(--color-electric-blue);
+}
+
+.totalLabel {
+  @apply text-xs text-neutral-300 mb-1;
+}
+
+.totalPrice {
+  @apply font-mono text-2xl font-bold;
+  color: var(--color-electric-blue);
+}
+
 .actionsContainer {
   @apply flex gap-3 w-full;
 }
