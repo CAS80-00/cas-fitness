@@ -29,9 +29,26 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
       setStripe(stripeInstance);
       const elementsInstance = stripeInstance.elements();
       setElements(elementsInstance);
-      const cardNumberEl = elementsInstance.create('cardNumber');
-      const cardExpiryEl = elementsInstance.create('cardExpiry');
-      const cardCvcEl = elementsInstance.create('cardCvc');
+      
+      const elementStyle = {
+        base: {
+          fontSize: '16px',
+          color: '#424770',
+          '::placeholder': {
+            color: '#aab7c4',
+          },
+        },
+        invalid: {
+          color: '#fa755a',
+          '::placeholder': {
+            color: '#ffcdd2',
+          },
+        },
+      };
+      
+      const cardNumberEl = elementsInstance.create('cardNumber', { style: elementStyle });
+      const cardExpiryEl = elementsInstance.create('cardExpiry', { style: elementStyle });
+      const cardCvcEl = elementsInstance.create('cardCvc', { style: elementStyle });
       
       cardNumberEl.mount('#card-number-element');
       cardExpiryEl.mount('#card-expiry-element');
