@@ -96,3 +96,184 @@
     font-size: 0.9375rem;
   }
 }
+
+/* Confirmation Page Styles */
+.confirmationPage {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.confirmationHeader {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.confirmationTitle {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+}
+
+.confirmationSubtitle {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.orderSummary {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  font-size: 1rem;
+}
+
+.summaryLabel {
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.summaryValue {
+  color: #1f2937;
+  word-break: break-word;
+  text-align: right;
+}
+
+.summaryDivider {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+  margin: 0.5rem 0;
+}
+
+.totalRow {
+  padding-top: 1rem;
+  padding-bottom: 0;
+}
+
+.totalLabel {
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 1.125rem;
+}
+
+.totalAmount {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #3b82f6;
+}
+
+.confirmationActions {
+  display: flex;
+  gap: 1rem;
+  flex-direction: column-reverse;
+}
+
+.backButton {
+  padding: 0.75rem 1.5rem;
+  background: white;
+  color: #374151;
+  border: 2px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.backButton:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  transform: translateY(-2px);
+}
+
+.backButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.confirmButton {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.confirmButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.confirmButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.confirmButton:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (max-width: 640px) {
+  .confirmationPage {
+    padding: 1.5rem 1rem;
+    gap: 1.5rem;
+  }
+
+  .confirmationTitle {
+    font-size: 1.5rem;
+  }
+
+  .orderSummary {
+    padding: 1rem;
+  }
+
+  .summaryRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .summaryValue {
+    text-align: left;
+  }
+
+  .totalAmount {
+    font-size: 1.5rem;
+  }
+
+  .confirmationActions {
+    gap: 0.75rem;
+  }
+
+  .backButton,
+  .confirmButton {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+  }
+}

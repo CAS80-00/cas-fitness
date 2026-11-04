@@ -8,6 +8,7 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
   const [stripe, setStripe] = useState(null);
   const [elements, setElements] = useState(null);
   const [cardElement, setCardElement] = useState(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -60,8 +61,32 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
     createPaymentIntent();
   }, [amount, planId, userEmail, userName, isGuest, apiBaseUrl, onError]);
 
-  const handleSubmit = async (e) => {
+  const handleCardSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+
+    if (!stripe || !cardElement) {
+      setError('Card form not ready');
+      return;
+    }
+
+    // Validate card by attempting to get card details
+    const { error: cardError } = await stripe.createPaymentMethod({
+      type: 'card',
+      card: cardElement,
+    });
+
+    if (cardError) {
+      setError(cardError.message);
+      onError?.(cardError.message);
+      return;
+    }
+
+    // Card is valid, show confirmation page
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmPayment = async () => {
     setError('');
     setLoading(true);
 
@@ -118,23 +143,82 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
     }
   };
 
+  const handleBackToForm = () => {
+    setShowConfirmation(false);
+    setError('');
+  };
+
   return (
-    <form onSubmit={handleSubmit} className={styles.form}>
-      <div className={styles.formGroup}>
-        <label className={styles.label}>Card Details</label>
-        <div id="card-element" className={styles.cardElement}></div>
-      </div>
+    <>
+      {!showConfirmation ? (
+        // Card Entry Form
+        <form onSubmit={handleCardSubmit} className={styles.form}>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Card Details</label>
+            <div id="card-element" className={styles.cardElement}></div>
+          </div>
 
-      {error && <div className={styles.error}>{error}</div>}
+          {error && <div className={styles.error}>{error}</div>}
 
-      <button
-        type="submit"
-        disabled={!stripe || loading}
-        className={styles.submitButton}
-      >
-        {loading ? 'Processing...' : `Pay $${amount.toFixed(2)}`}
-      </button>
-    </form>
+          <button
+            type="submit"
+            disabled={!stripe || loading}
+            className={styles.submitButton}
+          >
+            {loading ? 'Processing...' : `Review Order - $${amount.toFixed(2)}`}
+          </button>
+        </form>
+      ) : (
+        // Payment Confirmation Page
+        <div className={styles.confirmationPage}>
+          <div className={styles.confirmationHeader}>
+            <h2 className={styles.confirmationTitle}>Order Confirmation</h2>
+            <p className={styles.confirmationSubtitle}>Please review your order before confirming payment</p>
+          </div>
+
+          <div className={styles.orderSummary}>
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryLabel}>Plan:</span>
+              <span className={styles.summaryValue}>Plan ID: {planId}</span>
+            </div>
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryLabel}>Email:</span>
+              <span className={styles.summaryValue}>{userEmail}</span>
+            </div>
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryLabel}>Name:</span>
+              <span className={styles.summaryValue}>{userName}</span>
+            </div>
+            <div className={styles.summaryDivider}></div>
+            <div className={styles.summaryRow + ' ' + styles.totalRow}>
+              <span className={styles.totalLabel}>Total Amount to Charge:</span>
+              <span className={styles.totalAmount}>${amount.toFixed(2)}</span>
+            </div>
+          </div>
+
+          {error && <div className={styles.error}>{error}</div>}
+
+          <div className={styles.confirmationActions}>
+            <button
+              type="button"
+              onClick={handleBackToForm}
+              disabled={loading}
+              className={styles.backButton}
+            >
+              ← Back to Edit
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmPayment}
+              disabled={loading}
+              className={styles.confirmButton}
+            >
+              {loading ? 'Processing Payment...' : `✓ Confirm & Pay $${amount.toFixed(2)}`}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
