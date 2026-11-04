@@ -21,20 +21,20 @@ export default function FOPCard({ selectedPlan, userData, currentUser }) {
       return;
     }
     
-    console.error('FOPCard: selectedPlan received:', JSON.stringify(selectedPlan, null, 2));
+    console.log('FOPCard: selectedPlan received:', JSON.stringify(selectedPlan, null, 2));
     
     if (selectedPlan.items && Array.isArray(selectedPlan.items) && selectedPlan.items.length > 0) {
       // Multiple items from cart
-      console.error(`FOPCard: Detected ${selectedPlan.items.length} items`);
-      console.error('FOPCard items detail:', JSON.stringify(selectedPlan.items, null, 2));
+      console.log(`FOPCard: Detected ${selectedPlan.items.length} items`);
+      console.log('FOPCard items detail:', JSON.stringify(selectedPlan.items, null, 2));
       setCartItems(selectedPlan.items);
       setDiscountedPrice(selectedPlan.totalAmount);
       setIsMultiItem(true);
     } else {
       // Single plan (legacy format)
-      console.error('FOPCard: Single plan or no items array detected');
+      console.log('FOPCard: Single plan or no items array detected');
       setCartItems([]);
-      setDiscountedPrice(selectedPlan?.basePrice || 0);
+      setDiscountedPrice(selectedPlan?.basePrice || selectedPlan?.activePrice || selectedPlan?.price || 0);
       setIsMultiItem(false);
     }
   }, [selectedPlan]);
@@ -135,16 +135,22 @@ export default function FOPCard({ selectedPlan, userData, currentUser }) {
       )}
 
       {/* Stripe Payment Form */}
-      <StripePaymentForm
-        amount={discountedPrice}
-        planId={selectedPlan?.id}
-        userEmail={userData?.email || "guest@casfitness.com"}
-        userName={userData?.name || "Guest"}
-        onSuccess={handlePaymentSuccess}
-        onError={handlePaymentError}
-        isGuest={!currentUser || !currentUser.id}
-        cartItems={cartItems}
-      />
+      {discountedPrice > 0 && (selectedPlan?.id || isMultiItem) ? (
+        <StripePaymentForm
+          amount={discountedPrice}
+          planId={selectedPlan?.id || 'multiple'}
+          userEmail={userData?.email || "guest@casfitness.com"}
+          userName={userData?.name || "Guest"}
+          onSuccess={handlePaymentSuccess}
+          onError={handlePaymentError}
+          isGuest={!currentUser || !currentUser.id}
+          cartItems={cartItems}
+        />
+      ) : (
+        <div style={{ color: 'red', padding: '20px' }}>
+          Loading payment form... Please wait.
+        </div>
+      )}
     </div>
   );
 }
