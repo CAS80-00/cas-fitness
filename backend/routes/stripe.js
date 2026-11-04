@@ -107,6 +107,8 @@ router.post('/confirm-payment', async (req, res) => {
   try {
     const { paymentIntentId, planId, userEmail, userName, isGuest, cartItems } = req.body;
 
+    console.log('Confirm payment request:', { paymentIntentId, planId, userEmail, userName, isGuest, cartItemsCount: cartItems?.length, cartItems });
+
     if (!paymentIntentId) {
       return res.status(400).json({ error: 'Payment intent ID is required' });
     }
@@ -125,6 +127,7 @@ router.post('/confirm-payment', async (req, res) => {
 
     // Handle multiple items or single plan
     if (cartItems && cartItems.length > 0) {
+      console.log(`Processing ${cartItems.length} items for email...`);
       // For multiple items, create a transaction for each item
       for (const item of cartItems) {
         await db.query(
@@ -149,6 +152,7 @@ router.post('/confirm-payment', async (req, res) => {
 
       // Send email with all items
       try {
+        console.log(`Sending confirmation email with ${cartItems.length} items to ${userEmail}`);
         await sendUserConfirmationEmail(userEmail, userName, cartItems, amount);
         await sendSuperuserNotificationEmail({
           student_name: userName,

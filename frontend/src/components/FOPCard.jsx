@@ -135,6 +135,7 @@ export default function FOPCard({ selectedPlan, userData }) {
         onSuccess={handlePaymentSuccess}
         onError={handlePaymentError}
         isGuest={!userData}
+        cartItems={cartItems}
       />
     </div>
   );
