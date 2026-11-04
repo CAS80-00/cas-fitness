@@ -33,6 +33,7 @@ function App() {
   const [cartRequestedByHeader, setCartRequestedByHeader] = useState(false);
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [graceSeconds, setGraceSeconds] = useState(120);
+  const [confirmationData, setConfirmationData] = useState({});
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 
@@ -121,11 +122,12 @@ function App() {
     return () => clearInterval(timer);
   }, [showInactivityModal]);
 
-  const handleNavigate = useCallback((newRoute) => {
+  const handleNavigate = useCallback((newRoute, data = {}) => {
     if (newRoute === "cart") {
       setShowCartDrawer(true);
       setCartRequestedByHeader(true);
     } else {
+      setConfirmationData(data);
       setRoute(newRoute);
     }
   }, []);
@@ -157,7 +159,7 @@ function App() {
     if (!currentUser) {
       switch (route) {
         case "confirmation":
-          return <ConfirmationPage onNavigate={handleNavigate} currentUser={currentUser} onLogout={logout} onAuthenticated={handleAuthenticated} cartItems={cartItems} />;
+          return <ConfirmationPage onNavigate={handleNavigate} currentUser={currentUser} onLogout={logout} onAuthenticated={handleAuthenticated} cartItems={cartItems} customerName={confirmationData.customerName} customerEmail={confirmationData.customerEmail} />;
         case "plans":
           return <PlansPage currentUser={currentUser} cartItems={cartItems} onAddToCart={handleAddToCart} onNavigate={handleNavigate} cartRequested={cartRequestedByHeader} onCartRequested={() => setCartRequestedByHeader(false)} />;
         case "about":
@@ -178,7 +180,7 @@ function App() {
     // Authenticated user routing
     switch (route) {
       case "confirmation":
-        return <ConfirmationPage onNavigate={handleNavigate} currentUser={currentUser} onLogout={logout} onAuthenticated={handleAuthenticated} cartItems={cartItems} />;
+        return <ConfirmationPage onNavigate={handleNavigate} currentUser={currentUser} onLogout={logout} onAuthenticated={handleAuthenticated} cartItems={cartItems} customerName={confirmationData.customerName} customerEmail={confirmationData.customerEmail} />;
       case "profile":
         return currentUser.roleId === 1 ? (
           <SuperuserDashboard

@@ -7,7 +7,7 @@ import styles from "../styles/FOPCard.module.css";
  * Props: selectedPlan (can be single plan or object with items array), userData.
  * Handles multiple items and calculates total for payment.
  */
-export default function FOPCard({ selectedPlan, userData, currentUser }) {
+export default function FOPCard({ selectedPlan, userData, currentUser, onNavigate }) {
   const [discountedPrice, setDiscountedPrice] = useState(0);
   const [statusMsg, setStatusMsg] = useState(null);
   const [cartItems, setCartItems] = useState([]);
@@ -39,12 +39,17 @@ export default function FOPCard({ selectedPlan, userData, currentUser }) {
   }, [selectedPlan]);
 
   const handlePaymentSuccess = (data) => {
-    setStatusMsg({
-      type: "success",
-      text: userData
-        ? "Thank you for your payment! Your plan is now active."
-        : "You will receive an email with instructions soon. Thank you for your purchase and welcome to the CAS Gym community.",
-    });
+    // Navigate to confirmation page with customer data
+    if (onNavigate) {
+      onNavigate('confirmation', { customerName: userData?.firstName + ' ' + userData?.lastName, customerEmail: userData?.email });
+    } else {
+      setStatusMsg({
+        type: "success",
+        text: userData
+          ? "Thank you for your payment! Your plan is now active."
+          : "You will receive an email with instructions soon. Thank you for your purchase and welcome to the CAS Gym community.",
+      });
+    }
   };
 
   const handlePaymentError = (error) => {

@@ -5,7 +5,7 @@ import SiteFooter from '../components/SiteFooter';
 import BannerDisplay from '../components/BannerDisplay';
 import styles from '../styles/ConfirmationPage.module.css';
 
-export default function ConfirmationPage({ onNavigate, currentUser, onLogout, onAuthenticated, cartItems = [] }) {
+export default function ConfirmationPage({ onNavigate, currentUser, onLogout, onAuthenticated, cartItems = [], customerName, customerEmail }) {
   const handleReturnHome = useCallback(() => {
     onNavigate('landing');
   }, [onNavigate]);
@@ -33,18 +33,25 @@ export default function ConfirmationPage({ onNavigate, currentUser, onLogout, on
             <p className={styles.subtitle}>Thank you for your purchase</p>
 
             <div className={styles.messageSection}>
+              {(customerName || customerEmail) && (
+                <div className={styles.customerInfoBox}>
+                  {customerName && <p><strong>Name:</strong> {customerName}</p>}
+                  {customerEmail && <p><strong>Email:</strong> {customerEmail}</p>}
+                </div>
+              )}
+
               <p className={styles.mainText}>
                 Your order has been received and is being processed.
               </p>
 
               <div className={styles.infoBox}>
                 <div className={styles.infoHeader}>
-                  <span className={styles.infoIcon}>📌</span>
-                  <h3>What Happens Next?</h3>
+                  <span className={styles.infoIcon}>📧</span>
+                  <h3>Login Instructions Coming Soon</h3>
                 </div>
                 <p>
-                  A member of our team will contact you <strong>within 24 hours</strong> with instructions to activate your account. 
-                  Please keep an eye on your email and phone for our contact.
+                  A member of our team will contact you <strong>within 24 hours</strong> with login instructions to activate your account. 
+                  Please keep an eye on your email ({customerEmail || 'your email address'}) and phone for our contact.
                 </p>
               </div>
 

@@ -195,7 +195,7 @@ export default function PlansPage({
           />
         )}
 
-        {checkoutStep === "payment" && <FOPCard selectedPlan={selectedPlan} userData={customerData} currentUser={currentUser} />}
+        {checkoutStep === "payment" && <FOPCard selectedPlan={selectedPlan} userData={customerData} currentUser={currentUser} onNavigate={onNavigate} />}
 
         <div className={styles.consultationBanner}>
           <div>
