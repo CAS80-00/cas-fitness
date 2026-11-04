@@ -59,7 +59,14 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
       setCardCvcElement(cardCvcEl);
     };
     document.body.appendChild(script);
-  }, []);
+    
+    return () => {
+      // Cleanup: unmount elements before component unmounts
+      if (cardNumberElement) cardNumberElement.unmount();
+      if (cardExpiryElement) cardExpiryElement.unmount();
+      if (cardCvcElement) cardCvcElement.unmount();
+    };
+  }, [cardNumberElement, cardExpiryElement, cardCvcElement]);
 
   // Create payment intent on mount
   useEffect(() => {
