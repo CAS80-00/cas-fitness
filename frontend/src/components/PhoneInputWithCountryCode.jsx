@@ -9,6 +9,7 @@ export default function PhoneInputWithCountryCode({
   readOnly = false,
   required = false,
   error = "",
+  id = "",
 }) {
   const [selectedCountry, setSelectedCountry] = useState(COUNTRY_CODES[0]);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -88,6 +89,7 @@ export default function PhoneInputWithCountryCode({
 
         <input
           type="tel"
+          id={id}
           placeholder={placeholder}
           value={phoneNumber}
           onChange={handlePhoneChange}

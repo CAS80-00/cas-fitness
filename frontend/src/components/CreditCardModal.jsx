@@ -284,6 +284,7 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, cartItem
           <div className={styles.formGroup}>
             <label htmlFor="phone">Phone Number <span className={styles.required}>*</span></label>
             <PhoneInputWithCountryCode
+              id="phone"
               onChange={handlePhoneChange}
               placeholder="Enter phone number"
               required={true}
