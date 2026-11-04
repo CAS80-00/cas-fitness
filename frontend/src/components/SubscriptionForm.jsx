@@ -15,7 +15,6 @@ export default function SubscriptionForm({
   onNavigateToFOP,
   onBackToPlans,
 }) {
-  const [isMember, setIsMember] = useState(Boolean(currentUser));
   const [duplicateErrors, setDuplicateErrors] = useState({ email: "", phone: "" });
   const [formData, setFormData] = useState({
     memberId: currentUser?.id || "",
@@ -75,28 +74,6 @@ export default function SubscriptionForm({
         )}
       </div>
 
-      {!currentUser && (
-        <div className={styles.memberPrompt}>
-          <p className={styles.promptText}>Are you already a member?</p>
-          <div className={styles.choiceRow}>
-            <button
-              type="button"
-              onClick={() => setIsMember(true)}
-              className={isMember ? styles.choiceButtonActiveYes : styles.choiceButton}
-            >
-              Yes
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsMember(false)}
-              className={!isMember ? styles.choiceButtonActiveNo : styles.choiceButton}
-            >
-              No
-            </button>
-          </div>
-        </div>
-      )}
-
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -104,14 +81,6 @@ export default function SubscriptionForm({
         }}
         className={styles.form}
       >
-        <input
-          type="text"
-          placeholder="Membership Number"
-          value={formData.memberId}
-          readOnly={isReadOnlyMember || isMember}
-          onChange={(event) => setFormData({ ...formData, memberId: event.target.value })}
-          className={styles.input}
-        />
         <input
           type="text"
           placeholder="First Name"
