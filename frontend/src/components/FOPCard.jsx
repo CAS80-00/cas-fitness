@@ -40,8 +40,13 @@ export default function FOPCard({ selectedPlan, userData, currentUser, onNavigat
 
   const handlePaymentSuccess = (data) => {
     // Navigate to confirmation page with customer data
+    console.log('FOPCard handlePaymentSuccess - userData:', userData);
     if (onNavigate) {
-      onNavigate('confirmation', { customerName: userData?.firstName + ' ' + userData?.lastName, customerEmail: userData?.email });
+      const fullName = userData 
+        ? `${userData.firstName || ''} ${userData.lastName || ''}`.trim() 
+        : 'Guest';
+      console.log('FOPCard - fullName constructed:', fullName);
+      onNavigate('confirmation', { customerName: fullName, customerEmail: userData?.email });
     } else {
       setStatusMsg({
         type: "success",
@@ -113,7 +118,7 @@ export default function FOPCard({ selectedPlan, userData, currentUser, onNavigat
           amount={discountedPrice}
           planId={selectedPlan?.id || 'multiple'}
           userEmail={userData?.email || "guest@casfitness.com"}
-          userName={userData?.name || "Guest"}
+          userName={userData ? `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || "Guest" : "Guest"}
           onSuccess={handlePaymentSuccess}
           onError={handlePaymentError}
           isGuest={!currentUser || !currentUser.id}
