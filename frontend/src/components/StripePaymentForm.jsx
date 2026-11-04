@@ -38,16 +38,23 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
   useEffect(() => {
     const createPaymentIntent = async () => {
       try {
-        const endpoint = isGuest
-          ? `${apiBaseUrl}/stripe/create-payment-intent-guest`
-          : `${apiBaseUrl}/stripe/create-payment-intent`;
+        const token = localStorage.getItem('cas_jwt');
+        const hasValidAuth = isGuest === false && token;
+        
+        const endpoint = hasValidAuth
+          ? `${apiBaseUrl}/stripe/create-payment-intent`
+          : `${apiBaseUrl}/stripe/create-payment-intent-guest`;
+
+        const headers = { 'Content-Type': 'application/json' };
+        if (hasValidAuth && token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        console.log(`Creating payment intent with endpoint: ${endpoint}, isGuest: ${isGuest}, hasToken: ${!!token}`);
 
         const response = await fetch(endpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(isGuest ? {} : { Authorization: `Bearer ${localStorage.getItem('cas_jwt')}` }),
-          },
+          headers,
           body: JSON.stringify({ 
             amount, 
             planId, 
@@ -58,12 +65,14 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
         });
 
         if (!response.ok) {
-          throw new Error('Failed to create payment intent');
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || `Failed to create payment intent: ${response.status}`);
         }
 
         const data = await response.json();
         setClientSecret(data.clientSecret);
       } catch (err) {
+        console.error('Error creating payment intent:', err);
         setError(err.message);
         onError?.(err.message);
       }
@@ -81,32 +90,16 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
       return;
     }
 
-    // Validate card by attempting to get card details
-    const { error: cardError } = await stripe.createPaymentMethod({
-      type: 'card',
-      card: cardElement,
-    });
-
-    if (cardError) {
-      setError(cardError.message);
-      onError?.(cardError.message);
+    if (!clientSecret) {
+      setError('Payment setup incomplete');
       return;
     }
 
-    // Card is valid, show confirmation page
     setShowConfirmation(true);
   };
 
   const handleConfirmPayment = async () => {
-    setError('');
     setLoading(true);
-
-    if (!stripe || !clientSecret) {
-      setError('Payment form not ready');
-      setLoading(false);
-      return;
-    }
-
     try {
       const { paymentIntent, error: stripeError } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
@@ -240,7 +233,7 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
               disabled={loading}
               className={styles.backButton}
             >
-              ← Back to Edit
+              Back to Form
             </button>
             <button
               type="button"
@@ -248,7 +241,7 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
               disabled={loading}
               className={styles.confirmButton}
             >
-              {loading ? 'Processing Payment...' : `✓ Confirm & Pay $${amount.toFixed(2)}`}
+              {loading ? 'Processing...' : `Confirm Payment - $${amount.toFixed(2)}`}
             </button>
           </div>
         </div>
@@ -256,5 +249,3 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
     </>
   );
 }
-
-

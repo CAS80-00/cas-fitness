@@ -7,7 +7,7 @@ import styles from "../styles/FOPCard.module.css";
  * Props: selectedPlan (can be single plan or object with items array), userData.
  * Handles multiple items and calculates total for payment.
  */
-export default function FOPCard({ selectedPlan, userData }) {
+export default function FOPCard({ selectedPlan, userData, currentUser }) {
   const [promoCode, setPromoCode] = useState("");
   const [discountedPrice, setDiscountedPrice] = useState(0);
   const [statusMsg, setStatusMsg] = useState(null);
@@ -142,7 +142,7 @@ export default function FOPCard({ selectedPlan, userData }) {
         userName={userData?.name || "Guest"}
         onSuccess={handlePaymentSuccess}
         onError={handlePaymentError}
-        isGuest={!userData}
+        isGuest={!currentUser || !currentUser.id}
         cartItems={cartItems}
       />
     </div>
