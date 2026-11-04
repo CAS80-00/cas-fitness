@@ -8,7 +8,7 @@ async function createTransactionsTable() {
         user_email VARCHAR(255) NOT NULL,
         plan_id INT,
         amount DECIMAL(10, 2) NOT NULL,
-        stripe_transaction_id VARCHAR(255) UNIQUE NOT NULL,
+        stripe_transaction_id VARCHAR(255) NOT NULL,
         status VARCHAR(50) DEFAULT 'pending',
         metadata JSONB,
         created_at TIMESTAMP DEFAULT NOW(),
