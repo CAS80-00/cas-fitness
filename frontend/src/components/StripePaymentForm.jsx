@@ -21,52 +21,66 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
 
   // Load Stripe
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://js.stripe.com/v3/';
-    script.async = true;
-    script.onload = () => {
-      const stripeInstance = window.Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-      setStripe(stripeInstance);
-      const elementsInstance = stripeInstance.elements();
-      setElements(elementsInstance);
-      
-      const elementStyle = {
-        base: {
-          fontSize: '16px',
-          color: '#424770',
-          '::placeholder': {
-            color: '#aab7c4',
-          },
-        },
-        invalid: {
-          color: '#fa755a',
-          '::placeholder': {
-            color: '#ffcdd2',
-          },
-        },
+    const loadStripe = async () => {
+      if (window.Stripe) {
+        const stripeInstance = window.Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+        setStripe(stripeInstance);
+        setupElements(stripeInstance);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://js.stripe.com/v3/';
+      script.async = true;
+      script.onload = () => {
+        const stripeInstance = window.Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+        setStripe(stripeInstance);
+        setupElements(stripeInstance);
       };
-      
-      const cardNumberEl = elementsInstance.create('cardNumber', { style: elementStyle });
-      const cardExpiryEl = elementsInstance.create('cardExpiry', { style: elementStyle });
-      const cardCvcEl = elementsInstance.create('cardCvc', { style: elementStyle });
-      
-      cardNumberEl.mount('#card-number-element');
-      cardExpiryEl.mount('#card-expiry-element');
-      cardCvcEl.mount('#card-cvc-element');
-      
-      setCardNumberElement(cardNumberEl);
-      setCardExpiryElement(cardExpiryEl);
-      setCardCvcElement(cardCvcEl);
+      document.body.appendChild(script);
     };
-    document.body.appendChild(script);
+
+    loadStripe();
     
     return () => {
-      // Cleanup: unmount elements before component unmounts
       if (cardNumberElement) cardNumberElement.unmount();
       if (cardExpiryElement) cardExpiryElement.unmount();
       if (cardCvcElement) cardCvcElement.unmount();
     };
   }, [cardNumberElement, cardExpiryElement, cardCvcElement]);
+
+  const setupElements = (stripeInstance) => {
+    const elementsInstance = stripeInstance.elements();
+    setElements(elementsInstance);
+    
+    const elementStyle = {
+      base: {
+        fontSize: '16px',
+        color: '#424770',
+        '::placeholder': {
+          color: '#aab7c4',
+        },
+      },
+      invalid: {
+        color: '#fa755a',
+        '::placeholder': {
+          color: '#ffcdd2',
+        },
+      },
+    };
+    
+    const cardNumberEl = elementsInstance.create('cardNumber', { style: elementStyle });
+    const cardExpiryEl = elementsInstance.create('cardExpiry', { style: elementStyle });
+    const cardCvcEl = elementsInstance.create('cardCvc', { style: elementStyle });
+    
+    cardNumberEl.mount('#card-number-element');
+    cardExpiryEl.mount('#card-expiry-element');
+    cardCvcEl.mount('#card-cvc-element');
+    
+    setCardNumberElement(cardNumberEl);
+    setCardExpiryElement(cardExpiryEl);
+    setCardCvcElement(cardCvcEl);
+  };
 
   // Create payment intent on mount
   useEffect(() => {
