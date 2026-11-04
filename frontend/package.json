@@ -14,6 +14,7 @@
     "@fullcalendar/interaction": "^6.1.21",
     "@fullcalendar/react": "^6.1.21",
     "@fullcalendar/timegrid": "^6.1.21",
+    "@stripe/react-stripe-js": "^7.0.1",
     "lucide-react": "^1.47.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.8",

@@ -19,6 +19,7 @@ const plansRoutes = require("./routes/plans");
 const trainerSessionsRoutes = require("./routes/trainerSessions");
 const subscriptionsRoutes = require("./routes/subscriptions");
 const bannersRoutes = require("./routes/banners");
+const stripeRoutes = require("./routes/stripe");
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/cms", cmsRoutes);
 app.use("/api/calendars", calendarsRoutes);
 app.use("/api/payments", paymentsRoutes);
+app.use("/api/stripe", stripeRoutes);
 app.use("/api/members", membersRoutes);
 app.use("/api/legal", legalRoutes);
 app.use("/api/sms", smsRoutes);
