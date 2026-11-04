@@ -31,6 +31,7 @@ function App() {
   });
   const [cartItems, setCartItems] = useState([]);
   const [showCartDrawer, setShowCartDrawer] = useState(false);
+  const [cartRequestedByHeader, setCartRequestedByHeader] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [graceSeconds, setGraceSeconds] = useState(120);
@@ -125,6 +126,7 @@ function App() {
   const handleNavigate = useCallback((newRoute) => {
     if (newRoute === "cart") {
       setShowCartDrawer(true);
+      setCartRequestedByHeader(true);
     } else {
       setRoute(newRoute);
     }
@@ -159,7 +161,7 @@ function App() {
         case "confirmation":
           return <ConfirmationPage onNavigate={handleNavigate} currentUser={currentUser} onLogout={logout} onAuthenticated={handleAuthenticated} cartItems={cartItems} />;
         case "plans":
-          return <PlansPage currentUser={currentUser} cartItems={cartItems} onAddToCart={handleAddToCart} onNavigate={handleNavigate} />;
+          return <PlansPage currentUser={currentUser} cartItems={cartItems} onAddToCart={handleAddToCart} onNavigate={handleNavigate} cartRequested={cartRequestedByHeader} onCartRequested={() => setCartRequestedByHeader(false)} />;
         case "about":
           return <AboutUsPage currentUser={currentUser} cartItems={cartItems} onNavigate={handleNavigate} />;
         default:
@@ -206,7 +208,7 @@ function App() {
           />
         );
       case "plans":
-        return <PlansPage currentUser={currentUser} cartItems={cartItems} onAddToCart={handleAddToCart} onNavigate={handleNavigate} onLogout={logout} onAuthenticated={handleAuthenticated} />;
+        return <PlansPage currentUser={currentUser} cartItems={cartItems} onAddToCart={handleAddToCart} onNavigate={handleNavigate} onLogout={logout} onAuthenticated={handleAuthenticated} cartRequested={cartRequestedByHeader} onCartRequested={() => setCartRequestedByHeader(false)} />;
       case "about":
         return <AboutUsPage currentUser={currentUser} cartItems={cartItems} onNavigate={handleNavigate} onLogout={logout} onAuthenticated={handleAuthenticated} />;
       case "home":
@@ -229,6 +231,7 @@ function App() {
     handleAuthenticated,
     handleAddToCart,
     logout,
+    cartRequestedByHeader,
   ]);
 
   return (

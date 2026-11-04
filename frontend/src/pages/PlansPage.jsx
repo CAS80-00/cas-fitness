@@ -227,6 +227,7 @@ export default function PlansPage({
             setShowCart(false);
           }}
           onRemoveItem={handleRemoveFromCart}
+          onKeepPurchasing={() => setShowCart(false)}
           onContinue={() => {
             setShowCart(false);
             if (cartItems.length > 0) {
