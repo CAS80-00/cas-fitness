@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import styles from '../styles/StripePaymentForm.module.css';
 
 export default function StripePaymentForm({ amount, planId, userEmail, userName, onSuccess, onError, isGuest = false, cartItems = [] }) {
@@ -7,10 +7,11 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
   const [clientSecret, setClientSecret] = useState('');
   const [stripe, setStripe] = useState(null);
   const [elements, setElements] = useState(null);
-  const [cardNumberElement, setCardNumberElement] = useState(null);
-  const [cardExpiryElement, setCardExpiryElement] = useState(null);
-  const [cardCvcElement, setCardCvcElement] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+
+  const cardNumberElementRef = useRef(null);
+  const cardExpiryElementRef = useRef(null);
+  const cardCvcElementRef = useRef(null);
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -69,15 +70,15 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
       cardExpiryEl.mount('#card-expiry-element');
       cardCvcEl.mount('#card-cvc-element');
       
-      setCardNumberElement(cardNumberEl);
-      setCardExpiryElement(cardExpiryEl);
-      setCardCvcElement(cardCvcEl);
+      cardNumberElementRef.current = cardNumberEl;
+      cardExpiryElementRef.current = cardExpiryEl;
+      cardCvcElementRef.current = cardCvcEl;
     }
     
     return () => {
-      if (cardNumberEl) cardNumberEl.unmount();
-      if (cardExpiryEl) cardExpiryEl.unmount();
-      if (cardCvcEl) cardCvcEl.unmount();
+      if (cardNumberElementRef.current) cardNumberElementRef.current.unmount();
+      if (cardExpiryElementRef.current) cardExpiryElementRef.current.unmount();
+      if (cardCvcElementRef.current) cardCvcElementRef.current.unmount();
     };
   }, [stripe]);
 
@@ -132,7 +133,7 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
     e.preventDefault();
     setError('');
 
-    if (!stripe || !cardNumberElement || !cardExpiryElement || !cardCvcElement) {
+    if (!stripe || !cardNumberElementRef.current || !cardExpiryElementRef.current || !cardCvcElementRef.current) {
       setError('Card form not ready');
       return;
     }
@@ -150,7 +151,7 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
     try {
       const { paymentIntent, error: stripeError } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
-          card: cardNumberElement,
+          card: cardNumberElementRef.current,
           billing_details: { email: userEmail, name: userName },
         },
       });
