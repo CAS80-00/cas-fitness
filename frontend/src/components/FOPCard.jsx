@@ -16,20 +16,23 @@ export default function FOPCard({ selectedPlan, userData }) {
 
   // Determine if we have multiple items or single plan
   useEffect(() => {
-    if (!selectedPlan) return;
+    if (!selectedPlan) {
+      console.error('FOPCard: selectedPlan is null or undefined');
+      return;
+    }
     
-    console.log('FOPCard: selectedPlan received:', JSON.stringify(selectedPlan, null, 2));
+    console.error('FOPCard: selectedPlan received:', JSON.stringify(selectedPlan, null, 2));
     
-    if (selectedPlan.items && Array.isArray(selectedPlan.items)) {
+    if (selectedPlan.items && Array.isArray(selectedPlan.items) && selectedPlan.items.length > 0) {
       // Multiple items from cart
-      console.log('FOPCard: Detected multiple items:', selectedPlan.items.length);
-      console.log('FOPCard items detail:', JSON.stringify(selectedPlan.items, null, 2));
+      console.error(`FOPCard: Detected ${selectedPlan.items.length} items`);
+      console.error('FOPCard items detail:', JSON.stringify(selectedPlan.items, null, 2));
       setCartItems(selectedPlan.items);
       setDiscountedPrice(selectedPlan.totalAmount);
       setIsMultiItem(true);
     } else {
       // Single plan (legacy format)
-      console.log('FOPCard: Single plan detected');
+      console.error('FOPCard: Single plan or no items array detected');
       setCartItems([]);
       setDiscountedPrice(selectedPlan?.basePrice || 0);
       setIsMultiItem(false);
