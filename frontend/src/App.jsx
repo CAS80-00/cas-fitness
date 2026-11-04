@@ -9,7 +9,6 @@ import EmployeeProfile from "./pages/EmployeeProfile";
 import SuperuserDashboard from "./pages/SuperuserDashboard";
 import ConfirmationPage from "./pages/ConfirmationPage";
 import ShoppingCart from "./components/ShoppingCart";
-import CreditCardModal from "./components/CreditCardModal";
 
 const INACTIVITY_MS = 20 * 60 * 1000;
 
@@ -32,7 +31,6 @@ function App() {
   const [cartItems, setCartItems] = useState([]);
   const [showCartDrawer, setShowCartDrawer] = useState(false);
   const [cartRequestedByHeader, setCartRequestedByHeader] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [graceSeconds, setGraceSeconds] = useState(120);
 
@@ -272,19 +270,6 @@ function App() {
         />
       )}
 
-      {showPaymentModal && (
-        <CreditCardModal
-          isOpen={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
-          cartItems={cartItems}
-          onNavigate={handleNavigate}
-          onCardSaved={() => {
-            // After card is saved, clear cart and show confirmation
-            setCartItems([]);
-            setShowPaymentModal(false);
-          }}
-        />
-      )}
     </HelmetProvider>
   );
 }

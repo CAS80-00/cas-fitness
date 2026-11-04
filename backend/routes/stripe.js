@@ -7,7 +7,8 @@ const { sendUserConfirmationEmail, sendSuperuserNotificationEmail } = require('.
 
 // Test endpoint
 router.get('/health', (req, res) => {
-  res.json({ status: 'Stripe routes loaded successfully' });
+  console.log('Health check called - Time:', new Date().toISOString());
+  res.json({ status: 'Stripe routes loaded successfully', timestamp: new Date().toISOString() });
 });
 
 // POST create payment intent for subscription
@@ -104,6 +105,7 @@ router.post('/create-payment-intent-guest', async (req, res) => {
 
 // POST confirm payment (called after Stripe processes payment)
 router.post('/confirm-payment', async (req, res) => {
+  res.setHeader('X-Route-Hit', 'confirm-payment');
   try {
     const { paymentIntentId, planId, userEmail, userName, isGuest, cartItems } = req.body;
 
@@ -128,8 +130,15 @@ router.post('/confirm-payment', async (req, res) => {
     // Handle multiple items or single plan
     if (cartItems && cartItems.length > 0) {
       console.log(`Processing ${cartItems.length} items for email...`);
+      const chargeId = paymentIntent.charges?.data?.[0]?.id;
+      
       // For multiple items, create a transaction for each item
       for (const item of cartItems) {
+        if (!item.id) {
+          console.error('Item missing id:', item);
+          return res.status(400).json({ error: 'Cart item missing required id field' });
+        }
+        
         await db.query(
           `INSERT INTO transactions (user_email, plan_id, amount, stripe_transaction_id, status, metadata, created_at)
            VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
@@ -142,7 +151,7 @@ router.post('/confirm-payment', async (req, res) => {
             JSON.stringify({
               userName,
               isGuest,
-              stripeChargeId: paymentIntent.charges.data[0]?.id,
+              stripeChargeId: chargeId,
               itemTitle: item.title,
               cartSize: cartItems.length,
             }),
@@ -154,13 +163,14 @@ router.post('/confirm-payment', async (req, res) => {
       try {
         console.log(`Sending confirmation email with ${cartItems.length} items to ${userEmail}`);
         await sendUserConfirmationEmail(userEmail, userName, cartItems, amount);
+        const chargeId = paymentIntent.charges?.data?.[0]?.id;
         await sendSuperuserNotificationEmail({
           student_name: userName,
           email: userEmail,
           planTitle: `Multiple Plans (${cartItems.length} items)`,
           planPrice: amount.toFixed(2),
           cartItems: cartItems,
-          stripeChargeId: paymentIntent.charges.data[0]?.id,
+          stripeChargeId: chargeId,
         });
       } catch (emailError) {
         console.error('Email sending error (non-blocking):', emailError);
@@ -205,8 +215,9 @@ router.post('/confirm-payment', async (req, res) => {
       message: 'Payment confirmed successfully',
     });
   } catch (err) {
-    console.error('Error confirming payment:', err);
-    res.status(500).json({ error: 'Failed to confirm payment' });
+    console.error('Error confirming payment:', err.message);
+    console.error('Error stack:', err.stack);
+    res.status(500).json({ error: 'Failed to confirm payment', details: err.message });
   }
 });
 
