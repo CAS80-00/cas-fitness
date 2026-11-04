@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import StripePaymentForm from "./StripePaymentForm";
 import styles from "../styles/FOPCard.module.css";
 
@@ -12,11 +12,22 @@ export default function FOPCard({ selectedPlan, userData }) {
   const [discountedPrice, setDiscountedPrice] = useState(selectedPlan?.basePrice);
   const [statusMsg, setStatusMsg] = useState(null);
 
+  // Ensure price is set correctly when selectedPlan changes
+  useEffect(() => {
+    setDiscountedPrice(selectedPlan?.basePrice);
+    setPromoCode(""); // Clear any pre-filled promo codes
+    setStatusMsg(null);
+  }, [selectedPlan?.id]);
+
   const handleApplyPromo = () => {
-    if (promoCode.toUpperCase() === "CASFIT20") {
+    const code = promoCode.trim().toUpperCase();
+    
+    if (code === "CASFIT20") {
       const discount = selectedPlan.basePrice * 0.8;
       setDiscountedPrice(discount);
-      setStatusMsg({ type: "success", text: "Promo code applied!" });
+      setStatusMsg({ type: "success", text: "20% promo code applied!" });
+    } else if (code === "") {
+      setStatusMsg({ type: "error", text: "Please enter a promo code" });
     } else {
       setStatusMsg({ type: "error", text: "Invalid promo code" });
     }

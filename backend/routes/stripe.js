@@ -14,13 +14,18 @@ router.post('/create-payment-intent', authenticateToken, async (req, res) => {
   try {
     const { amount, planId, customerId, userEmail, userName } = req.body;
 
+    console.log('Payment intent (authenticated) requested:', { amount, planId, customerId, userEmail, userName });
+
     if (!amount || !planId) {
       return res.status(400).json({ error: 'Amount and planId are required' });
     }
 
+    const amountInCents = Math.round(amount * 100);
+    console.log(`Converting $${amount} to ${amountInCents} cents for Stripe`);
+
     // Create payment intent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
+      amount: amountInCents,
       currency: 'usd',
       description: `CAS Fitness Plan Purchase - Plan ID: ${planId}`,
       metadata: {
@@ -30,6 +35,8 @@ router.post('/create-payment-intent', authenticateToken, async (req, res) => {
         userName,
       },
     });
+
+    console.log(`Stripe payment intent created: ${paymentIntent.id} for $${paymentIntent.amount / 100}`);
 
     res.json({
       success: true,
@@ -47,13 +54,18 @@ router.post('/create-payment-intent-guest', async (req, res) => {
   try {
     const { amount, planId, userEmail, userName } = req.body;
 
+    console.log('Payment intent requested:', { amount, planId, userEmail, userName });
+
     if (!amount || !planId) {
       return res.status(400).json({ error: 'Amount and planId are required' });
     }
 
+    const amountInCents = Math.round(amount * 100);
+    console.log(`Converting $${amount} to ${amountInCents} cents for Stripe`);
+
     // Create payment intent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
+      amount: amountInCents,
       currency: 'usd',
       description: `CAS Fitness Plan Purchase - Plan ID: ${planId}`,
       metadata: {
@@ -63,6 +75,8 @@ router.post('/create-payment-intent-guest', async (req, res) => {
         isGuest: 'true',
       },
     });
+
+    console.log(`Stripe payment intent created: ${paymentIntent.id} for $${paymentIntent.amount / 100}`);
 
     res.json({
       success: true,
