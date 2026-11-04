@@ -207,8 +207,8 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
 
   return (
     <>
-      {!showConfirmation ? (
-        // Card Entry Form
+      {/* Card elements - always in DOM, hidden during confirmation */}
+      <div style={{ display: showConfirmation ? 'none' : 'block' }}>
         <form onSubmit={handleCardSubmit} className={styles.form}>
           <div className={styles.formGroup}>
             <label className={styles.label}>Card Number</label>
@@ -236,8 +236,10 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
             {loading ? 'Processing...' : `Review Order - $${amount.toFixed(2)}`}
           </button>
         </form>
-      ) : (
-        // Payment Confirmation Page
+      </div>
+
+      {/* Confirmation view - shown when user clicks Review Order */}
+      {showConfirmation && (
         <div className={styles.confirmationPage}>
           <div className={styles.confirmationHeader}>
             <h2 className={styles.confirmationTitle}>Order Confirmation</h2>
