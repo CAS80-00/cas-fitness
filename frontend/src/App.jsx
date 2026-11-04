@@ -264,8 +264,9 @@ function App() {
           onContinue={() => {
             setShowCartDrawer(false);
             if (cartItems.length > 0) {
-              // Show payment modal instead of navigating
-              setShowPaymentModal(true);
+              // Route to PlansPage with cartRequested to trigger multi-item checkout flow
+              setRoute("plans");
+              setCartRequestedByHeader(true);
             }
           }}
         />
