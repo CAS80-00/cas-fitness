@@ -7,7 +7,9 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
   const [clientSecret, setClientSecret] = useState('');
   const [stripe, setStripe] = useState(null);
   const [elements, setElements] = useState(null);
-  const [cardElement, setCardElement] = useState(null);
+  const [cardNumberElement, setCardNumberElement] = useState(null);
+  const [cardExpiryElement, setCardExpiryElement] = useState(null);
+  const [cardCvcElement, setCardCvcElement] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -27,9 +29,17 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
       setStripe(stripeInstance);
       const elementsInstance = stripeInstance.elements();
       setElements(elementsInstance);
-      const cardEl = elementsInstance.create('card');
-      cardEl.mount('#card-element');
-      setCardElement(cardEl);
+      const cardNumberEl = elementsInstance.create('cardNumber');
+      const cardExpiryEl = elementsInstance.create('cardExpiry');
+      const cardCvcEl = elementsInstance.create('cardCvc');
+      
+      cardNumberEl.mount('#card-number-element');
+      cardExpiryEl.mount('#card-expiry-element');
+      cardCvcEl.mount('#card-cvc-element');
+      
+      setCardNumberElement(cardNumberEl);
+      setCardExpiryElement(cardExpiryEl);
+      setCardCvcElement(cardCvcEl);
     };
     document.body.appendChild(script);
   }, []);
@@ -85,7 +95,7 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
     e.preventDefault();
     setError('');
 
-    if (!stripe || !cardElement) {
+    if (!stripe || !cardNumberElement || !cardExpiryElement || !cardCvcElement) {
       setError('Card form not ready');
       return;
     }
@@ -103,7 +113,7 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
     try {
       const { paymentIntent, error: stripeError } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
-          card: cardElement,
+          card: cardNumberElement,
           billing_details: { email: userEmail, name: userName },
         },
       });
@@ -163,8 +173,19 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
         // Card Entry Form
         <form onSubmit={handleCardSubmit} className={styles.form}>
           <div className={styles.formGroup}>
-            <label className={styles.label}>Card Details</label>
-            <div id="card-element" className={styles.cardElement}></div>
+            <label className={styles.label}>Card Number</label>
+            <div id="card-number-element" className={styles.cardElement}></div>
+          </div>
+
+          <div className={styles.formRow}>
+            <div className={styles.formGroup} style={{ flex: 1 }}>
+              <label className={styles.label}>Expiry Date</label>
+              <div id="card-expiry-element" className={styles.cardElement}></div>
+            </div>
+            <div className={styles.formGroup} style={{ flex: 1, marginLeft: '10px' }}>
+              <label className={styles.label}>CVV</label>
+              <div id="card-cvc-element" className={styles.cardElement}></div>
+            </div>
           </div>
 
           {error && <div className={styles.error}>{error}</div>}

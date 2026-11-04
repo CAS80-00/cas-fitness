@@ -16,6 +16,11 @@
   gap: 0.5rem;
 }
 
+.formRow {
+  display: flex;
+  gap: 1rem;
+}
+
 .label {
   font-size: 0.875rem;
   font-weight: 600;
