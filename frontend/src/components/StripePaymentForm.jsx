@@ -43,7 +43,13 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
             'Content-Type': 'application/json',
             ...(isGuest ? {} : { Authorization: `Bearer ${localStorage.getItem('cas_jwt')}` }),
           },
-          body: JSON.stringify({ amount, planId, userEmail, userName }),
+          body: JSON.stringify({ 
+            amount, 
+            planId, 
+            userEmail, 
+            userName,
+            cartItems: cartItems.length > 0 ? cartItems : undefined,
+          }),
         });
 
         if (!response.ok) {
@@ -59,7 +65,7 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
     };
 
     createPaymentIntent();
-  }, [amount, planId, userEmail, userName, isGuest, apiBaseUrl, onError]);
+  }, [amount, planId, userEmail, userName, isGuest, apiBaseUrl, onError, cartItems]);
 
   const handleCardSubmit = async (e) => {
     e.preventDefault();
@@ -122,6 +128,7 @@ export default function StripePaymentForm({ amount, planId, userEmail, userName,
             userEmail,
             userName,
             isGuest,
+            cartItems: cartItems.length > 0 ? cartItems : undefined,
           }),
         });
 

@@ -53,7 +53,7 @@ async function getEmailConfig() {
 }
 
 // Send confirmation email to user
-const sendUserConfirmationEmail = async (email, student_name, planDetails) => {
+const sendUserConfirmationEmail = async (email, student_name, cartItems = [], totalAmount = 0) => {
   const config = await getEmailConfig();
   if (!config) {
     console.warn('Email configuration not available, skipping confirmation email');
@@ -68,6 +68,17 @@ const sendUserConfirmationEmail = async (email, student_name, planDetails) => {
     },
   });
 
+  // Build items table HTML
+  let itemsTableHTML = '';
+  if (cartItems && cartItems.length > 0) {
+    itemsTableHTML = cartItems.map((item, idx) => `
+      <tr style="${idx % 2 === 0 ? 'background-color: #f9f9f9;' : ''}">
+        <td style="padding: 10px; border: 1px solid #bdc3c7;">${item.title}</td>
+        <td style="padding: 10px; border: 1px solid #bdc3c7; text-align: right;">$${Number(item.activePrice || 0).toFixed(2)}</td>
+      </tr>
+    `).join('');
+  }
+
   const mailOptions = {
     from: config.user,
     to: email,
@@ -81,20 +92,21 @@ const sendUserConfirmationEmail = async (email, student_name, planDetails) => {
             
             <p>Thank you for your purchase! Your order has been received and is being processed.</p>
             
-            <h3 style="color: #34495e; margin-top: 20px;">Purchase Details:</h3>
+            <h3 style="color: #34495e; margin-top: 20px;">Order Details:</h3>
             <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-              <tr style="background-color: #ecf0f1;">
-                <td style="padding: 10px; border: 1px solid #bdc3c7;"><strong>Plan:</strong></td>
-                <td style="padding: 10px; border: 1px solid #bdc3c7;">${planDetails.title}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px; border: 1px solid #bdc3c7;"><strong>Amount:</strong></td>
-                <td style="padding: 10px; border: 1px solid #bdc3c7;">$${planDetails.price}</td>
-              </tr>
-              <tr style="background-color: #ecf0f1;">
-                <td style="padding: 10px; border: 1px solid #bdc3c7;"><strong>Billing Cycle:</strong></td>
-                <td style="padding: 10px; border: 1px solid #bdc3c7;">${planDetails.billing_cycle}</td>
-              </tr>
+              <thead>
+                <tr style="background-color: #2c3e50; color: white;">
+                  <th style="padding: 10px; border: 1px solid #bdc3c7; text-align: left;">Plan</th>
+                  <th style="padding: 10px; border: 1px solid #bdc3c7; text-align: right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsTableHTML}
+                <tr style="background-color: #34495e; color: white; font-weight: bold;">
+                  <td style="padding: 10px; border: 1px solid #bdc3c7;">TOTAL</td>
+                  <td style="padding: 10px; border: 1px solid #bdc3c7; text-align: right;">$${Number(totalAmount || 0).toFixed(2)}</td>
+                </tr>
+              </tbody>
             </table>
             
             <p style="margin-top: 20px; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db;">
@@ -138,6 +150,54 @@ const sendSuperuserNotificationEmail = async (purchaseData) => {
     },
   });
 
+  // Build items table HTML for cart items if present
+  let purchaseDetailsHTML = '';
+  if (purchaseData.cartItems && purchaseData.cartItems.length > 0) {
+    purchaseDetailsHTML = `
+      <h3 style="color: #34495e; margin-top: 20px;">Order Items:</h3>
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <thead>
+          <tr style="background-color: #2c3e50; color: white;">
+            <th style="padding: 10px; border: 1px solid #bdc3c7; text-align: left;">Plan</th>
+            <th style="padding: 10px; border: 1px solid #bdc3c7; text-align: right;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${purchaseData.cartItems.map((item, idx) => `
+            <tr style="${idx % 2 === 0 ? 'background-color: #f9f9f9;' : ''}">
+              <td style="padding: 10px; border: 1px solid #bdc3c7;">${item.title}</td>
+              <td style="padding: 10px; border: 1px solid #bdc3c7; text-align: right;">$${Number(item.activePrice || 0).toFixed(2)}</td>
+            </tr>
+          `).join('')}
+          <tr style="background-color: #34495e; color: white; font-weight: bold;">
+            <td style="padding: 10px; border: 1px solid #bdc3c7;">TOTAL</td>
+            <td style="padding: 10px; border: 1px solid #bdc3c7; text-align: right;">$${purchaseData.planPrice}</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+  } else {
+    purchaseDetailsHTML = `
+      <h3 style="color: #34495e; margin-top: 20px;">Purchase Details:</h3>
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <tr style="background-color: #ecf0f1;">
+          <td style="padding: 10px; border: 1px solid #bdc3c7;"><strong>Plan:</strong></td>
+          <td style="padding: 10px; border: 1px solid #bdc3c7;">${purchaseData.planTitle}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; border: 1px solid #bdc3c7;"><strong>Amount:</strong></td>
+          <td style="padding: 10px; border: 1px solid #bdc3c7;">$${purchaseData.planPrice}</td>
+        </tr>
+        ${purchaseData.billingCycle ? `
+          <tr style="background-color: #ecf0f1;">
+            <td style="padding: 10px; border: 1px solid #bdc3c7;"><strong>Billing Cycle:</strong></td>
+            <td style="padding: 10px; border: 1px solid #bdc3c7;">${purchaseData.billingCycle}</td>
+          </tr>
+        ` : ''}
+      </table>
+    `;
+  }
+
   const mailOptions = {
     from: config.user,
     to: config.superuserEmail,
@@ -158,32 +218,22 @@ const sendSuperuserNotificationEmail = async (purchaseData) => {
                 <td style="padding: 10px; border: 1px solid #bdc3c7;"><strong>Email:</strong></td>
                 <td style="padding: 10px; border: 1px solid #bdc3c7;">${purchaseData.email}</td>
               </tr>
-              <tr style="background-color: #ecf0f1;">
-                <td style="padding: 10px; border: 1px solid #bdc3c7;"><strong>Phone:</strong></td>
-                <td style="padding: 10px; border: 1px solid #bdc3c7;">${purchaseData.phone}</td>
-              </tr>
+              ${purchaseData.phone ? `
+                <tr style="background-color: #ecf0f1;">
+                  <td style="padding: 10px; border: 1px solid #bdc3c7;"><strong>Phone:</strong></td>
+                  <td style="padding: 10px; border: 1px solid #bdc3c7;">${purchaseData.phone}</td>
+                </tr>
+              ` : ''}
             </table>
             
-            <h3 style="color: #34495e; margin-top: 20px;">Purchase Details:</h3>
-            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-              <tr style="background-color: #ecf0f1;">
-                <td style="padding: 10px; border: 1px solid #bdc3c7;"><strong>Plan:</strong></td>
-                <td style="padding: 10px; border: 1px solid #bdc3c7;">${purchaseData.planTitle}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px; border: 1px solid #bdc3c7;"><strong>Amount:</strong></td>
-                <td style="padding: 10px; border: 1px solid #bdc3c7;">$${purchaseData.planPrice}</td>
-              </tr>
-              <tr style="background-color: #ecf0f1;">
-                <td style="padding: 10px; border: 1px solid #bdc3c7;"><strong>Billing Cycle:</strong></td>
-                <td style="padding: 10px; border: 1px solid #bdc3c7;">${purchaseData.billingCycle}</td>
-              </tr>
-            </table>
+            ${purchaseDetailsHTML}
             
-            <h3 style="color: #34495e; margin-top: 20px;">Billing Address:</h3>
-            <p style="padding: 10px; background-color: #f5f5f5; border-radius: 4px;">
-              ${purchaseData.address}
-            </p>
+            ${purchaseData.address ? `
+              <h3 style="color: #34495e; margin-top: 20px;">Billing Address:</h3>
+              <p style="padding: 10px; background-color: #f5f5f5; border-radius: 4px;">
+                ${purchaseData.address}
+              </p>
+            ` : ''}
             
             <p style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border-left: 4px solid #ffc107;">
               <strong>⚠️ Action Required:</strong><br>

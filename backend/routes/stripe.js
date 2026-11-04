@@ -3,6 +3,7 @@ const router = express.Router();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const db = require('../db/client');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { sendUserConfirmationEmail, sendSuperuserNotificationEmail } = require('../services/emailService');
 
 // Test endpoint
 router.get('/health', (req, res) => {
@@ -12,27 +13,33 @@ router.get('/health', (req, res) => {
 // POST create payment intent for subscription
 router.post('/create-payment-intent', authenticateToken, async (req, res) => {
   try {
-    const { amount, planId, customerId, userEmail, userName } = req.body;
+    const { amount, planId, customerId, userEmail, userName, cartItems } = req.body;
 
-    console.log('Payment intent (authenticated) requested:', { amount, planId, customerId, userEmail, userName });
+    console.log('Payment intent (authenticated) requested:', { amount, planId, customerId, userEmail, userName, cartItems });
 
-    if (!amount || !planId) {
-      return res.status(400).json({ error: 'Amount and planId are required' });
+    if (!amount) {
+      return res.status(400).json({ error: 'Amount is required' });
     }
 
     const amountInCents = Math.round(amount * 100);
     console.log(`Converting $${amount} to ${amountInCents} cents for Stripe`);
 
+    // Build description from cart items or single plan
+    const description = cartItems && cartItems.length > 0 
+      ? `CAS Fitness Plan Purchase - ${cartItems.length} item(s)`
+      : `CAS Fitness Plan Purchase - Plan ID: ${planId}`;
+
     // Create payment intent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
       currency: 'usd',
-      description: `CAS Fitness Plan Purchase - Plan ID: ${planId}`,
+      description,
       metadata: {
-        planId,
+        planId: planId || 'multiple',
         customerId: customerId || req.user.id,
         userEmail,
         userName,
+        itemCount: cartItems ? cartItems.length : 1,
       },
     });
 
@@ -52,27 +59,33 @@ router.post('/create-payment-intent', authenticateToken, async (req, res) => {
 // POST create payment intent for guest checkout
 router.post('/create-payment-intent-guest', async (req, res) => {
   try {
-    const { amount, planId, userEmail, userName } = req.body;
+    const { amount, planId, userEmail, userName, cartItems } = req.body;
 
-    console.log('Payment intent requested:', { amount, planId, userEmail, userName });
+    console.log('Payment intent requested:', { amount, planId, userEmail, userName, cartItems });
 
-    if (!amount || !planId) {
-      return res.status(400).json({ error: 'Amount and planId are required' });
+    if (!amount) {
+      return res.status(400).json({ error: 'Amount is required' });
     }
 
     const amountInCents = Math.round(amount * 100);
     console.log(`Converting $${amount} to ${amountInCents} cents for Stripe`);
 
+    // Build description from cart items or single plan
+    const description = cartItems && cartItems.length > 0 
+      ? `CAS Fitness Plan Purchase - ${cartItems.length} item(s)`
+      : `CAS Fitness Plan Purchase - Plan ID: ${planId}`;
+
     // Create payment intent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
       currency: 'usd',
-      description: `CAS Fitness Plan Purchase - Plan ID: ${planId}`,
+      description,
       metadata: {
-        planId,
+        planId: planId || 'multiple',
         userEmail,
         userName,
         isGuest: 'true',
+        itemCount: cartItems ? cartItems.length : 1,
       },
     });
 
@@ -92,7 +105,7 @@ router.post('/create-payment-intent-guest', async (req, res) => {
 // POST confirm payment (called after Stripe processes payment)
 router.post('/confirm-payment', async (req, res) => {
   try {
-    const { paymentIntentId, planId, userEmail, userName, isGuest } = req.body;
+    const { paymentIntentId, planId, userEmail, userName, isGuest, cartItems } = req.body;
 
     if (!paymentIntentId) {
       return res.status(400).json({ error: 'Payment intent ID is required' });
@@ -108,28 +121,83 @@ router.post('/confirm-payment', async (req, res) => {
       });
     }
 
-    // Record payment in database
-    const result = await db.query(
-      `INSERT INTO transactions (user_email, plan_id, amount, stripe_transaction_id, status, metadata, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())
-       RETURNING *`,
-      [
-        userEmail,
-        planId,
-        paymentIntent.amount / 100, // Convert back to dollars
-        paymentIntentId,
-        'completed',
-        JSON.stringify({
-          userName,
-          isGuest,
+    const amount = paymentIntent.amount / 100; // Convert back to dollars
+
+    // Handle multiple items or single plan
+    if (cartItems && cartItems.length > 0) {
+      // For multiple items, create a transaction for each item
+      for (const item of cartItems) {
+        await db.query(
+          `INSERT INTO transactions (user_email, plan_id, amount, stripe_transaction_id, status, metadata, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+          [
+            userEmail,
+            item.id,
+            Number(item.activePrice || 0),
+            paymentIntentId,
+            'completed',
+            JSON.stringify({
+              userName,
+              isGuest,
+              stripeChargeId: paymentIntent.charges.data[0]?.id,
+              itemTitle: item.title,
+              cartSize: cartItems.length,
+            }),
+          ]
+        );
+      }
+
+      // Send email with all items
+      try {
+        await sendUserConfirmationEmail(userEmail, userName, cartItems, amount);
+        await sendSuperuserNotificationEmail({
+          student_name: userName,
+          email: userEmail,
+          planTitle: `Multiple Plans (${cartItems.length} items)`,
+          planPrice: amount.toFixed(2),
+          cartItems: cartItems,
           stripeChargeId: paymentIntent.charges.data[0]?.id,
-        }),
-      ]
-    );
+        });
+      } catch (emailError) {
+        console.error('Email sending error (non-blocking):', emailError);
+      }
+    } else {
+      // Single plan transaction
+      const result = await db.query(
+        `INSERT INTO transactions (user_email, plan_id, amount, stripe_transaction_id, status, metadata, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, NOW())
+         RETURNING *`,
+        [
+          userEmail,
+          planId,
+          amount,
+          paymentIntentId,
+          'completed',
+          JSON.stringify({
+            userName,
+            isGuest,
+            stripeChargeId: paymentIntent.charges.data[0]?.id,
+          }),
+        ]
+      );
+
+      // Send email for single plan
+      try {
+        await sendUserConfirmationEmail(userEmail, userName, [{ id: planId, title: 'Membership Plan', activePrice: amount }], amount);
+        await sendSuperuserNotificationEmail({
+          student_name: userName,
+          email: userEmail,
+          planTitle: 'Membership Plan',
+          planPrice: amount.toFixed(2),
+          stripeChargeId: paymentIntent.charges.data[0]?.id,
+        });
+      } catch (emailError) {
+        console.error('Email sending error (non-blocking):', emailError);
+      }
+    }
 
     res.json({
       success: true,
-      transactionId: result.rows[0].id,
       message: 'Payment confirmed successfully',
     });
   } catch (err) {
