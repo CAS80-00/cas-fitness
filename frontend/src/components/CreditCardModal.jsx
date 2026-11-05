@@ -20,73 +20,124 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
   const cardNumberElement = useRef(null);
   const expiryElement = useRef(null);
   const cvcElement = useRef(null);
+  const stripeLoadedRef = useRef(false);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 
-  // Load Stripe from CDN
+  // Load Stripe from CDN once only
   useEffect(() => {
-    if (window.Stripe) {
-      const stripeInstance = window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
-      setStripe(stripeInstance);
-      setElements(stripeInstance.elements());
+    if (stripeLoadedRef.current) return;
+
+    const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+    
+    if (!stripeKey) {
+      console.error('VITE_STRIPE_PUBLISHABLE_KEY is not set');
+      setError('Payment system is not configured');
       return;
     }
 
+    const loadStripe = () => {
+      if (!window.Stripe) {
+        console.error('Stripe.js failed to load');
+        setError('Payment system failed to load');
+        return;
+      }
+
+      try {
+        const stripeInstance = window.Stripe(stripeKey);
+        setStripe(stripeInstance);
+        setElements(stripeInstance.elements());
+        stripeLoadedRef.current = true;
+      } catch (err) {
+        console.error('Error initializing Stripe:', err);
+        setError('Payment system configuration error');
+      }
+    };
+
+    // Check if Stripe is already loaded
+    if (window.Stripe) {
+      loadStripe();
+      return;
+    }
+
+    // Load Stripe from CDN
     const script = document.createElement('script');
     script.src = 'https://js.stripe.com/v3/';
     script.async = true;
-    script.onload = () => {
-      const stripeInstance = window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
-      setStripe(stripeInstance);
-      setElements(stripeInstance.elements());
+    script.onload = loadStripe;
+    script.onerror = () => {
+      console.error('Failed to load Stripe.js');
+      setError('Failed to load payment system');
     };
     document.body.appendChild(script);
+
+    return () => {
+      // Don't remove script - it needs to stay for Stripe
+    };
   }, []);
 
   // Mount individual card elements
   useEffect(() => {
     if (!stripe || !elements) return;
+    if (!cardNumberRef.current || !expiryRef.current || !cvcRef.current) return;
     if (cardNumberElement.current || expiryElement.current || cvcElement.current) return;
 
-    const elementStyle = {
-      base: {
-        fontSize: '14px',
-        color: '#e5e7eb',
-        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-        '::placeholder': {
-          color: '#6b7280',
+    try {
+      const elementStyle = {
+        base: {
+          fontSize: '14px',
+          color: '#e5e7eb',
+          fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+          '::placeholder': {
+            color: '#6b7280',
+          },
         },
-      },
-      invalid: {
-        color: '#fca5a5',
-      },
-    };
+        invalid: {
+          color: '#fca5a5',
+        },
+      };
 
-    // Create card number element
-    const cardNumberEl = elements.create('cardNumber', { style: elementStyle });
-    cardNumberEl.mount(cardNumberRef.current);
-    cardNumberElement.current = cardNumberEl;
+      // Create card number element
+      const cardNumberEl = elements.create('cardNumber', { style: elementStyle });
+      cardNumberEl.mount(cardNumberRef.current);
+      cardNumberElement.current = cardNumberEl;
 
-    // Create expiry element
-    const expiryEl = elements.create('cardExpiry', { style: elementStyle });
-    expiryEl.mount(expiryRef.current);
-    expiryElement.current = expiryEl;
+      // Create expiry element
+      const expiryEl = elements.create('cardExpiry', { style: elementStyle });
+      expiryEl.mount(expiryRef.current);
+      expiryElement.current = expiryEl;
 
-    // Create CVC element
-    const cvcEl = elements.create('cardCvc', { style: elementStyle });
-    cvcEl.mount(cvcRef.current);
-    cvcElement.current = cvcEl;
+      // Create CVC element
+      const cvcEl = elements.create('cardCvc', { style: elementStyle });
+      cvcEl.mount(cvcRef.current);
+      cvcElement.current = cvcEl;
+    } catch (err) {
+      console.error('Error mounting card elements:', err);
+      setError('Failed to initialize payment fields');
+    }
 
     return () => {
       if (cardNumberElement.current) {
-        cardNumberElement.current.unmount();
+        try {
+          cardNumberElement.current.unmount();
+        } catch (e) {
+          console.error('Error unmounting card number element:', e);
+        }
         cardNumberElement.current = null;
       }
       if (expiryElement.current) {
-        expiryElement.current.unmount();
+        try {
+          expiryElement.current.unmount();
+        } catch (e) {
+          console.error('Error unmounting expiry element:', e);
+        }
         expiryElement.current = null;
       }
       if (cvcElement.current) {
-        cvcElement.current.unmount();
+        try {
+          cvcElement.current.unmount();
+        } catch (e) {
+          console.error('Error unmounting CVC element:', e);
+        }
         cvcElement.current = null;
       }
     };
@@ -150,12 +201,13 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
       });
 
       if (!setupRes.ok) {
-        throw new Error('Failed to create setup intent');
+        const errorData = await setupRes.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to create setup intent');
       }
 
       const { clientSecret } = await setupRes.json();
 
-      // Confirm card and create payment method using individual elements
+      // Confirm card and create payment method using card number element
       const { setupIntent, error: stripeError } = await stripe.confirmCardSetup(
         clientSecret,
         {
@@ -190,7 +242,7 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
       });
 
       if (!saveRes.ok) {
-        const data = await saveRes.json();
+        const data = await saveRes.json().catch(() => ({}));
         throw new Error(data.error || 'Failed to save payment method');
       }
 
