@@ -23,8 +23,9 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
   const stripeLoadedRef = useRef(false);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 
-  // Load Stripe from CDN once only
+  // Load Stripe ONLY when modal opens
   useEffect(() => {
+    if (!isOpen) return;
     if (stripeLoadedRef.current) return;
 
     const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
@@ -53,13 +54,26 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
       }
     };
 
-    // Check if Stripe is already loaded
+    // Check if Stripe is already loaded globally
     if (window.Stripe) {
       loadStripe();
       return;
     }
 
-    // Load Stripe from CDN
+    // Check if script already exists
+    if (document.querySelector('script[src="https://js.stripe.com/v3/"]')) {
+      // Script exists but window.Stripe not ready yet
+      const checkInterval = setInterval(() => {
+        if (window.Stripe) {
+          clearInterval(checkInterval);
+          loadStripe();
+        }
+      }, 100);
+      
+      return () => clearInterval(checkInterval);
+    }
+
+    // Load Stripe from CDN only if not already present
     const script = document.createElement('script');
     script.src = 'https://js.stripe.com/v3/';
     script.async = true;
@@ -71,12 +85,13 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
     document.body.appendChild(script);
 
     return () => {
-      // Don't remove script - it needs to stay for Stripe
+      // Don't remove script - Stripe needs to persist
     };
-  }, []);
+  }, [isOpen]);
 
-  // Mount individual card elements
+  // Mount individual card elements ONLY after Stripe is ready
   useEffect(() => {
+    if (!isOpen) return;
     if (!stripe || !elements) return;
     if (!cardNumberRef.current || !expiryRef.current || !cvcRef.current) return;
     if (cardNumberElement.current || expiryElement.current || cvcElement.current) return;
@@ -84,9 +99,9 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
     try {
       const elementStyle = {
         base: {
-          fontSize: '14px',
+          fontSize: '16px',
           color: '#e5e7eb',
-          fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+          fontFamily: 'system-ui, -apple-system, sans-serif',
           '::placeholder': {
             color: '#6b7280',
           },
@@ -116,32 +131,25 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
     }
 
     return () => {
-      if (cardNumberElement.current) {
-        try {
+      // Clean up on unmount
+      try {
+        if (cardNumberElement.current) {
           cardNumberElement.current.unmount();
-        } catch (e) {
-          console.error('Error unmounting card number element:', e);
+          cardNumberElement.current = null;
         }
-        cardNumberElement.current = null;
-      }
-      if (expiryElement.current) {
-        try {
+        if (expiryElement.current) {
           expiryElement.current.unmount();
-        } catch (e) {
-          console.error('Error unmounting expiry element:', e);
+          expiryElement.current = null;
         }
-        expiryElement.current = null;
-      }
-      if (cvcElement.current) {
-        try {
+        if (cvcElement.current) {
           cvcElement.current.unmount();
-        } catch (e) {
-          console.error('Error unmounting CVC element:', e);
+          cvcElement.current = null;
         }
-        cvcElement.current = null;
+      } catch (e) {
+        console.warn('Error unmounting elements:', e);
       }
     };
-  }, [stripe, elements]);
+  }, [isOpen, stripe, elements]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -191,18 +199,24 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
     try {
       const token = localStorage.getItem('cas_jwt');
 
+      if (!token) {
+        setError('You must be logged in to add a payment method');
+        setLoading(false);
+        return;
+      }
+
       // Create Setup Intent on backend
       const setupRes = await fetch(`${apiBaseUrl}/payments/setup-intent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
+          'Authorization': `Bearer ${token}`,
         },
       });
 
       if (!setupRes.ok) {
-        const errorData = await setupRes.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create setup intent');
+        const errorData = await setupRes.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `Server error: ${setupRes.status}`);
       }
 
       const { clientSecret } = await setupRes.json();
@@ -223,7 +237,7 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
       );
 
       if (stripeError) {
-        setError(stripeError.message);
+        setError(`Card error: ${stripeError.message}`);
         setLoading(false);
         return;
       }
@@ -233,7 +247,7 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           paymentMethodId: setupIntent.payment_method,
@@ -242,7 +256,7 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
       });
 
       if (!saveRes.ok) {
-        const data = await saveRes.json().catch(() => ({}));
+        const data = await saveRes.json().catch(() => ({ error: 'Unknown error' }));
         throw new Error(data.error || 'Failed to save payment method');
       }
 
