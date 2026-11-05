@@ -127,24 +127,8 @@ export default function CreditCardManager({ userId, onAddCard }) {
                   )}
                 </div>
               </div>
-              <div className={styles.methodActions}>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteMethod(method.id)}
-                  className={styles.deleteButton}
-                >
-                  Delete
-                </button>
-              </div>
             </div>
           ))}
-          <button
-            type="button"
-            onClick={handleAddCard}
-            className={styles.addMoreButton}
-          >
-            + Add Another Card
-          </button>
         </div>
       )}
     </div>
