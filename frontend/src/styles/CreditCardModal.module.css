@@ -54,9 +54,28 @@
 }
 
 .cardDetailsGroup {
-  @apply space-y-4 p-4 rounded;
-  background-color: #1a1a1a;
-  border: 1px solid #404040;
+  @apply space-y-4 p-6 rounded-xl;
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  border: 2px solid #374151;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.cardDetailsGroup::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.cardDetailsGroup > * {
+  position: relative;
+  z-index: 1;
 }
 
 .cardRow {
@@ -68,8 +87,9 @@
 }
 
 .label {
-  @apply block text-xs font-semibold;
-  color: #d1d5db;
+  @apply block text-xs font-semibold uppercase tracking-wider;
+  color: #9ca3af;
+  letter-spacing: 0.5px;
 }
 
 .input {
@@ -96,23 +116,39 @@
 
 /* Stripe Element Styling */
 .stripeElement {
-  @apply w-full rounded border p-3;
-  background-color: #1a1a1a;
-  border-color: #404040;
+  @apply w-full rounded border p-4;
+  background-color: rgba(26, 26, 26, 0.8);
+  border: 2px solid #374151;
+  transition: all 0.3s ease;
+  font-size: 16px;
+  letter-spacing: 2px;
+}
+
+.stripeElement:hover {
+  border-color: #4b5563;
+  background-color: rgba(26, 26, 26, 0.95);
+}
+
+/* First element in cardDetailsGroup (card number) */
+.cardDetailsGroup .formGroup:first-child .stripeElement {
+  border: 2px solid #3b82f6;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.02) 100%);
 }
 
 :global(.StripeElement) {
   color: #e5e7eb !important;
-  font-family: system-ui, -apple-system, sans-serif !important;
+  font-family: 'Courier New', monospace !important;
+  letter-spacing: 2px !important;
 }
 
 :global(.StripeElement--focus) {
   border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3) !important;
 }
 
 :global(.StripeElement--invalid) {
   border-color: #ef4444 !important;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.3) !important;
 }
 
 /* Status Messages */
