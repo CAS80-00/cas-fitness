@@ -64,6 +64,10 @@ export default function CreditCardManager({ userId, onAddCard }) {
     }
   };
 
+  const handleEditMethod = (method) => {
+    window.alert('Card details cannot be edited. To change card information, delete this card and add a new one.');
+  };
+
   const handleAddCard = () => {
     if (onAddCard) {
       onAddCard();
@@ -125,14 +129,24 @@ export default function CreditCardManager({ userId, onAddCard }) {
                   {method.is_default && (
                     <div className={styles.defaultBadge}>DEFAULT</div>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteMethod(method.id)}
-                    className={styles.deleteButtonCard}
-                    title="Delete payment method"
-                  >
-                    Delete
-                  </button>
+                  <div className={styles.cardActions}>
+                    <button
+                      type="button"
+                      onClick={() => handleEditMethod(method)}
+                      className={styles.editButtonCard}
+                      title="Edit payment method"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteMethod(method.id)}
+                      className={styles.deleteButtonCard}
+                      title="Delete payment method"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
