@@ -1140,7 +1140,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
                   </div>
 
                   <div className={styles.modalFooter}>
-                    {isSuperuser && (
+                    {(isSuperuser || isEmployee) && (
                       <button
                         className={styles.deleteBtn}
                         onClick={handleDeleteSlot}
