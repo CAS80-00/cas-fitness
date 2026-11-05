@@ -101,14 +101,18 @@
   border-color: #404040;
 }
 
-.stripeElement :global(.StripeElement) {
-  color: #e5e7eb;
-  font-family: system-ui, -apple-system, sans-serif;
+:global(.StripeElement) {
+  color: #e5e7eb !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
 }
 
-.stripeElement :global(.StripeElement--focus) {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+:global(.StripeElement--focus) {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+:global(.StripeElement--invalid) {
+  border-color: #ef4444 !important;
 }
 
 /* Status Messages */

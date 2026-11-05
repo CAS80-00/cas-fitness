@@ -50,14 +50,14 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
     const elementStyle = {
       base: {
         fontSize: '14px',
-        color: '#424242',
+        color: '#e5e7eb',
         fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
         '::placeholder': {
-          color: '#aab7c4',
+          color: '#6b7280',
         },
       },
       invalid: {
-        color: '#fa755a',
+        color: '#fca5a5',
       },
     };
 
