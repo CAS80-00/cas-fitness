@@ -54,15 +54,16 @@
 }
 
 .cardDetailsGroup {
-  @apply p-4 rounded-2xl mx-auto;
   background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
   border: 2px solid #374151;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   position: relative;
   overflow: hidden;
-  width: 100%;
-  max-width: 300px;
-  height: 200px;
+  border-radius: 1rem;
+  padding: 1rem;
+  margin: 0 auto !important;
+  width: 280px !important;
+  height: 200px !important;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
