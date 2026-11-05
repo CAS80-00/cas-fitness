@@ -94,7 +94,11 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
     if (!isOpen) return;
     if (!stripe || !elements) return;
     if (!cardNumberRef.current || !expiryRef.current || !cvcRef.current) return;
-    if (cardNumberElement.current || expiryElement.current || cvcElement.current) return;
+    
+    // If elements already exist, don't recreate them
+    if (cardNumberElement.current && expiryElement.current && cvcElement.current) {
+      return;
+    }
 
     try {
       const elementStyle = {
@@ -111,20 +115,24 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
         },
       };
 
-      // Create card number element
-      const cardNumberEl = elements.create('cardNumber', { style: elementStyle });
-      cardNumberEl.mount(cardNumberRef.current);
-      cardNumberElement.current = cardNumberEl;
+      // Only create if not already created
+      if (!cardNumberElement.current) {
+        const cardNumberEl = elements.create('cardNumber', { style: elementStyle });
+        cardNumberEl.mount(cardNumberRef.current);
+        cardNumberElement.current = cardNumberEl;
+      }
 
-      // Create expiry element
-      const expiryEl = elements.create('cardExpiry', { style: elementStyle });
-      expiryEl.mount(expiryRef.current);
-      expiryElement.current = expiryEl;
+      if (!expiryElement.current) {
+        const expiryEl = elements.create('cardExpiry', { style: elementStyle });
+        expiryEl.mount(expiryRef.current);
+        expiryElement.current = expiryEl;
+      }
 
-      // Create CVC element
-      const cvcEl = elements.create('cardCvc', { style: elementStyle });
-      cvcEl.mount(cvcRef.current);
-      cvcElement.current = cvcEl;
+      if (!cvcElement.current) {
+        const cvcEl = elements.create('cardCvc', { style: elementStyle });
+        cvcEl.mount(cvcRef.current);
+        cvcElement.current = cvcEl;
+      }
     } catch (err) {
       console.error('Error mounting card elements:', err);
       setError('Failed to initialize payment fields');
