@@ -140,7 +140,7 @@
 }
 
 .defaultBadge {
-  @apply absolute top-2 right-2 rounded-md px-2 py-1 text-xs font-semibold;
+  @apply absolute top-2 left-1/2 transform -translate-x-1/2 rounded-md px-2 py-1 text-xs font-semibold;
   background-color: rgba(34, 197, 94, 0.2);
   color: #86efac;
   border: 1px solid rgba(34, 197, 94, 0.4);
