@@ -44,6 +44,9 @@
 
 .infoColumn {
   @apply space-y-4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .statusActive {

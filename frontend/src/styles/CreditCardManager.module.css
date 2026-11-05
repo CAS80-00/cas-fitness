@@ -5,9 +5,10 @@
    ========================================================================== */
 
 .container {
-  @apply space-y-2 rounded-lg border p-3;
+  @apply space-y-2 rounded-lg border p-2;
   background-color: #1a1a1a;
   border-color: #404040;
+  width: 100%;
 }
 
 .titleRow {
