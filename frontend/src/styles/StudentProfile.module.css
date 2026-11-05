@@ -39,7 +39,11 @@
 }
 
 .infoGrid {
-  @apply grid grid-cols-1 gap-3 text-sm md:grid-cols-2;
+  @apply grid grid-cols-1 gap-6 text-sm md:grid-cols-3;
+}
+
+.infoColumn {
+  @apply space-y-4;
 }
 
 .statusActive {

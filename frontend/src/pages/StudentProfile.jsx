@@ -162,66 +162,74 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
         <div className={styles.infoCard}>
           <h2 className={styles.infoTitle}>Profile Info</h2>
           <div className={styles.infoGrid}>
-            <p>
-              <strong>First Name:</strong> {currentUser?.firstName || "—"}
-            </p>
-            <p>
-              <strong>Last Name:</strong> {currentUser?.lastName || "—"}
-            </p>
-            <p>
-              <strong>Email:</strong> {currentUser?.email || "—"}
-            </p>
-            <p>
-              <strong>Status:</strong> <span className={styles.statusActive}>{subscription?.status || 'No Active Subscription'}</span>
-            </p>
-            <p>
-              <strong>Plan:</strong> {subscription?.title || '—'}
-            </p>
-            <p>
-              <strong>Renewal Date:</strong> 2026-12-31
-            </p>
-            <label className={styles.autoRenewLabel}>
-              <input
-                type="checkbox"
-                checked={autoRenew}
-                onChange={async () => {
-                  if (!subscription?.id) return;
-                  const newValue = !autoRenew;
-                  setUpdatingAutoRenew(true);
-                  try {
-                    const token = localStorage.getItem("cas_jwt");
-                    const res = await fetch(`${apiBaseUrl}/subscriptions/${subscription.id}/auto-renew`, {
-                      method: 'PUT',
-                      headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({ autoRenew: newValue }),
-                    });
+            <div className={styles.infoColumn}>
+              <p>
+                <strong>First Name:</strong> {currentUser?.firstName || "—"}
+              </p>
+              <p>
+                <strong>Email:</strong> {currentUser?.email || "—"}
+              </p>
+              <p>
+                <strong>Plan:</strong> {subscription?.title || '—'}
+              </p>
+            </div>
 
-                    if (res.ok) {
-                      setAutoRenew(newValue);
-                      setSubscription({ ...subscription, auto_renew: newValue });
-                      setStatusMessage(`Auto-renewal ${newValue ? 'enabled' : 'disabled'}`);
-                    } else {
-                      const data = await res.json();
-                      setStatusMessage(data.error || 'Failed to update auto-renewal');
+            <div className={styles.infoColumn}>
+              <p>
+                <strong>Last Name:</strong> {currentUser?.lastName || "—"}
+              </p>
+              <p>
+                <strong>Status:</strong> <span className={styles.statusActive}>{subscription?.status || 'No Active Subscription'}</span>
+              </p>
+              <p>
+                <strong>Renewal Date:</strong> 2026-12-31
+              </p>
+            </div>
+
+            <div className={styles.infoColumn}>
+              <CreditCardManager userId={currentUser?.id} onAddCard={() => setShowCardModal(true)} />
+              
+              <label className={styles.autoRenewLabel}>
+                <input
+                  type="checkbox"
+                  checked={autoRenew}
+                  onChange={async () => {
+                    if (!subscription?.id) return;
+                    const newValue = !autoRenew;
+                    setUpdatingAutoRenew(true);
+                    try {
+                      const token = localStorage.getItem("cas_jwt");
+                      const res = await fetch(`${apiBaseUrl}/subscriptions/${subscription.id}/auto-renew`, {
+                        method: 'PUT',
+                        headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ autoRenew: newValue }),
+                      });
+
+                      if (res.ok) {
+                        setAutoRenew(newValue);
+                        setSubscription({ ...subscription, auto_renew: newValue });
+                        setStatusMessage(`Auto-renewal ${newValue ? 'enabled' : 'disabled'}`);
+                      } else {
+                        const data = await res.json();
+                        setStatusMessage(data.error || 'Failed to update auto-renewal');
+                      }
+                    } catch (err) {
+                      setStatusMessage('Error updating auto-renewal setting');
+                      console.error('Error:', err);
+                    } finally {
+                      setUpdatingAutoRenew(false);
                     }
-                  } catch (err) {
-                    setStatusMessage('Error updating auto-renewal setting');
-                    console.error('Error:', err);
-                  } finally {
-                    setUpdatingAutoRenew(false);
-                  }
-                }}
-                disabled={updatingAutoRenew}
-                className={styles.checkbox}
-              />
-              Auto-Renewal
-            </label>
+                  }}
+                  disabled={updatingAutoRenew}
+                  className={styles.checkbox}
+                />
+                Auto-Renewal
+              </label>
+            </div>
           </div>
-
-          <CreditCardManager userId={currentUser?.id} onAddCard={() => setShowCardModal(true)} />
 
           <SubscriptionManagement userId={currentUser?.id} />
         </div>
