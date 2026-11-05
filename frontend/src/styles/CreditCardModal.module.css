@@ -53,6 +53,20 @@
   @apply space-y-2;
 }
 
+.cardDetailsGroup {
+  @apply space-y-4 p-4 rounded;
+  background-color: #1a1a1a;
+  border: 1px solid #404040;
+}
+
+.cardRow {
+  @apply grid grid-cols-2 gap-4;
+}
+
+.cardRow .formGroup {
+  @apply space-y-2;
+}
+
 .label {
   @apply block text-xs font-semibold;
   color: #d1d5db;

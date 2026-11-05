@@ -13,14 +13,21 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [stripe, setStripe] = useState(null);
-  const [cardElement, setCardElement] = useState(null);
-  const cardContainerRef = useRef(null);
+  const [elements, setElements] = useState(null);
+  const cardNumberRef = useRef(null);
+  const expiryRef = useRef(null);
+  const cvcRef = useRef(null);
+  const cardNumberElement = useRef(null);
+  const expiryElement = useRef(null);
+  const cvcElement = useRef(null);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 
   // Load Stripe from CDN
   useEffect(() => {
     if (window.Stripe) {
-      setStripe(window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY));
+      const stripeInstance = window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+      setStripe(stripeInstance);
+      setElements(stripeInstance.elements());
       return;
     }
 
@@ -28,37 +35,62 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
     script.src = 'https://js.stripe.com/v3/';
     script.async = true;
     script.onload = () => {
-      setStripe(window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY));
+      const stripeInstance = window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+      setStripe(stripeInstance);
+      setElements(stripeInstance.elements());
     };
     document.body.appendChild(script);
   }, []);
 
-  // Mount card element after DOM is ready
+  // Mount individual card elements
   useEffect(() => {
-    if (!stripe || !cardContainerRef.current || cardElement) return;
+    if (!stripe || !elements) return;
+    if (cardNumberElement.current || expiryElement.current || cvcElement.current) return;
 
-    const elements = stripe.elements();
-    const element = elements.create('card', {
-      style: {
-        base: {
-          fontSize: '14px',
-          color: '#424242',
-          '::placeholder': {
-            color: '#aab7c4',
-          },
-        },
-        invalid: {
-          color: '#fa755a',
+    const elementStyle = {
+      base: {
+        fontSize: '14px',
+        color: '#424242',
+        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+        '::placeholder': {
+          color: '#aab7c4',
         },
       },
-    });
-    element.mount(cardContainerRef.current);
-    setCardElement(element);
+      invalid: {
+        color: '#fa755a',
+      },
+    };
+
+    // Create card number element
+    const cardNumberEl = elements.create('cardNumber', { style: elementStyle });
+    cardNumberEl.mount(cardNumberRef.current);
+    cardNumberElement.current = cardNumberEl;
+
+    // Create expiry element
+    const expiryEl = elements.create('cardExpiry', { style: elementStyle });
+    expiryEl.mount(expiryRef.current);
+    expiryElement.current = expiryEl;
+
+    // Create CVC element
+    const cvcEl = elements.create('cardCvc', { style: elementStyle });
+    cvcEl.mount(cvcRef.current);
+    cvcElement.current = cvcEl;
 
     return () => {
-      element.unmount();
+      if (cardNumberElement.current) {
+        cardNumberElement.current.unmount();
+        cardNumberElement.current = null;
+      }
+      if (expiryElement.current) {
+        expiryElement.current.unmount();
+        expiryElement.current = null;
+      }
+      if (cvcElement.current) {
+        cvcElement.current.unmount();
+        cvcElement.current = null;
+      }
     };
-  }, [stripe, cardElement]);
+  }, [stripe, elements]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -78,7 +110,7 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
     setError('');
     setSuccess('');
 
-    if (!stripe || !cardElement) {
+    if (!stripe || !elements) {
       setError('Payment system is not ready');
       return;
     }
@@ -123,12 +155,12 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
 
       const { clientSecret } = await setupRes.json();
 
-      // Confirm card and create payment method
+      // Confirm card and create payment method using individual elements
       const { setupIntent, error: stripeError } = await stripe.confirmCardSetup(
         clientSecret,
         {
           payment_method: {
-            card: cardElement,
+            card: cardNumberElement.current,
             billing_details: {
               name: formData.cardholderName,
               email: formData.email,
@@ -239,9 +271,23 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
               />
             </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Card Details</label>
-              <div className={styles.stripeElement} ref={cardContainerRef} />
+            <div className={styles.cardDetailsGroup}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Card Number</label>
+                <div className={styles.stripeElement} ref={cardNumberRef} />
+              </div>
+
+              <div className={styles.cardRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Expiry Date</label>
+                  <div className={styles.stripeElement} ref={expiryRef} />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>CVC</label>
+                  <div className={styles.stripeElement} ref={cvcRef} />
+                </div>
+              </div>
             </div>
 
             {error && <div className={styles.errorMessage}>{error}</div>}
@@ -249,7 +295,7 @@ export default function CreditCardModal({ isOpen, onClose, onCardSaved, onNaviga
 
             <button
               type="submit"
-              disabled={loading || !stripe || !cardElement}
+              disabled={loading || !stripe || !elements}
               className={styles.submitButton}
             >
               {loading ? 'Saving...' : 'Save Card'}
