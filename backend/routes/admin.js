@@ -1542,6 +1542,26 @@ router.delete("/slot-instances-date-range/:userId", authenticateToken, async (re
 router.delete("/slot-instances/:slotId", authenticateToken, async (req, res) => {
   try {
     const { slotId } = req.params;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated." });
+    }
+
+    // Verify the slot belongs to the user or user is a superuser
+    const slotRes = await db.query("SELECT user_id FROM slot_instances WHERE id = $1", [slotId]);
+    
+    if (slotRes.rows.length === 0) {
+      return res.status(404).json({ error: "Slot instance not found." });
+    }
+
+    const slotOwnerId = slotRes.rows[0].user_id;
+    const isSuperuser = req.user.roleId === 1; // SUPERUSER role id
+
+    // Allow deletion if user owns the slot or is a superuser
+    if (slotOwnerId !== userId && !isSuperuser) {
+      return res.status(403).json({ error: "You do not have permission to delete this slot." });
+    }
 
     const result = await db.query("DELETE FROM slot_instances WHERE id = $1 RETURNING id", [slotId]);
 
