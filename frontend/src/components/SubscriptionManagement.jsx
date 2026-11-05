@@ -6,6 +6,12 @@ export default function SubscriptionManagement({ userId }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [cancellingId, setCancellingId] = useState(null);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [reactivatingId, setReactivatingId] = useState(null);
+  const [showReactivationModal, setShowReactivationModal] = useState(false);
+  const [selectedSubscription, setSelectedSubscription] = useState(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+  const [reactivationStep, setReactivationStep] = useState('select'); // 'select', 'confirm', 'processing'
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 
   useEffect(() => {
@@ -90,6 +96,84 @@ export default function SubscriptionManagement({ userId }) {
     } finally {
       setCancellingId(null);
     }
+  };
+
+  const loadPaymentMethods = async () => {
+    if (!userId) return;
+    try {
+      const token = localStorage.getItem('cas_jwt');
+      const res = await fetch(`${apiBaseUrl}/payments/payment-methods/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPaymentMethods(data.paymentMethods || []);
+      }
+    } catch (err) {
+      console.error('Error loading payment methods:', err);
+    }
+  };
+
+  const openReactivationModal = async (subscription) => {
+    setSelectedSubscription(subscription);
+    await loadPaymentMethods();
+    setReactivationStep('select');
+    setSelectedPaymentMethod(null);
+    setShowReactivationModal(true);
+  };
+
+  const handleReactivateSubscription = async () => {
+    if (!selectedPaymentMethod || !selectedSubscription) {
+      setError('Please select a payment method');
+      return;
+    }
+
+    setReactivationStep('confirm');
+  };
+
+  const handleProcessReactivation = async () => {
+    if (!selectedPaymentMethod || !selectedSubscription) {
+      setError('Payment method or subscription missing');
+      return;
+    }
+
+    setReactivationStep('processing');
+    try {
+      const token = localStorage.getItem('cas_jwt');
+      const amount = Number(selectedSubscription.price || selectedSubscription.locked_price);
+
+      const res = await fetch(`${apiBaseUrl}/subscriptions/${selectedSubscription.id}/reactivate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentMethodId: selectedPaymentMethod.id,
+          amount,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Payment failed');
+      }
+
+      setError('');
+      setShowReactivationModal(false);
+      loadSubscriptions();
+      alert('Subscription reactivated successfully!');
+    } catch (err) {
+      setError(err.message);
+      setReactivationStep('confirm');
+    }
+  };
+
+  const closeReactivationModal = () => {
+    setShowReactivationModal(false);
+    setSelectedSubscription(null);
+    setSelectedPaymentMethod(null);
+    setReactivationStep('select');
   };
 
   const formatDate = (dateString) => {
@@ -222,10 +306,130 @@ export default function SubscriptionManagement({ userId }) {
                       </button>
                     </>
                   )}
+                  {sub.status === 'INACTIVE' && (
+                    <button
+                      className={styles.reactivateButton}
+                      onClick={() => openReactivationModal(sub)}
+                      disabled={reactivatingId === sub.id}
+                    >
+                      {reactivatingId === sub.id ? 'Processing...' : 'Reactivate'}
+                    </button>
+                  )}
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {showReactivationModal && selectedSubscription && (
+        <div className={styles.modalOverlay} onClick={closeReactivationModal}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Reactivate Subscription</h3>
+              <button className={styles.modalClose} onClick={closeReactivationModal}>✕</button>
+            </div>
+
+            {reactivationStep === 'select' && (
+              <div className={styles.modalBody}>
+                {error && <div className={styles.error}>{error}</div>}
+
+                {paymentMethods.length === 0 ? (
+                  <div className={styles.emptyPaymentMethods}>
+                    <p>No payment methods on file. Please add a card first.</p>
+                  </div>
+                ) : (
+                  <div className={styles.paymentMethodsList}>
+                    <p className={styles.label}>Select a payment method:</p>
+                    {paymentMethods.map((method) => (
+                      <div
+                        key={method.id}
+                        className={`${styles.paymentMethodOption} ${selectedPaymentMethod?.id === method.id ? styles.selected : ''}`}
+                        onClick={() => setSelectedPaymentMethod(method)}
+                      >
+                        <input
+                          type="radio"
+                          checked={selectedPaymentMethod?.id === method.id}
+                          onChange={() => setSelectedPaymentMethod(method)}
+                        />
+                        <div className={styles.methodDetails}>
+                          <span className={styles.cardBrand}>{method.card_brand}</span>
+                          <span className={styles.cardLast4}>•••• •••• •••• {method.card_last_4}</span>
+                          <span className={styles.expiry}>{method.expiry_month}/{method.expiry_year}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className={styles.modalFooter}>
+                  <button className={styles.cancelBtn} onClick={closeReactivationModal}>Cancel</button>
+                  <button
+                    className={styles.nextBtn}
+                    onClick={handleReactivateSubscription}
+                    disabled={!selectedPaymentMethod || paymentMethods.length === 0}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {reactivationStep === 'confirm' && selectedPaymentMethod && (
+              <div className={styles.modalBody}>
+                {error && <div className={styles.error}>{error}</div>}
+
+                <div className={styles.confirmationContent}>
+                  <h4>Confirm Reactivation</h4>
+                  
+                  <div className={styles.confirmationDetails}>
+                    <div className={styles.detailRow}>
+                      <span className={styles.label}>Plan:</span>
+                      <span className={styles.value}>{selectedSubscription.title}</span>
+                    </div>
+                    <div className={styles.detailRow}>
+                      <span className={styles.label}>Amount:</span>
+                      <span className={styles.amount}>
+                        ${(Number(selectedSubscription.locked_price || selectedSubscription.price) || 0).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className={styles.detailRow}>
+                      <span className={styles.label}>Billing Cycle:</span>
+                      <span className={styles.value}>{selectedSubscription.billing_cycle}</span>
+                    </div>
+                    <div className={styles.detailRow}>
+                      <span className={styles.label}>Payment Method:</span>
+                      <span className={styles.value}>
+                        {selectedPaymentMethod.card_brand} •••• {selectedPaymentMethod.card_last_4}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.warningBox}>
+                    <p>By clicking "Renew", you authorize this charge to your payment method.</p>
+                  </div>
+                </div>
+
+                <div className={styles.modalFooter}>
+                  <button className={styles.cancelBtn} onClick={() => setReactivationStep('select')}>Back</button>
+                  <button
+                    className={styles.renewBtn}
+                    onClick={handleProcessReactivation}
+                  >
+                    Renew
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {reactivationStep === 'processing' && (
+              <div className={styles.modalBody}>
+                <div className={styles.processingMessage}>
+                  <p>Processing payment...</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

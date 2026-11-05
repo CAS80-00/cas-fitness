@@ -160,6 +160,208 @@
   cursor: not-allowed;
 }
 
+.reactivateButton {
+  @apply rounded-lg px-4 py-2 text-sm font-semibold transition;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.reactivateButton:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.reactivateButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Modal Styles */
+.modalOverlay {
+  @apply fixed inset-0 flex items-center justify-center bg-black/50 z-50;
+}
+
+.modalContent {
+  @apply rounded-lg border shadow-lg;
+  background-color: #222;
+  border-color: #404040;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalHeader {
+  @apply flex items-center justify-between border-b p-4;
+  border-color: #404040;
+}
+
+.modalTitle {
+  @apply text-lg font-bold;
+  color: #e5e7eb;
+}
+
+.modalClose {
+  @apply rounded-lg px-2 py-1 text-xl transition;
+  background-color: transparent;
+  color: #9ca3af;
+  border: none;
+  cursor: pointer;
+}
+
+.modalClose:hover {
+  color: #e5e7eb;
+}
+
+.modalBody {
+  @apply p-4 space-y-4;
+}
+
+.modalFooter {
+  @apply flex gap-3 justify-end border-t p-4;
+  border-color: #404040;
+}
+
+.paymentMethodsList {
+  @apply space-y-3;
+}
+
+.label {
+  @apply text-sm font-semibold;
+  color: #9ca3af;
+}
+
+.paymentMethodOption {
+  @apply flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition;
+  border-color: #404040;
+  background-color: #1a1a1a;
+}
+
+.paymentMethodOption:hover {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.paymentMethodOption.selected {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.15);
+}
+
+.methodDetails {
+  @apply flex flex-col gap-1 flex-1;
+}
+
+.cardBrand {
+  @apply text-sm font-semibold;
+  color: #e5e7eb;
+}
+
+.cardLast4 {
+  @apply text-xs;
+  color: #9ca3af;
+}
+
+.expiry {
+  @apply text-xs;
+  color: #6b7280;
+}
+
+.emptyPaymentMethods {
+  @apply rounded-lg border border-dashed p-4 text-center;
+  border-color: #404040;
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.emptyPaymentMethods p {
+  @apply text-sm;
+  color: #9ca3af;
+}
+
+.confirmationContent {
+  @apply space-y-4;
+}
+
+.confirmationContent h4 {
+  @apply font-semibold;
+  color: #e5e7eb;
+}
+
+.confirmationDetails {
+  @apply rounded-lg border p-3 space-y-2;
+  border-color: #404040;
+  background-color: #1a1a1a;
+}
+
+.detailRow {
+  @apply flex items-center justify-between;
+}
+
+.value {
+  @apply text-sm;
+  color: #e5e7eb;
+}
+
+.amount {
+  @apply text-lg font-bold;
+  color: #3b82f6;
+}
+
+.warningBox {
+  @apply rounded-lg border border-yellow-800 bg-yellow-900/20 p-3;
+  color: #fcd34d;
+}
+
+.cancelBtn {
+  @apply rounded-lg px-4 py-2 text-sm font-semibold transition;
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.cancelBtn:hover {
+  background-color: #4b5563;
+}
+
+.nextBtn {
+  @apply rounded-lg px-4 py-2 text-sm font-semibold transition;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.nextBtn:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.nextBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.renewBtn {
+  @apply rounded-lg px-4 py-2 text-sm font-semibold transition;
+  background-color: #059669;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.renewBtn:hover {
+  background-color: #047857;
+}
+
+.processingMessage {
+  @apply text-center py-8;
+}
+
+.processingMessage p {
+  @apply text-sm;
+  color: #9ca3af;
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .container {
@@ -184,5 +386,9 @@
 
   .value {
     @apply mt-1;
+  }
+
+  .modalContent {
+    width: 95%;
   }
 }

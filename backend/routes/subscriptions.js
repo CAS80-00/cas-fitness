@@ -306,4 +306,114 @@ router.put("/:subscriptionId/status", authenticateToken, async (req, res) => {
   }
 });
 
+// POST: Reactivate an inactive subscription by charging a saved payment method
+router.post("/:subscriptionId/reactivate", authenticateToken, async (req, res) => {
+  const { paymentMethodId, amount } = req.body;
+
+  if (!paymentMethodId || !amount) {
+    return res.status(400).json({ error: "Payment method ID and amount are required" });
+  }
+
+  try {
+    const subscription = await loadAuthorizedSubscription(req, res);
+    if (!subscription) return;
+
+    // Verify user can only reactivate their own subscription
+    if (subscription.user_id !== req.user.id) {
+      return res.status(403).json({ error: "You can only reactivate your own subscriptions" });
+    }
+
+    // Verify subscription is INACTIVE
+    if (subscription.status !== 'INACTIVE') {
+      return res.status(400).json({ error: "Only inactive subscriptions can be reactivated" });
+    }
+
+    // Get the payment method from database
+    const pmResult = await db.query(
+      "SELECT * FROM stripe_payment_methods WHERE id = $1 AND user_id = $2",
+      [paymentMethodId, req.user.id]
+    );
+
+    if (pmResult.rows.length === 0) {
+      return res.status(404).json({ error: "Payment method not found" });
+    }
+
+    const paymentMethod = pmResult.rows[0];
+    const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
+    // Get user's stripe customer ID
+    const userResult = await db.query(
+      "SELECT stripe_customer_id FROM users WHERE id = $1",
+      [req.user.id]
+    );
+
+    let customerId = userResult.rows[0]?.stripe_customer_id;
+
+    // Create or use existing customer
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: req.user.email,
+        metadata: {
+          userId: req.user.id,
+        },
+      });
+      customerId = customer.id;
+
+      // Save customer ID to database
+      await db.query(
+        "UPDATE users SET stripe_customer_id = $1 WHERE id = $2",
+        [customerId, req.user.id]
+      );
+    }
+
+    // Create payment intent to charge the saved card
+    const amountInCents = Math.round(amount * 100);
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amountInCents,
+      currency: "usd",
+      customer: customerId,
+      payment_method: paymentMethod.stripe_payment_method_id,
+      off_session: true,
+      confirm: true,
+      description: `CAS Fitness Subscription Reactivation - ${req.user.email}`,
+      metadata: {
+        userId: req.user.id,
+        subscriptionId: subscription.id,
+        reactivation: true,
+      },
+    });
+
+    // Check if payment succeeded
+    if (paymentIntent.status === "succeeded") {
+      // Update subscription to ACTIVE
+      const updatedSub = await db.query(
+        "UPDATE user_subscriptions SET status = $1 WHERE id = $2 RETURNING id, status",
+        ["ACTIVE", subscription.id]
+      );
+
+      res.json({
+        success: true,
+        message: "Subscription reactivated successfully",
+        subscription: updatedSub.rows[0],
+        paymentIntentId: paymentIntent.id,
+      });
+    } else if (paymentIntent.status === "requires_action") {
+      res.status(400).json({
+        success: false,
+        error: "Payment requires additional action",
+        clientSecret: paymentIntent.client_secret,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: "Payment failed",
+        status: paymentIntent.status,
+      });
+    }
+  } catch (err) {
+    console.error("Error reactivating subscription:", err.message);
+    res.status(500).json({ error: "Failed to reactivate subscription" });
+  }
+});
+
 module.exports = router;
