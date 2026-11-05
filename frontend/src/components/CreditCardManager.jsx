@@ -2,30 +2,67 @@ import { useState, useEffect } from 'react';
 import styles from '../styles/CreditCardManager.module.css';
 
 export default function CreditCardManager({ userId, onAddCard }) {
-  const [savedCard, setSavedCard] = useState(null);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [selectedMethod, setSelectedMethod] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 
-  // Load saved card on mount
+  // Load saved payment methods on mount
   useEffect(() => {
-    const loadCard = async () => {
+    const loadPaymentMethods = async () => {
       if (!userId) return;
       try {
+        setLoading(true);
         const token = localStorage.getItem('cas_jwt');
-        const res = await fetch(`${apiBaseUrl}/payments/credit-card/${userId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await fetch(`${apiBaseUrl}/payments/payment-methods/${userId}`, {
+          headers: { 
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
         });
         if (res.ok) {
           const data = await res.json();
-          if (data.card) {
-            setSavedCard(data.card);
-          }
+          setPaymentMethods(data.paymentMethods || []);
+          const defaultMethod = data.paymentMethods?.find(m => m.is_default);
+          setSelectedMethod(defaultMethod || null);
+        } else if (res.status !== 404) {
+          setError('Failed to load payment methods');
         }
       } catch (err) {
-        console.error('Error loading saved card:', err);
+        console.error('Error loading payment methods:', err);
+        setError('Failed to load payment methods');
+      } finally {
+        setLoading(false);
       }
     };
-    loadCard();
+    loadPaymentMethods();
   }, [userId, apiBaseUrl]);
+
+  const handleDeleteMethod = async (methodId) => {
+    if (!window.confirm('Are you sure you want to delete this payment method?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('cas_jwt');
+      const res = await fetch(`${apiBaseUrl}/payments/payment-methods/${methodId}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
+
+      if (res.ok) {
+        setPaymentMethods(paymentMethods.filter(m => m.id !== methodId));
+        setSelectedMethod(null);
+      } else {
+        setError('Failed to delete payment method');
+      }
+    } catch (err) {
+      console.error('Error deleting payment method:', err);
+      setError('Failed to delete payment method');
+    }
+  };
 
   const handleAddCard = () => {
     if (onAddCard) {
@@ -33,41 +70,28 @@ export default function CreditCardManager({ userId, onAddCard }) {
     }
   };
 
-  const maskCardNumberWithLast3 = (cardNumber) => {
-    const cleanNumber = cardNumber.replace(/\D/g, '');
-    if (cleanNumber.length !== 16) return cardNumber;
-    const last3 = cleanNumber.slice(-3);
-    return 'XXXXXXXXXXXX' + last3;
-  };
-
-  const isCardExpired = () => {
-    if (!savedCard || !savedCard.expiry_month || !savedCard.expiry_year) {
-      return false;
-    }
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth() + 1;
-    const cardYear = parseInt(savedCard.expiry_year, 10);
-    const cardMonth = parseInt(savedCard.expiry_month, 10);
-
-    if (cardYear < currentYear) {
-      return true;
-    }
-    if (cardYear === currentYear && cardMonth < currentMonth) {
-      return true;
-    }
-    return false;
-  };
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.titleRow}>
+          <h3 className={styles.title}>Payment Methods</h3>
+        </div>
+        <div className={styles.loadingState}>Loading payment methods...</div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
       <div className={styles.titleRow}>
-        <h3 className={styles.title}>Payment Method</h3>
+        <h3 className={styles.title}>Payment Methods</h3>
       </div>
 
-      {!savedCard ? (
+      {error && <div className={styles.errorMessage}>{error}</div>}
+
+      {paymentMethods.length === 0 ? (
         <div className={styles.emptyState}>
-          <p className={styles.emptyText}>No payment method added yet</p>
+          <p className={styles.emptyText}>No payment methods added yet</p>
           <button
             type="button"
             onClick={handleAddCard}
@@ -77,39 +101,50 @@ export default function CreditCardManager({ userId, onAddCard }) {
           </button>
         </div>
       ) : (
-        <div className={styles.savedCard}>
-          <div className={styles.cardDisplay}>
-            {isCardExpired() && (
-              <div className={styles.cardExpiredAlert}>
-                ⚠️ Card is expired
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={handleAddCard}
-              className={styles.updateCardButton}
-            >
-              ✎
-            </button>
-            <div className={styles.cardBrand}>{savedCard.card_type}</div>
-            <div className={styles.cardNumberContainer}>
-              <div className={styles.cardNumber}>
-                {maskCardNumberWithLast3(savedCard.card_number_masked)}
-              </div>
-            </div>
-            <div className={styles.cardFooter}>
-              <div className={styles.cardholderContainer}>
-                <div className={styles.cardholderLabel}>Cardholder</div>
-                <div className={styles.cardholder}>{savedCard.cardholder_name}</div>
-              </div>
-              <div className={styles.expiryContainer}>
-                <div className={styles.expiryLabel}>Expires</div>
-                <div className={styles.expiry}>
-                  {savedCard.expiry_month}/{savedCard.expiry_year}
+        <div className={styles.methodsList}>
+          {paymentMethods.map((method) => (
+            <div key={method.id} className={styles.methodCard}>
+              <div className={styles.methodInfo}>
+                <div className={styles.cardDisplay}>
+                  <div className={styles.cardBrand}>{method.card_brand}</div>
+                  <div className={styles.cardNumber}>
+                    •••• •••• •••• {method.card_last_4}
+                  </div>
+                  <div className={styles.cardFooter}>
+                    <div>
+                      <div className={styles.cardholderLabel}>Cardholder</div>
+                      <div className={styles.cardholder}>{method.cardholder_name}</div>
+                    </div>
+                    <div>
+                      <div className={styles.expiryLabel}>Expires</div>
+                      <div className={styles.expiry}>
+                        {method.expiry_month}/{method.expiry_year}
+                      </div>
+                    </div>
+                  </div>
+                  {method.is_default && (
+                    <div className={styles.defaultBadge}>DEFAULT</div>
+                  )}
                 </div>
               </div>
+              <div className={styles.methodActions}>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteMethod(method.id)}
+                  className={styles.deleteButton}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
-          </div>
+          ))}
+          <button
+            type="button"
+            onClick={handleAddCard}
+            className={styles.addMoreButton}
+          >
+            + Add Another Card
+          </button>
         </div>
       )}
     </div>

@@ -1,15 +1,15 @@
 @reference "./global.css";
 /* ==========================================================================
    CreditCardModal Module
-   Modal for adding credit card information
+   Modal for adding credit card information via Stripe Elements
    ========================================================================== */
 
-.overlay {
+.modalOverlay {
   @apply fixed inset-0 z-50 flex items-center justify-center;
   background-color: rgba(0, 0, 0, 0.7);
 }
 
-.modal {
+.modalCard {
   @apply w-full max-w-md rounded-lg shadow-2xl;
   background-color: #0a0a0a;
   border: 1px solid #404040;
@@ -17,17 +17,17 @@
   overflow-y: auto;
 }
 
-.header {
+.modalHeader {
   @apply flex items-center justify-between border-b p-6;
   border-color: #404040;
 }
 
-.title {
+.modalTitle {
   @apply text-lg font-bold;
   color: #e5e7eb;
 }
 
-.closeButton {
+.modalClose {
   @apply h-8 w-8 flex items-center justify-center rounded transition;
   background-color: transparent;
   color: #9ca3af;
@@ -36,20 +36,24 @@
   font-size: 18px;
 }
 
-.closeButton:hover {
+.modalClose:hover {
   background-color: #1a1a1a;
   color: #e5e7eb;
 }
 
+.modalBody {
+  @apply p-6;
+}
+
 .form {
-  @apply space-y-4 p-6;
+  @apply space-y-4;
 }
 
 .formGroup {
   @apply space-y-2;
 }
 
-.formGroup label {
+.label {
   @apply block text-xs font-semibold;
   color: #d1d5db;
 }
@@ -59,12 +63,6 @@
   background-color: #1a1a1a;
   border-color: #404040;
   color: #e5e7eb;
-}
-
-.input[type="text"],
-.input[type="password"] {
-  font-family: 'Courier New', monospace;
-  letter-spacing: 0.05em;
 }
 
 .input:focus {
@@ -82,62 +80,41 @@
   color: #6b7280;
 }
 
-.formRow {
-  @apply grid grid-cols-3 gap-2;
+/* Stripe Element Styling */
+.stripeElement {
+  @apply w-full rounded border p-3;
+  background-color: #1a1a1a;
+  border-color: #404040;
 }
 
-.formRow .formGroup {
-  @apply space-y-2;
+.stripeElement :global(.StripeElement) {
+  color: #e5e7eb;
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
-.sectionDivider {
-  @apply mt-6 mb-3 text-xs font-bold uppercase tracking-wider;
-  color: #9ca3af;
-  border-bottom: 1px solid #404040;
-  padding-bottom: 0.5rem;
+.stripeElement :global(.StripeElement--focus) {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.required {
-  @apply text-red-500;
-}
-
-.error {
+/* Status Messages */
+.errorMessage {
   @apply rounded px-3 py-2 text-xs;
   background-color: rgba(239, 68, 68, 0.1);
   color: #fca5a5;
   border: 1px solid #7f1d1d;
 }
 
-.success {
+.successMessage {
   @apply rounded px-3 py-2 text-xs;
   background-color: rgba(16, 185, 129, 0.1);
   color: #a7f3d0;
   border: 1px solid #047857;
 }
 
-.actions {
-  @apply flex gap-3 pt-4;
-}
-
-.cancelButton {
-  @apply flex-1 rounded py-2 text-xs font-semibold transition;
-  background-color: #6b7280;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-.cancelButton:hover:not(:disabled) {
-  background-color: #4b5563;
-}
-
-.cancelButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
+/* Buttons */
 .submitButton {
-  @apply flex-1 rounded py-2 text-xs font-semibold transition;
+  @apply w-full rounded py-2 text-xs font-semibold transition;
   background-color: #3b82f6;
   color: white;
   border: none;
@@ -155,19 +132,15 @@
 
 /* Responsive */
 @media (max-width: 640px) {
-  .modal {
+  .modalCard {
     @apply w-11/12 max-w-none;
   }
 
-  .header {
+  .modalHeader {
     @apply p-4;
   }
 
-  .form {
+  .modalBody {
     @apply p-4;
-  }
-
-  .formRow {
-    @apply grid-cols-3;
   }
 }

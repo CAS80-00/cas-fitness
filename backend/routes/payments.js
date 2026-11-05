@@ -1,134 +1,164 @@
 const express = require("express");
 const router = express.Router();
-const crypto = require("crypto");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const db = require("../db/client");
 const { authenticateToken, optionalAuthenticate, canAccessUser } = require("../middleware/authMiddleware");
 const { sendUserConfirmationEmail, sendSuperuserNotificationEmail } = require("../services/emailService");
 
-const isProduction = process.env.NODE_ENV === "production";
 
-// Card numbers are stored with AES-256-GCM. Production must provide its own
-// 32-byte (64 hex chars) key; outside production a key derived from JWT_SECRET
-// keeps local data readable across restarts.
-function getEncryptionKey() {
-  const configured = process.env.CARD_ENCRYPTION_KEY;
-  if (configured) {
-    const key = Buffer.from(configured, "hex");
-    if (key.length !== 32) {
-      throw new Error("CARD_ENCRYPTION_KEY must be 64 hex characters (32 bytes).");
-    }
-    return key;
-  }
-  if (isProduction) {
-    throw new Error("CARD_ENCRYPTION_KEY is not configured.");
-  }
-  return crypto.createHash("sha256").update(String(process.env.JWT_SECRET)).digest();
-}
-
-function encryptCardNumber(cardNumber) {
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv("aes-256-gcm", getEncryptionKey(), iv);
-  const encrypted = Buffer.concat([cipher.update(cardNumber, "utf8"), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return [iv, tag, encrypted].map((part) => part.toString("hex")).join(":");
-}
-
-// Mock gateway: only the configured test card is accepted, and never in production.
-const TEST_CARD = {
-  number: process.env.TEST_CARD_NUMBER || "4539148273410928",
-  exp: process.env.TEST_CARD_EXP || "12/28",
-  cvc: process.env.TEST_CARD_CVC || "123",
-  zip: process.env.TEST_CARD_ZIP || "10001",
-};
-
-// Public so guests can check out, but the subscription is only recorded for
-// the authenticated caller; a userId in the body is never trusted.
-router.post("/process", optionalAuthenticate, async (req, res) => {
-  const { cardNumber, expDate, cvc, zip, planId, promoCode } = req.body;
-
+// Create Setup Intent for saving a card without charging
+router.post("/setup-intent", authenticateToken, async (req, res) => {
   try {
-    const planRes = await db.query("SELECT id, price FROM plans WHERE id = $1", [planId]);
-    if (planRes.rows.length === 0) {
-      return res.status(400).json({ error: "Selected plan does not exist." });
-    }
-    const planPrice = Number(planRes.rows[0].price);
+    const userId = req.user.userId;
 
-    let discountAmount = 0;
-    if (promoCode) {
-      const promoRes = await db.query(
-        `
-        SELECT discount_type, discount_value
-        FROM promotions
-        WHERE code = $1
-          AND is_active = TRUE
-          AND start_time <= NOW()
-          AND end_time >= NOW()
-          AND (plan_id IS NULL OR plan_id = $2)
-        LIMIT 1
-      `,
-        [String(promoCode).toUpperCase(), planId],
+    // Get or create Stripe customer
+    const userRes = await db.query(
+      `SELECT stripe_customer_id FROM users WHERE id = $1`,
+      [userId]
+    );
+    let customerId = userRes.rows[0]?.stripe_customer_id;
+
+    if (!customerId) {
+      const userDetails = await db.query(
+        `SELECT email, first_name, last_name FROM users WHERE id = $1`,
+        [userId]
       );
+      const user = userDetails.rows[0];
 
-      if (promoRes.rows.length > 0) {
-        const promo = promoRes.rows[0];
-        discountAmount =
-          promo.discount_type === "AMOUNT"
-            ? Number(promo.discount_value)
-            : (planPrice * Number(promo.discount_value)) / 100;
-      }
-    }
-
-    const isTestCard =
-      String(cardNumber || "").replace(/\s/g, "") === TEST_CARD.number &&
-      expDate === TEST_CARD.exp &&
-      cvc === TEST_CARD.cvc &&
-      zip === TEST_CARD.zip;
-
-    if (!isProduction && isTestCard) {
-      const paidAmount = Math.max(planPrice - discountAmount, 0);
-
-      if (req.user) {
-        await db.query(
-          `
-          INSERT INTO user_subscriptions (user_id, plan_id, status, start_date, end_date)
-          VALUES ($1, $2, 'ACTIVE', NOW(), NOW() + INTERVAL '1 MONTH')
-        `,
-          [req.user.userId, planId],
-        );
-      }
-
-      return res.json({
-        success: true,
-        message: "Payment processed successfully (Mock Test Mode).",
-        paidAmount,
-        transactionId: `TX-MOCK-${Date.now()}`,
+      const customer = await stripe.customers.create({
+        email: user.email,
+        name: `${user.first_name} ${user.last_name}`,
+        metadata: { user_id: userId },
       });
+      customerId = customer.id;
+
+      await db.query(
+        `UPDATE users SET stripe_customer_id = $1 WHERE id = $2`,
+        [customerId, userId]
+      );
     }
 
-    // Live payment gateway integration goes here.
-    res.status(400).json({
-      error: "Payment failed, review your information and try again.",
+    // Create setup intent for future payment method
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ["card"],
+    });
+
+    res.json({
+      success: true,
+      clientSecret: setupIntent.client_secret,
     });
   } catch (err) {
-    console.error("Payment processing error:", err.message);
-    res.status(500).json({ error: "Internal Payment Processing Error" });
+    console.error("Error creating setup intent:", err.message);
+    res.status(500).json({ error: "Failed to create setup intent" });
   }
 });
 
-// Get saved credit card for a student
-router.get("/credit-card/:userId", authenticateToken, async (req, res) => {
+// Save a new payment method (called after client confirms card with Stripe Elements)
+router.post("/save-payment-method", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { paymentMethodId, cardholder_name } = req.body;
+
+    if (!paymentMethodId) {
+      return res.status(400).json({ error: "Payment method ID is required" });
+    }
+
+    // Get payment method details from Stripe
+    const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+
+    if (!paymentMethod.card) {
+      return res.status(400).json({ error: "Invalid payment method" });
+    }
+
+    const card = paymentMethod.card;
+
+    // Check if this payment method is already saved
+    const existing = await db.query(
+      `SELECT id FROM stripe_payment_methods WHERE stripe_payment_method_id = $1`,
+      [paymentMethodId]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: "This payment method is already saved" });
+    }
+
+    // Save payment method to database
+    const result = await db.query(
+      `INSERT INTO stripe_payment_methods 
+       (user_id, stripe_payment_method_id, card_brand, card_last_4, expiry_month, expiry_year, cardholder_name, is_default)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
+       RETURNING id, stripe_payment_method_id, card_brand, card_last_4, expiry_month, expiry_year, cardholder_name`,
+      [userId, paymentMethodId, card.brand.toUpperCase(), card.last4, card.exp_month, card.exp_year, cardholder_name]
+    );
+
+    const savedMethod = result.rows[0];
+    res.json({
+      success: true,
+      paymentMethod: {
+        id: savedMethod.id,
+        stripe_payment_method_id: savedMethod.stripe_payment_method_id,
+        card_brand: savedMethod.card_brand,
+        card_last_4: savedMethod.card_last_4,
+        expiry_month: String(savedMethod.expiry_month).padStart(2, "0"),
+        expiry_year: savedMethod.expiry_year,
+        cardholder_name: savedMethod.cardholder_name,
+      },
+    });
+  } catch (err) {
+    console.error("Error saving payment method:", err.message);
+    res.status(500).json({ error: "Failed to save payment method" });
+  }
+});
+
+// Get saved payment methods for a user
+router.get("/payment-methods/:userId", authenticateToken, async (req, res) => {
   const { userId } = req.params;
 
   if (!canAccessUser(req, userId)) {
-    return res.status(403).json({ error: "Access denied." });
+    return res.status(403).json({ error: "Access denied" });
   }
 
   try {
     const result = await db.query(
-      `SELECT id, cardholder_name, card_number_last_4, card_type, expiry_month, expiry_year
-       FROM student_credit_cards
-       WHERE student_id = $1 AND is_active = TRUE
-       ORDER BY created_at DESC
+      `SELECT id, stripe_payment_method_id, card_brand, card_last_4, expiry_month, expiry_year, cardholder_name, is_default
+       FROM stripe_payment_methods
+       WHERE user_id = $1
+       ORDER BY is_default DESC, created_at DESC`,
+      [userId]
+    );
+
+    const methods = result.rows.map((row) => ({
+      id: row.id,
+      stripe_payment_method_id: row.stripe_payment_method_id,
+      card_brand: row.card_brand,
+      card_last_4: row.card_last_4,
+      expiry_month: String(row.expiry_month).padStart(2, "0"),
+      expiry_year: row.expiry_year,
+      cardholder_name: row.cardholder_name,
+      is_default: row.is_default,
+    }));
+
+    res.json({ paymentMethods: methods });
+  } catch (err) {
+    console.error("Error fetching payment methods:", err.message);
+    res.status(500).json({ error: "Failed to fetch payment methods" });
+  }
+});
+
+// Get default payment method for a user
+router.get("/credit-card/:userId", authenticateToken, async (req, res) => {
+  const { userId } = req.params;
+
+  if (!canAccessUser(req, userId)) {
+    return res.status(403).json({ error: "Access denied" });
+  }
+
+  try {
+    const result = await db.query(
+      `SELECT id, card_brand, card_last_4, expiry_month, expiry_year, cardholder_name
+       FROM stripe_payment_methods
+       WHERE user_id = $1 AND is_default = TRUE
        LIMIT 1`,
       [userId]
     );
@@ -141,155 +171,160 @@ router.get("/credit-card/:userId", authenticateToken, async (req, res) => {
     res.json({
       card: {
         cardholder_name: card.cardholder_name,
-        card_number_masked: 'XXXX XXXX XXXX ' + card.card_number_last_4,
-        card_type: card.card_type,
-        expiry_month: String(card.expiry_month).padStart(2, '0'),
+        card_number_masked: "XXXX XXXX XXXX " + card.card_last_4,
+        card_type: card.card_brand,
+        expiry_month: String(card.expiry_month).padStart(2, "0"),
         expiry_year: card.expiry_year,
-      }
+      },
     });
   } catch (err) {
-    console.error("Error fetching credit card:", err);
+    console.error("Error fetching credit card:", err.message);
     res.status(500).json({ error: "Failed to fetch credit card" });
   }
 });
 
-// Save new credit card for a student or guest
-router.post("/credit-card", optionalAuthenticate, async (req, res) => {
-  const { student_name, email, phone, card_number, cardholder_name, expiry_month, expiry_year, cvv, country, street, city, state, zip_code, planTitle, planPrice, billingCycle } = req.body;
-  const studentId = req.user?.userId;
+// Delete a saved payment method
+router.delete("/payment-methods/:methodId", authenticateToken, async (req, res) => {
+  try {
+    const { methodId } = req.params;
+    const userId = req.user.userId;
 
-  // Validate required fields
-  if (!student_name || !email || !phone || !card_number || !cardholder_name || !expiry_month || !expiry_year || !cvv || !country || !street || !city || !zip_code) {
-    return res.status(400).json({ error: "All fields are required" });
+    const result = await db.query(
+      `SELECT stripe_payment_method_id FROM stripe_payment_methods WHERE id = $1 AND user_id = $2`,
+      [methodId, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Payment method not found" });
+    }
+
+    const paymentMethodId = result.rows[0].stripe_payment_method_id;
+
+    // Detach from Stripe
+    await stripe.paymentMethods.detach(paymentMethodId);
+
+    // Delete from database
+    await db.query(
+      `DELETE FROM stripe_payment_methods WHERE id = $1`,
+      [methodId]
+    );
+
+    res.json({ success: true, message: "Payment method deleted" });
+  } catch (err) {
+    console.error("Error deleting payment method:", err.message);
+    res.status(500).json({ error: "Failed to delete payment method" });
   }
+});
 
-  // State is required for US addresses
-  if (country === 'US' && !state) {
-    return res.status(400).json({ error: "State is required for US addresses" });
+// Legacy endpoint for compatibility (accepts payment from profile)
+// Creates a payment intent using a saved Stripe payment method
+router.post("/credit-card", optionalAuthenticate, async (req, res) => {
+  const { paymentMethodId, student_name, email, phone, planTitle, planPrice, billingCycle } = req.body;
+  const userId = req.user?.userId;
+
+  if (!paymentMethodId || !student_name || !email || !phone) {
+    return res.status(400).json({ error: "Payment method ID, name, email, and phone are required" });
   }
 
   try {
-    // Validate card number (basic check - must be 16 digits)
-    const normalizedCard = String(card_number).replace(/\s/g, '');
-    if (!/^\d{16}$/.test(normalizedCard)) {
-      return res.status(400).json({ error: "Invalid card number format" });
-    }
+    // Create payment intent using Stripe
+    const amountInCents = Math.round((planPrice || 0) * 100);
 
-    // Validate CVV
-    if (!/^\d{3,4}$/.test(cvv)) {
-      return res.status(400).json({ error: "Invalid CVV format" });
-    }
-
-    // Validate expiry
-    if (!/^\d{2}$/.test(expiry_month) || parseInt(expiry_month) < 1 || parseInt(expiry_month) > 12) {
-      return res.status(400).json({ error: "Invalid expiry month" });
-    }
-
-    const currentYear = new Date().getFullYear();
-    if (!/^\d{4}$/.test(expiry_year) || parseInt(expiry_year) < currentYear) {
-      return res.status(400).json({ error: "Invalid expiry year" });
-    }
-
-    // Determine card type
-    let cardType = 'OT';
-    if (/^4/.test(normalizedCard)) cardType = 'VI'; // Visa
-    if (/^5[1-5]/.test(normalizedCard)) cardType = 'MC'; // Mastercard
-    if (/^3[47]/.test(normalizedCard)) cardType = 'AX'; // American Express
-    if (/^6(?:011|5)/.test(normalizedCard)) cardType = 'DI'; // Discover
-
-    // Construct full address
-    const address = `${street}, ${city}, ${state ? state + ', ' : ''}${zip_code}, ${country}`;
-
-    // Encrypt card number
-    const encryptedCardNumber = encryptCardNumber(normalizedCard);
-
-    // If authenticated user, save card to their profile
-    if (studentId) {
-      // Deactivate previous cards
-      await db.query(
-        `UPDATE student_credit_cards SET is_active = FALSE WHERE student_id = $1`,
-        [studentId]
+    // Get or create Stripe customer
+    let customerId;
+    if (userId) {
+      const userRes = await db.query(
+        `SELECT stripe_customer_id FROM users WHERE id = $1`,
+        [userId]
       );
+      customerId = userRes.rows[0]?.stripe_customer_id;
 
-      // Insert new card with encrypted card number
-      const result = await db.query(
-        `INSERT INTO student_credit_cards (student_id, cardholder_name, card_number_encrypted, card_number_last_4, card_type, expiry_month, expiry_year, address, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
-         RETURNING cardholder_name, card_number_last_4, card_type, expiry_month, expiry_year`,
-        [studentId, cardholder_name, encryptedCardNumber, last4, cardType, expiry_month, expiry_year, address]
-      );
+      if (!customerId) {
+        const userDetails = await db.query(
+          `SELECT email, first_name, last_name FROM users WHERE id = $1`,
+          [userId]
+        );
+        const user = userDetails.rows[0];
 
-      const card = result.rows[0];
-      
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: `${user.first_name} ${user.last_name}`,
+          metadata: { user_id: userId },
+        });
+        customerId = customer.id;
+
+        await db.query(
+          `UPDATE users SET stripe_customer_id = $1 WHERE id = $2`,
+          [customerId, userId]
+        );
+      }
+    } else {
+      // Guest checkout
+      const customer = await stripe.customers.create({
+        email,
+        name: student_name,
+        phone,
+      });
+      customerId = customer.id;
+    }
+
+    // Create payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amountInCents,
+      currency: "usd",
+      customer: customerId,
+      payment_method: paymentMethodId,
+      off_session: true,
+      confirm: true,
+      description: `${planTitle} - ${billingCycle}`,
+      metadata: {
+        user_id: userId || "guest",
+        plan_title: planTitle,
+        billing_cycle: billingCycle,
+      },
+    });
+
+    if (paymentIntent.status === "succeeded") {
       // Send confirmation emails
       try {
         await sendUserConfirmationEmail(email, student_name, {
-          title: planTitle || 'Membership Plan',
-          price: planPrice || '0.00',
-          billing_cycle: billingCycle || 'Monthly',
+          title: planTitle || "Membership Plan",
+          price: planPrice || "0.00",
+          billing_cycle: billingCycle || "Monthly",
         });
 
         await sendSuperuserNotificationEmail({
           student_name,
           email,
           phone,
-          planTitle: planTitle || 'Membership Plan',
-          planPrice: planPrice || '0.00',
-          billingCycle: billingCycle || 'Monthly',
-          address,
+          planTitle: planTitle || "Membership Plan",
+          planPrice: planPrice || "0.00",
+          billingCycle: billingCycle || "Monthly",
         });
       } catch (emailError) {
-        console.error('Email sending error (non-blocking):', emailError);
+        console.error("Email sending error (non-blocking):", emailError);
       }
 
       res.json({
         success: true,
         message: "Payment processed successfully",
-        card: {
-          cardholder_name: card.cardholder_name,
-          card_number_masked: card.card_number_last_4,
-          card_type: card.card_type,
-          expiry_month: String(card.expiry_month).padStart(2, '0'),
-          expiry_year: card.expiry_year,
-        }
+        transactionId: paymentIntent.id,
+      });
+    } else if (paymentIntent.status === "requires_action") {
+      res.json({
+        success: false,
+        requiresAction: true,
+        clientSecret: paymentIntent.client_secret,
       });
     } else {
-      // For guest users, process payment without saving card
-      // Send confirmation emails
-      try {
-        await sendUserConfirmationEmail(email, student_name, {
-          title: planTitle || 'Membership Plan',
-          price: planPrice || '0.00',
-          billing_cycle: billingCycle || 'Monthly',
-        });
-
-        await sendSuperuserNotificationEmail({
-          student_name,
-          email,
-          phone,
-          planTitle: planTitle || 'Membership Plan',
-          planPrice: planPrice || '0.00',
-          billingCycle: billingCycle || 'Monthly',
-          address,
-        });
-      } catch (emailError) {
-        console.error('Email sending error (non-blocking):', emailError);
-      }
-
-      res.json({
-        success: true,
-        message: "Payment processed successfully",
-        card: {
-          cardholder_name: cardholder_name,
-          card_type: cardType,
-          expiry_month: String(expiry_month).padStart(2, '0'),
-          expiry_year: expiry_year,
-        }
+      res.status(400).json({
+        error: "Payment failed. Please try again.",
+        status: paymentIntent.status,
       });
     }
   } catch (err) {
-    console.error("Error saving credit card:", err);
-    res.status(500).json({ error: "Failed to save credit card" });
+    console.error("Error processing payment:", err.message);
+    res.status(500).json({ error: "Failed to process payment" });
   }
 });
 
