@@ -126,9 +126,6 @@ export default function CreditCardManager({ userId, onAddCard }) {
                       </div>
                     </div>
                   </div>
-                  {method.is_default && (
-                    <div className={styles.defaultBadge}>DEFAULT</div>
-                  )}
                   <div className={styles.cardActions}>
                     <button
                       type="button"
