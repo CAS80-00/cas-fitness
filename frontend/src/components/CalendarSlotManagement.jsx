@@ -108,7 +108,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            Authorization: "Bearer " + token,
           },
           body: JSON.stringify({ newStatus }),
         }
@@ -172,7 +172,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
     try {
       const token = apiToken();
       const res = await fetch(`${apiBaseUrl}/admin/users`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: "Bearer " + token },
       });
       if (!res.ok) throw new Error("Failed to load employees.");
       const data = await res.json();
@@ -195,7 +195,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
         : `${apiBaseUrl}/admin/slot-instances/${userId}`;
       
       const res = await fetch(endpoint, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: "Bearer " + token },
       });
       if (!res.ok) throw new Error("Failed to load slots.");
       const data = await res.json();
@@ -366,7 +366,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: "Bearer " + token,
         },
         body: JSON.stringify(payload),
       });
@@ -427,7 +427,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
       if (newStatus === "REMOVED") {
         const res = await fetch(`${apiBaseUrl}/admin/slot-instances/${selectedSlot.id}`, {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: "Bearer " + token },
         });
         if (!res.ok) throw new Error("Failed to delete slot.");
         setMessage("✓ Slot removed");
@@ -436,7 +436,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            Authorization: "Bearer " + token,
           },
           body: JSON.stringify({ status: newStatus }),
         });
@@ -468,7 +468,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
       const token = apiToken();
       const res = await fetch(`${apiBaseUrl}/admin/slot-instances/${selectedSlot.id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: "Bearer " + token },
       });
 
       if (!res.ok) throw new Error("Failed to delete slot.");
@@ -494,7 +494,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: "Bearer " + token,
         },
         body: JSON.stringify({ calendarType: newCalendarType }),
       });
@@ -555,7 +555,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
               method: "DELETE",
               headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
+                Authorization: "Bearer " + token,
               },
             }
           );
@@ -569,7 +569,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
+                Authorization: "Bearer " + token,
               },
               body: JSON.stringify({ status: wholeDayData.status }),
             }
@@ -588,7 +588,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
               method: "DELETE",
               headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
+                Authorization: "Bearer " + token,
               },
               body: JSON.stringify({ startDate, endDate }),
             }
@@ -603,7 +603,7 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
+                Authorization: "Bearer " + token,
               },
               body: JSON.stringify({ status: wholeDayData.status, startDate, endDate }),
             }
@@ -1281,6 +1281,9 @@ export default function CalendarSlotManagement({ employeeId, isEmployee = false,
     </div>
   );
 }
+
+
+
 
 
 
