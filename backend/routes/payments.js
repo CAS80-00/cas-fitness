@@ -39,9 +39,9 @@ router.post("/setup-intent", authenticateToken, async (req, res) => {
     }
 
     // Create setup intent for future payment method
+    // Note: payment_method_types is deprecated, Stripe now uses Dashboard settings
     const setupIntent = await stripe.setupIntents.create({
       customer: customerId,
-      payment_method_types: ["card"],
     });
 
     res.json({
