@@ -146,6 +146,26 @@
   border: 1px solid rgba(34, 197, 94, 0.4);
 }
 
+.deleteButtonCard {
+  @apply absolute top-2 left-2 rounded-full w-6 h-6 flex items-center justify-center transition;
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deleteButtonCard:hover {
+  background-color: rgba(239, 68, 68, 0.4);
+  color: #fecaca;
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
 .methodActions {
   @apply flex gap-2;
 }

@@ -125,6 +125,14 @@ export default function CreditCardManager({ userId, onAddCard }) {
                   {method.is_default && (
                     <div className={styles.defaultBadge}>DEFAULT</div>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteMethod(method.id)}
+                    className={styles.deleteButtonCard}
+                    title="Delete payment method"
+                  >
+                    ×
+                  </button>
                 </div>
               </div>
             </div>
