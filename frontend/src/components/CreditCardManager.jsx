@@ -131,7 +131,7 @@ export default function CreditCardManager({ userId, onAddCard }) {
                     className={styles.deleteButtonCard}
                     title="Delete payment method"
                   >
-                    ×
+                    Delete
                   </button>
                 </div>
               </div>
