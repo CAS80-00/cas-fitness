@@ -238,13 +238,13 @@ export default function SubscriptionManagement({ userId }) {
 
       {error && <div className={styles.error}>{error}</div>}
 
-      {subscriptions.length === 0 ? (
+      {subscriptions.filter(sub => sub.status === 'ACTIVE').length === 0 ? (
         <div className={styles.emptyState}>
           <p>No active subscriptions</p>
         </div>
       ) : (
         <div className={styles.subscriptionsList}>
-          {subscriptions.map((sub) => {
+          {subscriptions.filter(sub => sub.status === 'ACTIVE').map((sub) => {
             const priceLocked = sub.locked_price !== null;
             const displayPrice = Number(priceLocked ? sub.locked_price : sub.price);
 
