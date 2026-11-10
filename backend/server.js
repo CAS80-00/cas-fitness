@@ -7,10 +7,20 @@ if (!process.env.JWT_SECRET) {
 
 const app = require("./app");
 const db = require("./db/client");
+const { processSubscriptionRenewals } = require("./jobs/subscription-renewal");
 
 const PORT = process.env.PORT || 5000;
 
 function startMaintenanceJobs() {
+  // Process automatic subscription renewals every hour
+  setInterval(async () => {
+    try {
+      await processSubscriptionRenewals();
+    } catch (err) {
+      console.error("Subscription renewal job failed:", err.message);
+    }
+  }, 60 * 60 * 1000);
+
   // Auto-mark workout sessions complete if 5+ minutes have passed.
   setInterval(async () => {
     try {

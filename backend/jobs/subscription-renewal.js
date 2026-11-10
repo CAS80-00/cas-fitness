@@ -100,6 +100,25 @@ async function processSubscriptionRenewals() {
             nextRenewal.setFullYear(nextRenewal.getFullYear() + 1);
           }
 
+          // Log the transaction
+          await db.query(
+            `INSERT INTO transactions (user_email, plan_id, amount, stripe_transaction_id, status, metadata)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [
+              sub.email,
+              sub.plan_id,
+              sub.price,
+              paymentIntent.id,
+              'succeeded',
+              JSON.stringify({
+                subscription_id: sub.id,
+                type: 'renewal',
+                plan_title: sub.title,
+                billing_cycle: sub.billing_cycle
+              })
+            ]
+          );
+
           // Update subscription with new renewal date
           await db.query(
             `UPDATE user_subscriptions 
@@ -114,6 +133,25 @@ async function processSubscriptionRenewals() {
           succeeded++;
         } else {
           console.warn(`[Renewal Job] Payment failed for subscription ${sub.id}, status: ${paymentIntent.status}`);
+          
+          // Log failed transaction
+          await db.query(
+            `INSERT INTO transactions (user_email, plan_id, amount, stripe_transaction_id, status, metadata)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [
+              sub.email,
+              sub.plan_id,
+              sub.price,
+              paymentIntent.id || 'failed-no-id',
+              'failed',
+              JSON.stringify({
+                subscription_id: sub.id,
+                type: 'renewal',
+                plan_title: sub.title,
+                error: paymentIntent.status
+              })
+            ]
+          ).catch(dbErr => console.error('Failed to log transaction:', dbErr));
           
           // Mark as paused if payment failed
           await db.query(

@@ -684,13 +684,29 @@ router.post("/subscriptions", async (req, res) => {
       return res.status(404).json({ error: "Plan not found." });
     }
 
+    // Calculate next renewal date based on billing cycle
+    const startDateObj = new Date(startDate);
+    const nextRenewalDate = new Date(startDateObj);
+    
+    if (billingCycle === 'WEEKLY') {
+      nextRenewalDate.setDate(nextRenewalDate.getDate() + 7);
+    } else if (billingCycle === 'BIWEEKLY') {
+      nextRenewalDate.setDate(nextRenewalDate.getDate() + 14);
+    } else if (billingCycle === 'MONTHLY') {
+      nextRenewalDate.setMonth(nextRenewalDate.getMonth() + 1);
+    } else if (billingCycle === 'QUARTERLY') {
+      nextRenewalDate.setMonth(nextRenewalDate.getMonth() + 3);
+    } else if (billingCycle === 'YEARLY') {
+      nextRenewalDate.setFullYear(nextRenewalDate.getFullYear() + 1);
+    }
+
     const result = await db.query(
       `
-      INSERT INTO user_subscriptions (user_id, plan_id, status, start_date, end_date, auto_renew)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, user_id, plan_id, status, start_date, end_date, auto_renew
+      INSERT INTO user_subscriptions (user_id, plan_id, status, start_date, end_date, auto_renew, renewal_frequency, next_renewal_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id, user_id, plan_id, status, start_date, end_date, auto_renew, renewal_frequency, next_renewal_date
     `,
-      [userId, planId, status, startDate, endDate, autoRenew],
+      [userId, planId, status, startDate, endDate, autoRenew, billingCycle, nextRenewalDate],
     );
 
     const subscription = result.rows[0];
@@ -709,6 +725,8 @@ router.post("/subscriptions", async (req, res) => {
         endDate: subscription.end_date,
         autoRenew: subscription.auto_renew,
         billingCycle: planBillingCycle,
+        renewalFrequency: subscription.renewal_frequency,
+        nextRenewalDate: subscription.next_renewal_date,
       },
     });
   } catch (err) {
