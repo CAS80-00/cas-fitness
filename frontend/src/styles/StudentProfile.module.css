@@ -222,6 +222,16 @@
   background-color: #2563eb;
 }
 
+.archiveButton {
+  @apply mt-2 w-full rounded-lg py-3 text-base font-semibold transition;
+  background-color: #6366f1;
+  color: white;
+}
+
+.archiveButton:hover {
+  background-color: #4f46e5;
+}
+
 .modalBody {
   @apply max-h-[60vh] overflow-y-auto;
 }

@@ -26,6 +26,7 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
   const [trainerSessions, setTrainerSessions] = useState([]);
   const [showScheduler, setShowScheduler] = useState(false);
   const [showCardModal, setShowCardModal] = useState(false);
+  const [showArchivedSessions, setShowArchivedSessions] = useState(false);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 
   // Load active subscription on mount
@@ -138,6 +139,19 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
     };
     loadTrainerSessions();
   }, [currentUser?.id, apiBaseUrl]);
+
+  // Get archived sessions (expired in the last 3 months)
+  const getArchivedSessions = () => {
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    
+    return trainerSessions.filter(session => 
+      session.is_expired && 
+      new Date(session.expiration_date) >= threeMonthsAgo
+    );
+  };
+
+  const archivedSessions = getArchivedSessions();
 
   return (
     <div className={styles.page}>
@@ -273,6 +287,15 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
                 >
                   Schedule Session
                 </button>
+                {archivedSessions.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowArchivedSessions(true)}
+                    className={styles.archiveButton}
+                  >
+                    View Archived ({archivedSessions.length})
+                  </button>
+                )}
               </div>
             ) : (
               <div className={styles.sessionsCard}>
@@ -367,9 +390,55 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
             </div>
           </div>
         )}
+
+        {showArchivedSessions && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalCard}>
+              <div className={styles.modalHeader}>
+                <h3 className={styles.modalTitle}>Archived Sessions (Last 3 Months)</h3>
+                <button type="button" onClick={() => setShowArchivedSessions(false)} className={styles.modalClose}>✕</button>
+              </div>
+              <div className={styles.modalBody}>
+                {archivedSessions.length === 0 ? (
+                  <p className={styles.emptyText}>No archived sessions</p>
+                ) : (
+                  <div className={styles.sessionsList}>
+                    {archivedSessions.map((session) => (
+                      <div key={session.id} className={`${styles.sessionItem} ${styles.sessionExpired}`}>
+                        <div className={styles.expiredBadge}>EXPIRED</div>
+                        <div className={styles.sessionRow}>
+                          <span>Purchased:</span>
+                          <span className={styles.sessionValue}>{session.purchased_sessions || session.total_sessions}</span>
+                        </div>
+                        <div className={styles.sessionRow}>
+                          <span>Used:</span>
+                          <span className={styles.sessionValue}>{session.used_sessions || 0}</span>
+                        </div>
+                        <div className={styles.sessionRow}>
+                          <span>Scheduled:</span>
+                          <span className={styles.sessionValue}>{session.scheduled_sessions || 0}</span>
+                        </div>
+                        <div className={styles.sessionRow}>
+                          <span>Remaining:</span>
+                          <span className={`${styles.sessionValue} ${styles.sessionValueZero}`}>{session.remaining_sessions || 0}</span>
+                        </div>
+                        <div className={styles.sessionRow}>
+                          <span>Expires:</span>
+                          <span className={`${styles.expiryDate} ${styles.expiryDatePassed}`}>
+                            {new Date(session.expiration_date).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      <CreditCardModal 
+      <CreditCardModal
         userId={currentUser?.id}
         isOpen={showCardModal}
         onClose={() => setShowCardModal(false)}
