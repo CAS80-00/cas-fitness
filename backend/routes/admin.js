@@ -382,11 +382,11 @@ router.delete("/users/:id", async (req, res) => {
     // Delete user subscriptions
     await db.query("DELETE FROM user_subscriptions WHERE user_id = $1", [userId]);
 
-    // Delete trainer availability slots
+    // Delete trainer availability slots (for trainers)
     await db.query("DELETE FROM trainer_availability WHERE trainer_id = $1", [userId]);
 
-    // Delete slot instances created by this trainer
-    await db.query("DELETE FROM slot_instances WHERE trainer_id = $1", [userId]);
+    // Delete slot instances where user is the creator or modifier
+    await db.query("DELETE FROM slot_instances WHERE user_id = $1 OR modified_by = $2", [userId, userId]);
 
     // Delete the user
     await db.query("DELETE FROM users WHERE id = $1", [userId]);
