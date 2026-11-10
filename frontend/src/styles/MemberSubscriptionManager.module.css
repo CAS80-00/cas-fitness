@@ -199,6 +199,7 @@
   font-size: 0.9rem;
   font-family: inherit;
   transition: border-color 0.2s;
+  color: #000;
 }
 
 .formGroup input:focus,
@@ -217,6 +218,11 @@
 .formGroup input[type="checkbox"] + label {
   display: inline;
   margin: 0;
+}
+
+.formGroup select option {
+  color: #000;
+  background: white;
 }
 
 .formActions {
