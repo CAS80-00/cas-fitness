@@ -227,6 +227,7 @@ router.post("/users", async (req, res) => {
   const lastName = String(req.body.lastName || "").trim();
   const email = normalizeEmail(req.body.email);
   const phone = String(req.body.phone || "").trim();
+  const sendInstructions = req.body.sendInstructions === true;
   const roleId = userType === "member" ? MEMBER_ROLE_ID : Number(req.body.roleId) || EMPLOYEE_ROLE_IDS[0];
 
   if (!firstName || !lastName || !email) {
@@ -258,10 +259,21 @@ router.post("/users", async (req, res) => {
 
     const delivery = await sendActivationEmail({ email, firstName, temporaryPassword });
 
+    // Send login instructions if requested
+    if (sendInstructions) {
+      try {
+        const { sendLoginInstructionsEmail } = require("../services/emailService");
+        await sendLoginInstructionsEmail(email, firstName, temporaryPassword);
+      } catch (emailError) {
+        console.error('Error sending login instructions:', emailError);
+        // Non-blocking error - don't fail the user creation
+      }
+    }
+
     const row = insertRes.rows[0];
     res.status(201).json({
       user: toUserResponse({ ...row, role_name: null }),
-      delivery: { ...delivery, ...(delivery.devNote ? { temporaryPassword } : {}) },
+      delivery: { ...delivery, ...(delivery.devNote ? { temporaryPassword } : {}), instructionsSent: sendInstructions },
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to create user." });

@@ -53,6 +53,7 @@ export default function UserManagementSection({
     phone: "",
     countryCode: "+1",
     roleId: roleOptions[0]?.id || "",
+    sendInstructions: false,
   });
   const [addResult, setAddResult] = useState(null);
   const [addError, setAddError] = useState("");
@@ -103,7 +104,7 @@ export default function UserManagementSection({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to add user.");
       setAddResult(data);
-      setAddForm({ firstName: "", lastName: "", email: "", phone: "", roleId: roleOptions[0]?.id || "" });
+      setAddForm({ firstName: "", lastName: "", email: "", phone: "", roleId: roleOptions[0]?.id || "", sendInstructions: false });
       if (hasSearched) runSearch();
     } catch (err) {
       setAddError(err.message);
@@ -239,6 +240,18 @@ export default function UserManagementSection({
               ))}
             </select>
           )}
+          <div className={styles.checkboxRow}>
+            <input
+              type="checkbox"
+              id="sendInstructions"
+              checked={addForm.sendInstructions}
+              onChange={(e) => setAddForm({ ...addForm, sendInstructions: e.target.checked })}
+              className={styles.checkbox}
+            />
+            <label htmlFor="sendInstructions" className={styles.checkboxLabel}>
+              Send Login Instructions
+            </label>
+          </div>
           <span className={styles.statusHint}>Status defaults to Pending</span>
           <button type="submit" className={styles.authorizeButton}>
             Authorize Log In

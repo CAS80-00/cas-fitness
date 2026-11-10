@@ -77,6 +77,22 @@
   width: 100%;
 }
 
+.checkboxRow {
+  @apply flex items-center gap-2;
+}
+
+.checkbox {
+  @apply h-4 w-4 rounded border accent-blue-500;
+  background-color: #0a0a0a;
+  border-color: #262626;
+  cursor: pointer;
+}
+
+.checkboxLabel {
+  @apply text-xs text-neutral-300;
+  cursor: pointer;
+}
+
 .submitButton {
   @apply rounded px-4 py-2 text-sm font-bold text-white transition;
   background-color: var(--color-electric-blue);

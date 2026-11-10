@@ -369,8 +369,100 @@ const sendPaymentReceipt = async (userEmail, studentName, planTitle, amount, str
   }
 };
 
+// Send login instructions to newly created members
+const sendLoginInstructionsEmail = async (userEmail, firstName, temporaryPassword) => {
+  const config = await getEmailConfig();
+  if (!config) {
+    console.warn('Email configuration not available, skipping login instructions email');
+    return;
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: config.user,
+      pass: config.pass,
+    },
+  });
+
+  const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
+
+  const mailOptions = {
+    from: config.user,
+    to: userEmail,
+    subject: 'CAS Fitness - Welcome! Here are your login instructions',
+    html: `
+      <html>
+        <body style="font-family: Arial, sans-serif; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto;">
+            <div style="text-align: center; padding: 30px; background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white; border-radius: 4px 4px 0 0;">
+              <h1 style="margin: 0; font-size: 28px;">Welcome to CAS Fitness! 💪</h1>
+              <p style="margin: 10px 0 0 0; font-size: 16px;">Your account has been created</p>
+            </div>
+            
+            <div style="padding: 40px 30px; background-color: #f8f9fa;">
+              <p>Hello <strong>${firstName}</strong>,</p>
+              
+              <p>Your CAS Fitness account has been created! We're excited to have you join us. Here's everything you need to know to get started:</p>
+              
+              <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 15px;">Your Login Credentials:</h3>
+              
+              <div style="background-color: white; padding: 20px; border-radius: 4px; border-left: 4px solid #3498db; margin-bottom: 20px;">
+                <p style="margin: 0 0 12px 0;"><strong>Email:</strong><br/><code style="font-family: monospace; background: #ecf0f1; padding: 5px 10px; border-radius: 3px;">${userEmail}</code></p>
+                <p style="margin: 0;"><strong>Temporary Password:</strong><br/><code style="font-family: monospace; background: #ecf0f1; padding: 5px 10px; border-radius: 3px;">${temporaryPassword}</code></p>
+              </div>
+              
+              <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 15px;">How to Log In:</h3>
+              
+              <ol style="line-height: 1.8; color: #555;">
+                <li>Visit our login page: <a href="${loginUrl}" style="color: #3498db; text-decoration: none;"><strong>${loginUrl}</strong></a></li>
+                <li>Enter your email address: <strong>${userEmail}</strong></li>
+                <li>Enter your temporary password: <strong>${temporaryPassword}</strong></li>
+                <li>You will receive a 2FA verification code via email or SMS - enter it to complete login</li>
+                <li>After logging in, <strong>we recommend changing your password immediately</strong> to something secure</li>
+              </ol>
+              
+              <div style="margin-top: 30px; padding: 20px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                <p style="margin: 0; color: #856404;"><strong>⚠️ Important Security Notes:</strong></p>
+                <ul style="margin: 10px 0 0 20px; color: #856404;">
+                  <li>Keep your password confidential - never share it with anyone</li>
+                  <li>The temporary password will expire after first use</li>
+                  <li>2FA codes are sent to your registered email and will expire in 5 minutes</li>
+                  <li>Always log out when using a public computer</li>
+                </ul>
+              </div>
+              
+              <div style="margin-top: 30px; padding: 20px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
+                <p style="margin: 0; color: #2c3e50;"><strong>❓ Need Help?</strong></p>
+                <p style="margin: 10px 0 0 0; color: #555; font-size: 14px;">If you have any questions or need assistance, please contact our support team at <strong>${config.superuserEmail}</strong></p>
+              </div>
+              
+              <p style="margin-top: 30px; color: #7f8c8d; font-size: 12px;">
+                This email was sent to ${userEmail}. If you did not create this account, please contact us immediately.
+              </p>
+            </div>
+            
+            <div style="padding: 20px; background-color: #2c3e50; color: white; text-align: center; border-radius: 0 0 4px 4px; font-size: 12px;">
+              <p style="margin: 0;">© 2026 CAS Fitness. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Login instructions email sent to ${userEmail}`);
+  } catch (error) {
+    console.error('Error sending login instructions email:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   sendUserConfirmationEmail,
   sendSuperuserNotificationEmail,
   sendPaymentReceipt,
+  sendLoginInstructionsEmail,
 };

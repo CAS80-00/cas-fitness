@@ -243,4 +243,40 @@ router.post('/confirm-payment', async (req, res) => {
   }
 });
 
+// TEST: Send sample receipt email (for testing purposes only)
+router.post('/test-receipt', async (req, res) => {
+  try {
+    const { email, studentName, planTitle, amount, paymentType } = req.body;
+
+    if (!email || !studentName || !planTitle || !amount) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: email, studentName, planTitle, amount' 
+      });
+    }
+
+    // Generate a sample transaction ID
+    const sampleTransactionId = `test_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+    console.log(`Sending test ${paymentType || 'purchase'} receipt to ${email}`);
+
+    await sendPaymentReceipt(
+      email,
+      studentName,
+      planTitle,
+      amount,
+      sampleTransactionId,
+      paymentType || 'purchase'
+    );
+
+    res.json({
+      success: true,
+      message: `Test ${paymentType || 'purchase'} receipt sent to ${email}`,
+      transactionId: sampleTransactionId
+    });
+  } catch (err) {
+    console.error('Error sending test receipt:', err.message);
+    res.status(500).json({ error: 'Failed to send test receipt', details: err.message });
+  }
+});
+
 module.exports = router;
