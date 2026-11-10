@@ -616,6 +616,8 @@ router.get("/subscriptions/user/:userId", async (req, res) => {
     const result = await db.query(
       `
       SELECT us.id, us.user_id, us.plan_id, us.status, us.start_date, us.end_date, us.auto_renew,
+             us.renewal_frequency, us.next_renewal_date, us.last_renewal_date,
+             us.locked_price, us.price_locked_at, us.cancelled_at,
              p.title as plan_title, p.price as plan_price, p.billing_cycle
       FROM user_subscriptions us
       LEFT JOIN plans p ON p.id = us.plan_id
@@ -637,6 +639,12 @@ router.get("/subscriptions/user/:userId", async (req, res) => {
         startDate: row.start_date,
         endDate: row.end_date,
         autoRenew: row.auto_renew,
+        renewalFrequency: row.renewal_frequency,
+        nextRenewalDate: row.next_renewal_date,
+        lastRenewalDate: row.last_renewal_date,
+        lockedPrice: row.locked_price,
+        pricLockedAt: row.price_locked_at,
+        cancelledAt: row.cancelled_at,
       })),
     });
   } catch (err) {

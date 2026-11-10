@@ -168,6 +168,37 @@ export default function MemberSubscriptionManager({ memberId, onSubscriptionUpda
     }
   };
 
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const calculateRenewalDate = (startDate, billingCycle, endDate) => {
+    // If end_date is already set, use it
+    if (endDate) {
+      return new Date(endDate);
+    }
+
+    // Calculate based on billing cycle
+    const start = new Date(startDate);
+    const renewalDate = new Date(start);
+
+    if (billingCycle === 'MONTHLY' || billingCycle === 'month') {
+      renewalDate.setMonth(renewalDate.getMonth() + 1);
+    } else if (billingCycle === 'QUARTERLY' || billingCycle === 'quarter') {
+      renewalDate.setMonth(renewalDate.getMonth() + 3);
+    } else if (billingCycle === 'YEARLY' || billingCycle === 'year') {
+      renewalDate.setFullYear(renewalDate.getFullYear() + 1);
+    } else if (billingCycle === 'WEEKLY' || billingCycle === 'week') {
+      renewalDate.setDate(renewalDate.getDate() + 7);
+    }
+
+    return renewalDate;
+  };
+
   if (loading) {
     return <div className={styles.container}>Loading subscriptions...</div>;
   }
@@ -195,11 +226,19 @@ export default function MemberSubscriptionManager({ memberId, onSubscriptionUpda
                   <strong>Price:</strong> ${Number(sub.planPrice || 0).toFixed(2)}/{sub.billingCycle}
                 </p>
                 <p>
-                  <strong>Start Date:</strong> {new Date(sub.startDate).toLocaleDateString()}
+                  <strong>Start Date:</strong> {formatDate(sub.startDate)}
                 </p>
-                {sub.endDate && (
+                <p>
+                  <strong>Renewal Date:</strong> {formatDate(calculateRenewalDate(sub.startDate, sub.billingCycle, sub.endDate))}
+                </p>
+                {sub.nextRenewalDate && (
                   <p>
-                    <strong>End Date:</strong> {new Date(sub.endDate).toLocaleDateString()}
+                    <strong>Next Payment:</strong> {formatDate(sub.nextRenewalDate)}
+                  </p>
+                )}
+                {sub.renewalFrequency && (
+                  <p>
+                    <strong>Renewal Frequency:</strong> {sub.renewalFrequency}
                   </p>
                 )}
                 <p>
