@@ -161,32 +161,27 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
 
         <div className={styles.infoCard}>
           <h2 className={styles.infoTitle}>Profile Info</h2>
-          <div className={styles.infoGrid}>
-            <div className={styles.infoColumn}>
-              <p>
-                <strong>First Name:</strong> {currentUser?.firstName || "—"}
-              </p>
-              <p>
-                <strong>Email:</strong> {currentUser?.email || "—"}
-              </p>
-              <p>
-                <strong>Plan:</strong> {subscription?.title || '—'}
-              </p>
+          <div className={styles.profileGrid}>
+            {/* Column 1: QR Code + History */}
+            <div className={styles.qrColumn}>
+              <AccessQRCode userId={currentUser?.id} activeSubscription={subscription} />
+              <button type="button" onClick={() => setShowHistory(true)} className={styles.historyButton}>
+                History
+              </button>
             </div>
 
+            {/* Column 2: Profile Information */}
             <div className={styles.infoColumn}>
-              <p>
-                <strong>Last Name:</strong> {currentUser?.lastName || "—"}
-              </p>
-              <p>
-                <strong>Status:</strong> <span className={styles.statusActive}>{subscription?.status || 'No Active Subscription'}</span>
-              </p>
-              <p>
-                <strong>Renewal Date:</strong> 2026-12-31
-              </p>
+              <div><strong>First Name:</strong> {currentUser?.firstName || "—"}</div>
+              <div><strong>Last Name:</strong> {currentUser?.lastName || "—"}</div>
+              <div><strong>Email:</strong> {currentUser?.email || "—"}</div>
+              <div><strong>Status:</strong> <span className={styles.statusActive}>{subscription?.status || 'No Active Subscription'}</span></div>
+              <div><strong>Plan:</strong> {subscription?.title || '—'}</div>
+              <div><strong>Renewal Date:</strong> {subscription?.end_date ? new Date(subscription.end_date).toLocaleDateString() : '—'}</div>
             </div>
 
-            <div className={styles.infoColumn}>
+            {/* Column 3: Payment Method + Auto-Renewal */}
+            <div className={styles.paymentColumn}>
               <CreditCardManager userId={currentUser?.id} onAddCard={() => setShowCardModal(true)} />
               
               <label className={styles.autoRenewLabel}>
@@ -236,10 +231,6 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
 
         <div className={styles.dashboardGrid}>
           <div className={styles.leftColumn}>
-            <AccessQRCode userId={currentUser?.id} activeSubscription={subscription} />
-            <button type="button" onClick={() => setShowHistory(true)} className={styles.historyButton}>
-              History
-            </button>
 
             {trainerSessions.length > 0 ? (
               <div className={styles.sessionsCard}>

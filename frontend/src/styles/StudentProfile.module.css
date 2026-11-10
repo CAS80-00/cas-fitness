@@ -42,7 +42,25 @@
   @apply grid grid-cols-1 gap-6 text-sm md:grid-cols-3;
 }
 
+.profileGrid {
+  @apply grid grid-cols-1 gap-6 text-sm md:grid-cols-3;
+}
+
 .infoColumn {
+  @apply space-y-4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.qrColumn {
+  @apply space-y-3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.paymentColumn {
   @apply space-y-4;
   display: flex;
   flex-direction: column;
