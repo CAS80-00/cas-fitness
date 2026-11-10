@@ -220,10 +220,10 @@ export default function MemberSubscriptionManager({ memberId, onSubscriptionUpda
       {error && <div className={styles.errorMessage}>{error}</div>}
       {success && <div className={styles.successMessage}>{success}</div>}
 
-      {/* Current Subscriptions */}
-      {subscriptions.length > 0 ? (
+      {/* Active Subscriptions */}
+      {subscriptions.filter(sub => sub.status === 'ACTIVE').length > 0 ? (
         <div className={styles.subscriptionsList}>
-          {subscriptions.map((sub) => (
+          {subscriptions.filter(sub => sub.status === 'ACTIVE').map((sub) => (
             <div key={sub.id} className={styles.subscriptionCard}>
               <div className={styles.subscriptionHeader}>
                 <h4>{sub.planTitle || `Plan ${sub.planId}`}</h4>
@@ -256,14 +256,12 @@ export default function MemberSubscriptionManager({ memberId, onSubscriptionUpda
                 </p>
               </div>
               <div className={styles.subscriptionActions}>
-                {sub.status !== "CANCELLED" && (
-                  <button
-                    onClick={() => handleUpdateSubscription(sub.id, "CANCELLED")}
-                    className={styles.cancelButton}
-                  >
-                    Cancel Subscription
-                  </button>
-                )}
+                <button
+                  onClick={() => handleUpdateSubscription(sub.id, "CANCELLED")}
+                  className={styles.cancelButton}
+                >
+                  Cancel Subscription
+                </button>
                 <button
                   onClick={() => handleDeleteSubscription(sub.id)}
                   className={styles.deleteButton}
@@ -276,6 +274,36 @@ export default function MemberSubscriptionManager({ memberId, onSubscriptionUpda
         </div>
       ) : (
         <p className={styles.noSubscriptions}>No active subscriptions</p>
+      )}
+
+      {/* Cancelled Subscriptions */}
+      {subscriptions.filter(sub => sub.status === 'CANCELLED').length > 0 && (
+        <div style={{ marginTop: '2rem' }}>
+          <h4 style={{ color: '#666', marginBottom: '1rem' }}>Cancelled Subscriptions</h4>
+          <div className={styles.subscriptionsList}>
+            {subscriptions.filter(sub => sub.status === 'CANCELLED').map((sub) => (
+              <div key={sub.id} className={styles.subscriptionCard} style={{ opacity: 0.7 }}>
+                <div className={styles.subscriptionHeader}>
+                  <h4>{sub.planTitle || `Plan ${sub.planId}`}</h4>
+                  <span className={`${styles.badge} ${styles[`badge-${sub.status.toLowerCase()}`]}`}>
+                    {sub.status}
+                  </span>
+                </div>
+                <div className={styles.subscriptionDetails}>
+                  <p>
+                    <strong>Price:</strong> ${Number(sub.planPrice || 0).toFixed(2)}/{sub.billingCycle}
+                  </p>
+                  <p>
+                    <strong>Start Date:</strong> {formatDate(sub.startDate)}
+                  </p>
+                  <p>
+                    <strong>Cancelled Date:</strong> {sub.cancelledAt ? formatDate(sub.cancelledAt) : 'N/A'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Add Subscription Button */}
