@@ -258,7 +258,7 @@ export default function SubscriptionManagement({ userId }) {
 
                   {sub.end_date && (
                     <div className={styles.infoRow}>
-                      <span className={styles.label}>End Date:</span>
+                      <span className={styles.label}>Renewal Date:</span>
                       <span className={styles.value}>{formatDate(sub.end_date)}</span>
                     </div>
                   )}
