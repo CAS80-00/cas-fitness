@@ -148,7 +148,7 @@ export default function MemberSubscriptionManager({ memberId, onSubscriptionUpda
   };
 
   const handleDeleteSubscription = async (subscriptionId) => {
-    if (!confirm("Are you sure you want to delete this subscription?")) return;
+    if (!confirm("Are you sure you want to cancel this subscription?")) return;
 
     try {
       setError("");
@@ -159,15 +159,22 @@ export default function MemberSubscriptionManager({ memberId, onSubscriptionUpda
 
       const data = await res.json();
       if (res.ok) {
-        setSubscriptions(subscriptions.filter((sub) => sub.id !== subscriptionId));
-        setSuccess("Subscription deleted successfully!");
+        setSuccess("Subscription cancelled successfully!");
+        // Reload subscriptions to show updated status
+        const subsRes = await fetch(`${apiBaseUrl}/admin/subscriptions/user/${memberId}`, {
+          headers: authHeaders(),
+        });
+        const subsData = await subsRes.json();
+        if (subsRes.ok) {
+          setSubscriptions(subsData.subscriptions || []);
+        }
         onSubscriptionUpdate?.();
         setTimeout(() => setSuccess(""), 3000);
       } else {
-        setError(data.error || "Failed to delete subscription");
+        setError(data.error || "Failed to cancel subscription");
       }
     } catch (err) {
-      setError("Error deleting subscription: " + err.message);
+      setError("Error cancelling subscription: " + err.message);
     }
   };
 
