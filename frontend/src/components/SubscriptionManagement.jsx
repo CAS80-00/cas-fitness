@@ -184,6 +184,29 @@ export default function SubscriptionManagement({ userId }) {
     });
   };
 
+  const calculateRenewalDate = (startDate, billingCycle, endDate) => {
+    // If end_date is already set, use it
+    if (endDate) {
+      return new Date(endDate);
+    }
+
+    // Calculate based on billing cycle
+    const start = new Date(startDate);
+    const renewalDate = new Date(start);
+
+    if (billingCycle === 'MONTHLY' || billingCycle === 'month') {
+      renewalDate.setMonth(renewalDate.getMonth() + 1);
+    } else if (billingCycle === 'QUARTERLY' || billingCycle === 'quarter') {
+      renewalDate.setMonth(renewalDate.getMonth() + 3);
+    } else if (billingCycle === 'YEARLY' || billingCycle === 'year') {
+      renewalDate.setFullYear(renewalDate.getFullYear() + 1);
+    } else if (billingCycle === 'WEEKLY' || billingCycle === 'week') {
+      renewalDate.setDate(renewalDate.getDate() + 7);
+    }
+
+    return renewalDate;
+  };
+
   const getStatusBadge = (status, isDiscontinued, priceLocked) => {
     let badgeClass = styles.statusBadge;
     let badgeText = status;
@@ -256,12 +279,10 @@ export default function SubscriptionManagement({ userId }) {
                     <span className={styles.value}>{formatDate(sub.start_date)}</span>
                   </div>
 
-                  {sub.end_date && (
-                    <div className={styles.infoRow}>
-                      <span className={styles.label}>Renewal Date:</span>
-                      <span className={styles.value}>{formatDate(sub.end_date)}</span>
-                    </div>
-                  )}
+                  <div className={styles.infoRow}>
+                    <span className={styles.label}>Renewal Date:</span>
+                    <span className={styles.value}>{formatDate(calculateRenewalDate(sub.start_date, sub.billing_cycle, sub.end_date))}</span>
+                  </div>
 
                   {sub.is_discontinued && (
                     <div className={styles.discontinuedWarning}>
