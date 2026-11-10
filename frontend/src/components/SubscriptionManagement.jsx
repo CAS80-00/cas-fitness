@@ -268,13 +268,6 @@ export default function SubscriptionManagement({ userId }) {
                   </div>
 
                   <div className={styles.infoRow}>
-                    <span className={styles.label}>Sessions:</span>
-                    <span className={styles.value}>
-                      {sub.remaining_sessions} of {sub.session_count}
-                    </span>
-                  </div>
-
-                  <div className={styles.infoRow}>
                     <span className={styles.label}>Start Date:</span>
                     <span className={styles.value}>{formatDate(sub.start_date)}</span>
                   </div>
