@@ -454,7 +454,7 @@ router.post("/verify-otp", otpLimiter, async (req, res) => {
       FROM (SELECT 1) dummy
       LEFT JOIN plans p ON TRUE
       WHERE NOT EXISTS (
-        SELECT 1 FROM user_subscriptions WHERE user_id = $1 AND status = 'ACTIVE'
+        SELECT 1 FROM user_subscriptions WHERE user_id = $1 AND status IN ('ACTIVE', 'CANCELLED')
       )
       LIMIT 1
     `,
