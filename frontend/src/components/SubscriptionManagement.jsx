@@ -279,11 +279,6 @@ export default function SubscriptionManagement({ userId }) {
                     <span className={styles.value}>{formatDate(sub.start_date)}</span>
                   </div>
 
-                  <div className={styles.infoRow}>
-                    <span className={styles.label}>Renewal Date:</span>
-                    <span className={styles.value}>{formatDate(calculateRenewalDate(sub.start_date, sub.billing_cycle, sub.end_date))}</span>
-                  </div>
-
                   {sub.next_renewal_date && (
                     <div className={styles.infoRow}>
                       <span className={styles.label}>Next Payment:</span>
