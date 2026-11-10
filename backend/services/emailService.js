@@ -258,7 +258,119 @@ const sendSuperuserNotificationEmail = async (purchaseData) => {
   }
 };
 
+// Send payment receipt to user after successful payment
+const sendPaymentReceipt = async (userEmail, studentName, planTitle, amount, stripeTransactionId, paymentType = 'purchase') => {
+  const config = await getEmailConfig();
+  if (!config) {
+    console.warn('Email configuration not available, skipping receipt email');
+    return;
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: config.user,
+      pass: config.pass,
+    },
+  });
+
+  const paymentTypeLabel = paymentType === 'renewal' ? 'Subscription Renewal' : 'Payment';
+  const receiptDate = new Date().toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+
+  const mailOptions = {
+    from: config.user,
+    to: userEmail,
+    subject: `CAS Fitness - ${paymentTypeLabel} Receipt #${stripeTransactionId.substring(0, 8)}`,
+    html: `
+      <html>
+        <body style="font-family: Arial, sans-serif; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto;">
+            <div style="text-align: center; padding: 20px; background-color: #2c3e50; color: white; border-radius: 4px 4px 0 0;">
+              <h1 style="margin: 0; font-size: 24px;">✓ ${paymentTypeLabel}</h1>
+              <p style="margin: 5px 0 0 0; font-size: 14px;">CAS Fitness</p>
+            </div>
+            
+            <div style="padding: 30px; background-color: #f8f9fa;">
+              <p>Dear <strong>${studentName}</strong>,</p>
+              
+              <p style="color: #27ae60; font-weight: bold;">Your payment has been received and processed successfully.</p>
+              
+              <h3 style="color: #2c3e50; margin-top: 30px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Receipt Details</h3>
+              
+              <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <tr>
+                  <td style="padding: 12px; background-color: #ecf0f1; font-weight: bold; width: 40%;">Receipt Date:</td>
+                  <td style="padding: 12px;">${receiptDate}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; background-color: white; font-weight: bold;">Payment Type:</td>
+                  <td style="padding: 12px;">${paymentTypeLabel}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; background-color: #ecf0f1; font-weight: bold;">Transaction ID:</td>
+                  <td style="padding: 12px; font-family: monospace; color: #7f8c8d;">${stripeTransactionId}</td>
+                </tr>
+              </table>
+              
+              <h3 style="color: #2c3e50; margin-top: 30px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Payment Summary</h3>
+              
+              <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <tr>
+                  <td style="padding: 12px; background-color: white;">
+                    <strong>${planTitle}</strong>
+                  </td>
+                  <td style="padding: 12px; text-align: right; font-weight: bold;">
+                    $${Number(amount).toFixed(2)}
+                  </td>
+                </tr>
+                <tr style="border-top: 2px solid #3498db;">
+                  <td style="padding: 15px; background-color: #34495e; color: white; font-weight: bold; font-size: 16px;">
+                    TOTAL
+                  </td>
+                  <td style="padding: 15px; background-color: #34495e; color: white; font-weight: bold; font-size: 16px; text-align: right;">
+                    $${Number(amount).toFixed(2)}
+                  </td>
+                </tr>
+              </table>
+              
+              <div style="margin-top: 30px; padding: 15px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
+                <p style="margin: 0;"><strong>📧 Receipt Information:</strong></p>
+                <p style="margin: 10px 0 0 0; font-size: 14px;">
+                  This is an automated receipt for your payment. For any questions or disputes regarding this transaction, 
+                  please contact our support team or reply to this email.
+                </p>
+              </div>
+              
+              <p style="margin-top: 30px; color: #7f8c8d; font-size: 12px; text-align: center;">
+                Transaction processed at ${new Date().toLocaleString()}<br>
+                For support, contact: ${config.superuserEmail}
+              </p>
+            </div>
+            
+            <div style="padding: 20px; background-color: #2c3e50; color: white; text-align: center; border-radius: 0 0 4px 4px; font-size: 12px;">
+              <p style="margin: 0;">© 2026 CAS Fitness. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Payment receipt sent to ${userEmail} (Transaction: ${stripeTransactionId})`);
+  } catch (error) {
+    console.error('Error sending payment receipt:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   sendUserConfirmationEmail,
   sendSuperuserNotificationEmail,
+  sendPaymentReceipt,
 };

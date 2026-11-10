@@ -1,5 +1,6 @@
 const db = require('../db/client');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || '');
+const { sendPaymentReceipt } = require('../services/emailService');
 
 /**
  * Batch job to process automatic subscription renewals
@@ -128,6 +129,20 @@ async function processSubscriptionRenewals() {
              WHERE id = $3`,
             [nextRenewal, lastRenewal, sub.id]
           );
+
+          // Send payment receipt to user
+          try {
+            await sendPaymentReceipt(
+              sub.email,
+              sub.user_id,
+              sub.title,
+              sub.price,
+              paymentIntent.id,
+              'renewal'
+            );
+          } catch (emailError) {
+            console.error(`[Renewal Job] Failed to send receipt email for subscription ${sub.id}:`, emailError.message);
+          }
 
           console.log(`[Renewal Job] Successfully renewed subscription ${sub.id} for ${sub.email}`);
           succeeded++;

@@ -3,7 +3,7 @@ const router = express.Router();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const db = require('../db/client');
 const { authenticateToken } = require('../middleware/authMiddleware');
-const { sendUserConfirmationEmail, sendSuperuserNotificationEmail } = require('../services/emailService');
+const { sendUserConfirmationEmail, sendSuperuserNotificationEmail, sendPaymentReceipt } = require('../services/emailService');
 
 // Test endpoint
 router.get('/health', (req, res) => {
@@ -164,6 +164,17 @@ router.post('/confirm-payment', async (req, res) => {
         console.log(`Sending confirmation email with ${cartItems.length} items to ${userEmail}`);
         await sendUserConfirmationEmail(userEmail, userName, cartItems, amount);
         const chargeId = paymentIntent.charges?.data?.[0]?.id;
+        
+        // Send receipt email
+        await sendPaymentReceipt(
+          userEmail,
+          userName,
+          `Multiple Plans (${cartItems.length} items)`,
+          amount,
+          paymentIntentId,
+          'purchase'
+        );
+        
         await sendSuperuserNotificationEmail({
           student_name: userName,
           email: userEmail,
@@ -198,6 +209,17 @@ router.post('/confirm-payment', async (req, res) => {
       // Send email for single plan
       try {
         await sendUserConfirmationEmail(userEmail, userName, [{ id: planId, title: 'Membership Plan', activePrice: amount }], amount);
+        
+        // Send receipt email
+        await sendPaymentReceipt(
+          userEmail,
+          userName,
+          'Membership Plan',
+          amount,
+          paymentIntentId,
+          'purchase'
+        );
+        
         await sendSuperuserNotificationEmail({
           student_name: userName,
           email: userEmail,
