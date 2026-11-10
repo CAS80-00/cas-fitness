@@ -151,7 +151,13 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
     );
   };
 
+  // Get active sessions (not expired)
+  const getActiveSessions = () => {
+    return trainerSessions.filter(session => !session.is_expired);
+  };
+
   const archivedSessions = getArchivedSessions();
+  const activeSessions = getActiveSessions();
 
   return (
     <div className={styles.page}>
@@ -246,15 +252,12 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
         <div className={styles.dashboardGrid}>
           <div className={styles.leftColumn}>
 
-            {trainerSessions.length > 0 ? (
+            {activeSessions.length > 0 ? (
               <div className={styles.sessionsCard}>
                 <h2 className={styles.infoTitle}>Trainer Sessions</h2>
                 <div className={styles.sessionsList}>
-                  {trainerSessions.map((session) => (
-                    <div key={session.id} className={`${styles.sessionItem} ${session.is_expired ? styles.sessionExpired : ''}`}>
-                      {session.is_expired && (
-                        <div className={styles.expiredBadge}>EXPIRED</div>
-                      )}
+                  {activeSessions.map((session) => (
+                    <div key={session.id} className={styles.sessionItem}>
                       <div className={styles.sessionRow}>
                         <span>Purchased:</span>
                         <span className={styles.sessionValue}>{session.purchased_sessions || session.total_sessions}</span>
@@ -269,11 +272,11 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
                       </div>
                       <div className={styles.sessionRow}>
                         <span>Remaining:</span>
-                        <span className={`${styles.sessionValue} ${session.is_expired ? styles.sessionValueZero : ''}`}>{session.remaining_sessions || 0}</span>
+                        <span className={`${styles.sessionValue}`}>{session.remaining_sessions || 0}</span>
                       </div>
                       <div className={styles.sessionRow}>
                         <span>Expires:</span>
-                        <span className={`${styles.expiryDate} ${session.is_expired ? styles.expiryDatePassed : ''}`}>
+                        <span className={styles.expiryDate}>
                           {new Date(session.expiration_date).toLocaleDateString()}
                         </span>
                       </div>
