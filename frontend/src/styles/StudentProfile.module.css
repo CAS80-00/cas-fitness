@@ -104,9 +104,10 @@
 }
 
 .expiredBadge {
-  @apply absolute top-3 right-4 text-xs font-bold px-2 py-1 rounded;
+  @apply absolute top-1/2 left-1/2 text-xs font-bold px-2 py-1 rounded;
   background-color: #dc2626;
   color: #ffffff;
+  transform: translate(-50%, -50%);
 }
 
 .sessionRow {
