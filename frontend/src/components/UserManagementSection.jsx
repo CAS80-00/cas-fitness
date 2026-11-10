@@ -60,6 +60,7 @@ export default function UserManagementSection({
 
   const [emailTemplateModal, setEmailTemplateModal] = useState(false);
   const [emailTemplateContent, setEmailTemplateContent] = useState("");
+  const [templateSaveMessage, setTemplateSaveMessage] = useState("");
 
   const [statusModal, setStatusModal] = useState(null); // { user, status }
   const [detailUser, setDetailUser] = useState(null);
@@ -73,6 +74,8 @@ export default function UserManagementSection({
   };
 
   const openEmailTemplate = () => {
+    // Load saved template from localStorage or use default
+    const savedTemplate = localStorage.getItem("cas_loginEmailTemplate");
     const defaultTemplate = `Subject: CAS Fitness - Welcome! Here are your login instructions
 
 Hello [First Name],
@@ -110,8 +113,16 @@ If you have any questions or need assistance, please contact our support team.
 This email was sent to [User Email]. If you did not create this account, please contact us immediately.
 
 © 2026 CAS Fitness. All rights reserved.`;
-    setEmailTemplateContent(defaultTemplate);
+    
+    setEmailTemplateContent(savedTemplate || defaultTemplate);
+    setTemplateSaveMessage("");
     setEmailTemplateModal(true);
+  };
+
+  const saveEmailTemplate = () => {
+    localStorage.setItem("cas_loginEmailTemplate", emailTemplateContent);
+    setTemplateSaveMessage("Template saved successfully!");
+    setTimeout(() => setTemplateSaveMessage(""), 2000);
   };
 
   const runSearch = async () => {
@@ -530,9 +541,13 @@ This email was sent to [User Email]. If you did not create this account, please 
               onChange={(e) => setEmailTemplateContent(e.target.value)}
               className={styles.templateEditor}
             />
+            {templateSaveMessage && <p className={styles.successText}>{templateSaveMessage}</p>}
             <div className={styles.detailActions}>
               <button type="button" onClick={() => setEmailTemplateModal(false)} className={styles.cancelButton}>
                 Close
+              </button>
+              <button type="button" onClick={saveEmailTemplate} className={styles.saveButton}>
+                Save Changes
               </button>
             </div>
           </div>
