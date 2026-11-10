@@ -659,6 +659,7 @@ router.post("/subscriptions", async (req, res) => {
   const planId = Number(req.body.planId);
   const status = String(req.body.status || "ACTIVE").toUpperCase();
   const startDate = req.body.startDate || new Date().toISOString();
+  const billingCycle = String(req.body.billingCycle || "MONTHLY").toUpperCase();
   const endDate = req.body.endDate || null;
   const autoRenew = Boolean(req.body.autoRenew);
 
@@ -693,6 +694,11 @@ router.post("/subscriptions", async (req, res) => {
     );
 
     const subscription = result.rows[0];
+    
+    // Fetch the plan to get its billing cycle
+    const planDetails = await db.query("SELECT billing_cycle FROM plans WHERE id = $1", [planId]);
+    const planBillingCycle = planDetails.rows[0]?.billing_cycle || billingCycle;
+    
     res.status(201).json({
       subscription: {
         id: subscription.id,
@@ -702,6 +708,7 @@ router.post("/subscriptions", async (req, res) => {
         startDate: subscription.start_date,
         endDate: subscription.end_date,
         autoRenew: subscription.auto_renew,
+        billingCycle: planBillingCycle,
       },
     });
   } catch (err) {

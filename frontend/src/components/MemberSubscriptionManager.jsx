@@ -19,6 +19,7 @@ export default function MemberSubscriptionManager({ memberId, onSubscriptionUpda
     planId: "",
     status: "ACTIVE",
     startDate: new Date().toISOString().split("T")[0],
+    billingCycle: "MONTHLY",
     endDate: "",
     autoRenew: true,
   });
@@ -87,6 +88,7 @@ export default function MemberSubscriptionManager({ memberId, onSubscriptionUpda
           planId: Number(formData.planId),
           status: formData.status,
           startDate: formData.startDate,
+          billingCycle: formData.billingCycle,
           endDate: formData.endDate || null,
           autoRenew: formData.autoRenew,
         }),
@@ -101,6 +103,7 @@ export default function MemberSubscriptionManager({ memberId, onSubscriptionUpda
           planId: "",
           status: "ACTIVE",
           startDate: new Date().toISOString().split("T")[0],
+          billingCycle: "MONTHLY",
           endDate: "",
           autoRenew: true,
         });
@@ -319,6 +322,21 @@ export default function MemberSubscriptionManager({ memberId, onSubscriptionUpda
               onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
               required
             />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="billingCycle">Billing Cycle</label>
+            <select
+              id="billingCycle"
+              value={formData.billingCycle}
+              onChange={(e) => setFormData({ ...formData, billingCycle: e.target.value })}
+            >
+              <option value="WEEKLY">Weekly</option>
+              <option value="BIWEEKLY">Bi-weekly</option>
+              <option value="MONTHLY">Monthly</option>
+              <option value="QUARTERLY">Quarterly</option>
+              <option value="YEARLY">Yearly</option>
+            </select>
           </div>
 
           <div className={styles.formGroup}>
