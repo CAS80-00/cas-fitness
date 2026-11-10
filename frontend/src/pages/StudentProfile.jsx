@@ -198,6 +198,9 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
               <div><strong>Status:</strong> <span className={styles.statusActive}>{subscription?.status || 'No Active Subscription'}</span></div>
               <div><strong>Plan:</strong> {subscription?.title || '—'}</div>
               <div><strong>Renewal Date:</strong> {subscription?.end_date ? new Date(subscription.end_date).toLocaleDateString() : '—'}</div>
+              {subscription?.next_renewal_date && (
+                <div><strong>Next Payment:</strong> {new Date(subscription.next_renewal_date).toLocaleDateString()}</div>
+              )}
             </div>
 
             {/* Column 3: Payment Method + Auto-Renewal */}

@@ -21,6 +21,9 @@ const SUBSCRIPTION_WITH_PLAN_SELECT = `
     us.locked_price,
     us.price_locked_at,
     us.cancelled_at,
+    us.renewal_frequency,
+    us.next_renewal_date,
+    us.last_renewal_date,
     p.title,
     p.description,
     p.price,
@@ -413,6 +416,68 @@ router.post("/:subscriptionId/reactivate", authenticateToken, async (req, res) =
   } catch (err) {
     console.error("Error reactivating subscription:", err.message);
     res.status(500).json({ error: "Failed to reactivate subscription" });
+  }
+});
+
+// Superuser: Set renewal frequency and calculate next renewal date
+router.put("/:subscriptionId/renewal-frequency", authenticateToken, requireSuperuser, async (req, res) => {
+  const { subscriptionId } = req.params;
+  const { renewal_frequency } = req.body;
+
+  // Validate frequency
+  const validFrequencies = ["WEEKLY", "BIWEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"];
+  if (!renewal_frequency || !validFrequencies.includes(renewal_frequency.toUpperCase())) {
+    return res.status(400).json({
+      error: `Invalid renewal frequency. Must be one of: ${validFrequencies.join(", ")}`
+    });
+  }
+
+  try {
+    // Get current subscription
+    const subRes = await db.query(
+      "SELECT id, start_date FROM user_subscriptions WHERE id = $1",
+      [subscriptionId]
+    );
+
+    if (subRes.rows.length === 0) {
+      return res.status(404).json({ error: "Subscription not found" });
+    }
+
+    const subscription = subRes.rows[0];
+    const startDate = new Date(subscription.start_date);
+    const nextRenewalDate = new Date(startDate);
+
+    // Calculate next renewal date based on frequency
+    const freq = renewal_frequency.toUpperCase();
+    if (freq === "WEEKLY") {
+      nextRenewalDate.setDate(nextRenewalDate.getDate() + 7);
+    } else if (freq === "BIWEEKLY") {
+      nextRenewalDate.setDate(nextRenewalDate.getDate() + 14);
+    } else if (freq === "MONTHLY") {
+      nextRenewalDate.setMonth(nextRenewalDate.getMonth() + 1);
+    } else if (freq === "QUARTERLY") {
+      nextRenewalDate.setMonth(nextRenewalDate.getMonth() + 3);
+    } else if (freq === "YEARLY") {
+      nextRenewalDate.setFullYear(nextRenewalDate.getFullYear() + 1);
+    }
+
+    // Update subscription with renewal frequency
+    const updateRes = await db.query(
+      `UPDATE user_subscriptions 
+       SET renewal_frequency = $1, next_renewal_date = $2, updated_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [freq, nextRenewalDate, subscriptionId]
+    );
+
+    res.json({
+      success: true,
+      message: "Renewal frequency set successfully",
+      subscription: updateRes.rows[0]
+    });
+  } catch (err) {
+    console.error("Error setting renewal frequency:", err.message);
+    res.status(500).json({ error: "Failed to set renewal frequency" });
   }
 });
 

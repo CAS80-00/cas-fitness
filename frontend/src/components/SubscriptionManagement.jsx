@@ -284,6 +284,20 @@ export default function SubscriptionManagement({ userId }) {
                     <span className={styles.value}>{formatDate(calculateRenewalDate(sub.start_date, sub.billing_cycle, sub.end_date))}</span>
                   </div>
 
+                  {sub.next_renewal_date && (
+                    <div className={styles.infoRow}>
+                      <span className={styles.label}>Next Payment:</span>
+                      <span className={styles.value}>{formatDate(sub.next_renewal_date)}</span>
+                    </div>
+                  )}
+
+                  {sub.renewal_frequency && (
+                    <div className={styles.infoRow}>
+                      <span className={styles.label}>Renewal Frequency:</span>
+                      <span className={styles.value}>{sub.renewal_frequency}</span>
+                    </div>
+                  )}
+
                   {sub.is_discontinued && (
                     <div className={styles.discontinuedWarning}>
                       ⚠️ This plan is no longer offered. Your price is locked at ${displayPrice.toFixed(2)}

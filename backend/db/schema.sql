@@ -74,7 +74,15 @@ CREATE TABLE IF NOT EXISTS user_subscriptions (
     start_date TIMESTAMPTZ DEFAULT NOW(),
     end_date TIMESTAMPTZ,
     auto_renew BOOLEAN DEFAULT TRUE,
-    remaining_sessions INT DEFAULT 0
+    remaining_sessions INT DEFAULT 0,
+    renewal_frequency VARCHAR(50),
+    next_renewal_date TIMESTAMPTZ,
+    last_renewal_date TIMESTAMPTZ,
+    locked_price NUMERIC(10, 2),
+    price_locked_at TIMESTAMPTZ,
+    cancelled_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 7. Consultation Appointments
