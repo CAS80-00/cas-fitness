@@ -160,7 +160,6 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
         </div>
 
         <div className={styles.infoCard}>
-          <h2 className={styles.infoTitle}>Profile Info</h2>
           <div className={styles.profileGrid}>
             {/* Column 1: QR Code + History */}
             <div className={styles.qrColumn}>
@@ -172,6 +171,7 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
 
             {/* Column 2: Profile Information */}
             <div className={styles.infoColumn}>
+              <h2 className={styles.infoTitle}>Profile Info</h2>
               <div><strong>First Name:</strong> {currentUser?.firstName || "—"}</div>
               <div><strong>Last Name:</strong> {currentUser?.lastName || "—"}</div>
               <div><strong>Email:</strong> {currentUser?.email || "—"}</div>
