@@ -19,6 +19,8 @@ export default function SuperuserEmployeeView({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -128,6 +130,31 @@ export default function SuperuserEmployeeView({
     }
   };
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    setError("");
+
+    try {
+      const res = await fetch(`${apiBaseUrl}/admin/users/${employee.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete employee.");
+      }
+
+      setDeleteConfirmModal(false);
+      setSuccess("Employee deleted successfully!");
+      setTimeout(() => onBack(), 1500);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const getRoleLabel = (roleId) => {
     if (!roleId) return "—";
     const role = roleOptions.find((r) => r.id === roleId);
@@ -188,9 +215,14 @@ export default function SuperuserEmployeeView({
             </p>
           </div>
           {!isEditing && (
-            <button onClick={() => setIsEditing(true)} className={styles.editButton}>
-              Edit Profile
-            </button>
+            <div className={styles.headerActions}>
+              <button onClick={() => setIsEditing(true)} className={styles.editButton}>
+                Edit Profile
+              </button>
+              <button onClick={() => setDeleteConfirmModal(true)} className={styles.deleteButton}>
+                Delete
+              </button>
+            </div>
           )}
         </div>
 
@@ -349,6 +381,33 @@ export default function SuperuserEmployeeView({
               <button onClick={handleSave} className={styles.saveButton}>
                 Save Changes
               </button>
+            </div>
+          </div>
+        )}
+
+        {deleteConfirmModal && (
+          <div className={styles.overlay}>
+            <div className={styles.confirmModal}>
+              <h3 className={styles.confirmTitle}>Delete Employee</h3>
+              <p className={styles.confirmMessage}>
+                Are you sure you want to delete <strong>{employee.firstName} {employee.lastName}</strong> from the system? This action cannot be undone.
+              </p>
+              <div className={styles.confirmActions}>
+                <button 
+                  onClick={() => setDeleteConfirmModal(false)} 
+                  className={styles.cancelButton}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleDelete} 
+                  className={styles.deleteConfirmButton}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? "Deleting..." : "Delete"}
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -49,6 +49,18 @@
   background-color: var(--color-electric-blue-hover);
 }
 
+.headerActions {
+  @apply flex gap-3;
+}
+
+.deleteButton {
+  @apply rounded px-4 py-2 text-xs font-semibold text-white transition;
+  background-color: var(--color-crimson-red);
+}
+.deleteButton:hover {
+  background-color: var(--color-crimson-red-hover);
+}
+
 .loadingText {
   @apply text-center text-xs text-neutral-400;
   padding: 2rem;
@@ -191,13 +203,57 @@
   background-color: var(--color-electric-blue-hover);
 }
 
+/* Confirmation Modal */
+.overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+  background-color: rgb(0 0 0 / 70%);
+}
+
+.confirmModal {
+  @apply w-full max-w-md space-y-4 rounded-xl border p-6;
+  background-color: var(--color-dark-slate);
+  border-color: #404040;
+}
+
+.confirmTitle {
+  @apply text-lg font-bold text-white;
+  margin: 0;
+}
+
+.confirmMessage {
+  @apply text-sm text-neutral-300;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.confirmActions {
+  @apply flex justify-end gap-3 pt-4;
+}
+
+.deleteConfirmButton {
+  @apply rounded px-4 py-2 text-sm font-semibold text-white transition;
+  background-color: var(--color-crimson-red);
+}
+.deleteConfirmButton:hover:not(:disabled) {
+  background-color: var(--color-crimson-red-hover);
+}
+.deleteConfirmButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .header {
     @apply flex-col items-start gap-4;
   }
 
-  .editButton {
+  .headerActions {
+    @apply w-full flex-col gap-2;
+  }
+
+  .editButton,
+  .deleteButton {
     @apply w-full;
   }
 
@@ -215,6 +271,14 @@
 
   .cancelButton,
   .saveButton {
+    @apply w-full;
+  }
+
+  .confirmActions {
+    @apply flex-col gap-2;
+  }
+
+  .confirmActions button {
     @apply w-full;
   }
 }

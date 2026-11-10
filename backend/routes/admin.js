@@ -367,6 +367,37 @@ router.patch("/users/:id/status", async (req, res) => {
   }
 });
 
+// DELETE: Remove a user (employee)
+router.delete("/users/:id", async (req, res) => {
+  const userId = req.params.id;
+
+  try {
+    // Check if user exists
+    const userCheck = await db.query("SELECT id FROM users WHERE id = $1", [userId]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    // Delete related records first (to maintain referential integrity)
+    // Delete user subscriptions
+    await db.query("DELETE FROM user_subscriptions WHERE user_id = $1", [userId]);
+
+    // Delete trainer availability slots
+    await db.query("DELETE FROM trainer_availability WHERE trainer_id = $1", [userId]);
+
+    // Delete slot instances created by this trainer
+    await db.query("DELETE FROM slot_instances WHERE trainer_id = $1", [userId]);
+
+    // Delete the user
+    await db.query("DELETE FROM users WHERE id = $1", [userId]);
+
+    res.json({ success: true, message: "User deleted successfully." });
+  } catch (err) {
+    console.error("Error deleting user:", err.message);
+    res.status(500).json({ error: "Failed to delete user." });
+  }
+});
+
 /* ============================ TRAINERS ============================ */
 
 // Get all trainers (users with TRAINER role)
