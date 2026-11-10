@@ -93,6 +93,40 @@
   cursor: pointer;
 }
 
+.instructionsLink {
+  @apply inline bg-none border-none text-blue-400 underline;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.instructionsLink:hover {
+  color: #60a5fa;
+}
+
+.emailTemplateModal {
+  @apply w-full max-w-2xl space-y-3 rounded-xl border p-6 flex flex-col;
+  background-color: var(--color-dark-slate);
+  border-color: #404040;
+  overflow: visible;
+  max-height: 80vh;
+}
+
+.templateNote {
+  @apply text-xs text-neutral-400;
+  margin: 0;
+}
+
+.templateEditor {
+  @apply w-full rounded border p-3 text-sm text-white font-mono;
+  background-color: #0a0a0a;
+  border-color: #262626;
+  resize: vertical;
+  min-height: 400px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
 .submitButton {
   @apply rounded px-4 py-2 text-sm font-bold text-white transition;
   background-color: var(--color-electric-blue);

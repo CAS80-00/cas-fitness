@@ -58,6 +58,9 @@ export default function UserManagementSection({
   const [addResult, setAddResult] = useState(null);
   const [addError, setAddError] = useState("");
 
+  const [emailTemplateModal, setEmailTemplateModal] = useState(false);
+  const [emailTemplateContent, setEmailTemplateContent] = useState("");
+
   const [statusModal, setStatusModal] = useState(null); // { user, status }
   const [detailUser, setDetailUser] = useState(null);
   const [detailForm, setDetailForm] = useState(null);
@@ -67,6 +70,48 @@ export default function UserManagementSection({
   const authHeaders = () => {
     const token = localStorage.getItem("cas_jwt");
     return { Authorization: "Bearer " + token };
+  };
+
+  const openEmailTemplate = () => {
+    const defaultTemplate = `Subject: CAS Fitness - Welcome! Here are your login instructions
+
+Hello [First Name],
+
+Your CAS Fitness account has been created! We're excited to have you join us. Here's everything you need to know to get started:
+
+Your Login Credentials:
+────────────────────
+Email: [User Email]
+Temporary Password: [Temporary Password]
+────────────────────
+
+Step-by-Step Login Instructions:
+
+1. Visit our website and click on "Log In"
+2. Enter your email address
+3. Enter the temporary password provided above
+4. Upon successful login, you will be prompted to change your password
+5. Create a new, secure password that only you know
+6. Save your new password in a secure location
+
+Security Notes:
+
+• Your temporary password is unique to you and should not be shared
+• Change your password immediately upon first login
+• Use a strong password combining uppercase, lowercase, numbers, and symbols
+• 2FA codes are sent to your registered email and will expire in 5 minutes
+• Always log out when using a public computer
+
+❓ Need Help?
+
+If you have any questions or need assistance, please contact our support team.
+
+────────────────────────────────────────
+This email was sent to [User Email]. If you did not create this account, please contact us immediately.
+
+© 2026 CAS Fitness. All rights reserved.`;
+    setEmailTemplateContent(defaultTemplate);
+    setEmailTemplateModal(true);
   };
 
   const runSearch = async () => {
@@ -249,7 +294,14 @@ export default function UserManagementSection({
               className={styles.checkbox}
             />
             <label htmlFor="sendInstructions" className={styles.checkboxLabel}>
-              Send Login Instructions
+              Send Login{" "}
+              <button
+                type="button"
+                onClick={openEmailTemplate}
+                className={styles.instructionsLink}
+              >
+                Instructions
+              </button>
             </label>
           </div>
           <span className={styles.statusHint}>Status defaults to Pending</span>
@@ -462,6 +514,25 @@ export default function UserManagementSection({
               </button>
               <button type="button" onClick={saveDetail} className={styles.saveButton}>
                 Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {emailTemplateModal && (
+        <div className={styles.overlay}>
+          <div className={styles.emailTemplateModal}>
+            <h3 className={styles.detailTitle}>Email Template Preview</h3>
+            <p className={styles.templateNote}>Edit the template below. Variables: [First Name], [User Email], [Temporary Password]</p>
+            <textarea
+              value={emailTemplateContent}
+              onChange={(e) => setEmailTemplateContent(e.target.value)}
+              className={styles.templateEditor}
+            />
+            <div className={styles.detailActions}>
+              <button type="button" onClick={() => setEmailTemplateModal(false)} className={styles.cancelButton}>
+                Close
               </button>
             </div>
           </div>
