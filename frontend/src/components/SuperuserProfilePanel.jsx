@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import styles from "../styles/SuperuserProfilePanel.module.css";
 import PhoneInputWithCountryCode from "./PhoneInputWithCountryCode";
+import { COUNTRY_CODES } from "../utils/countryCodes";
 
 /**
  * SuperuserProfilePanel
@@ -12,11 +13,12 @@ import PhoneInputWithCountryCode from "./PhoneInputWithCountryCode";
  */
 export default function SuperuserProfilePanel({ currentUser, onProfileUpdated }) {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
+  const initializedPhoneRef = useRef(false);
   const [isEditing, setIsEditing] = useState(false);
   const [firstName, setFirstName] = useState(currentUser?.firstName || "");
   const [lastName, setLastName] = useState(currentUser?.lastName || "");
   const [email, setEmail] = useState(currentUser?.email || "");
-  const [phone, setPhone] = useState(currentUser?.phone || "");
+  const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+1");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
@@ -28,14 +30,43 @@ export default function SuperuserProfilePanel({ currentUser, onProfileUpdated })
       setFirstName(currentUser?.firstName || "");
       setLastName(currentUser?.lastName || "");
       setEmail(currentUser?.email || "");
-      setPhone(currentUser?.phone || "");
+      setPhone("");
       setCountryCode("+1");
+      initializedPhoneRef.current = false;
     }
   }, [currentUser, isEditing]);
 
   const authHeaders = () => {
     const token = localStorage.getItem("cas_jwt");
     return { Authorization: "Bearer " + token };
+  };
+
+  // When PhoneInputWithCountryCode parses the phone, sync the parent state
+  const handlePhoneChange = (code, phoneNum) => {
+    setCountryCode(code);
+    setPhone(phoneNum);
+  };
+
+  const parsePhoneNumber = (fullPhone) => {
+    if (!fullPhone) return { code: "+1", number: "" };
+    
+    const cleanPhone = fullPhone.trim();
+    for (const country of COUNTRY_CODES) {
+      if (cleanPhone.startsWith(country.code)) {
+        const number = cleanPhone.substring(country.code.length).trim();
+        return { code: country.code, number };
+      }
+    }
+    return { code: "+1", number: cleanPhone };
+  };
+
+  const handleEditMode = () => {
+    // Initialize phone state with parsed values when entering edit mode
+    const { code, number } = parsePhoneNumber(currentUser?.phone);
+    setCountryCode(code);
+    setPhone(number);
+    initializedPhoneRef.current = false;  // Reset so PhoneInputWithCountryCode can initialize properly
+    setIsEditing(true);
   };
 
   const saveProfile = async () => {
@@ -91,7 +122,7 @@ export default function SuperuserProfilePanel({ currentUser, onProfileUpdated })
       <div className={styles.header}>
         <h2 className={styles.title}>Superuser Profile</h2>
         {!isEditing && (
-          <button type="button" onClick={() => setIsEditing(true)} className={styles.editButton}>
+          <button type="button" onClick={handleEditMode} className={styles.editButton}>
             Edit
           </button>
         )}
@@ -130,11 +161,8 @@ export default function SuperuserProfilePanel({ currentUser, onProfileUpdated })
           <div className={styles.phoneFieldLabel}>
             <label className={styles.fieldLabel}>Phone Number</label>
             <PhoneInputWithCountryCode
-              value={phone}
-              onChange={(code, phoneNum) => {
-                setPhone(phoneNum);
-                setCountryCode(code);
-              }}
+              value={`${countryCode}${phone}`}
+              onChange={handlePhoneChange}
               placeholder="Enter phone number"
               required
             />
