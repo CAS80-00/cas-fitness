@@ -189,9 +189,6 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
               <button type="button" onClick={() => setShowHistory(true)} className={styles.historyButton}>
                 History
               </button>
-              <button type="button" onClick={() => setShowChangePasswordModal(true)} className={styles.historyButton}>
-                Change Password
-              </button>
             </div>
 
             {/* Column 2: Profile Information */}
@@ -205,6 +202,9 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
               {subscription?.next_renewal_date && (
                 <div><strong>Next Payment:</strong> {new Date(subscription.next_renewal_date).toLocaleDateString()}</div>
               )}
+              <button type="button" onClick={() => setShowChangePasswordModal(true)} className={styles.historyButton}>
+                Change Password
+              </button>
             </div>
 
             {/* Column 3: Payment Method + Auto-Renewal */}
