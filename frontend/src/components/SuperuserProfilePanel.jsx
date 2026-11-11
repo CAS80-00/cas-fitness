@@ -65,7 +65,6 @@ export default function SuperuserProfilePanel({ currentUser, onProfileUpdated })
     setError("");
     try {
       const fullPhone = `${countryCode}${phone}`;
-      console.log("📤 Sending profile update with:", { firstName, lastName, email, phone: fullPhone });
       
       const res = await fetch(`${apiBaseUrl}/auth/profile`, {
         method: "PATCH",
@@ -73,14 +72,12 @@ export default function SuperuserProfilePanel({ currentUser, onProfileUpdated })
         body: JSON.stringify({ firstName, lastName, email, phone: fullPhone }),
       });
       const data = await res.json();
-      console.log("📥 Received response:", data);
       
       if (!res.ok) throw new Error(data.error || "Failed to update profile.");
       
       // Update localStorage with the new user data so it persists across page refreshes
       localStorage.setItem("cas_user", JSON.stringify(data.user));
       
-      console.log("✅ Profile updated successfully, calling onProfileUpdated with:", data.user);
       onProfileUpdated?.(data.user);
       
       setStatusMessage("Profile updated successfully!");
