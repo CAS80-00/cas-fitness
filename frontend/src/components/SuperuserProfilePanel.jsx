@@ -77,6 +77,9 @@ export default function SuperuserProfilePanel({ currentUser, onProfileUpdated })
       
       if (!res.ok) throw new Error(data.error || "Failed to update profile.");
       
+      // Update localStorage with the new user data so it persists across page refreshes
+      localStorage.setItem("cas_user", JSON.stringify(data.user));
+      
       console.log("✅ Profile updated successfully, calling onProfileUpdated with:", data.user);
       onProfileUpdated?.(data.user);
       
