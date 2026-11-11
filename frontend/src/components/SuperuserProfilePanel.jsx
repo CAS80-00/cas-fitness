@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import styles from "../styles/SuperuserProfilePanel.module.css";
 import PhoneInputWithCountryCode from "./PhoneInputWithCountryCode";
+import ChangePasswordModal from "./ChangePasswordModal";
 import { COUNTRY_CODES } from "../utils/countryCodes";
 
 /**
  * SuperuserProfilePanel
  * Editable profile section for the Superuser dashboard: Member ID and Role
  * stay locked/read-only, while Name/Last Name/Email/Phone are editable and
- * persisted via PATCH /api/auth/profile. "Change Password" reuses the
- * existing forgot-password OTP flow, emailing a reset challenge to the
- * Superuser's own address.
+ * persisted via PATCH /api/auth/profile. Password changes now use a secure
+ * flow requiring current password verification + OTP confirmation.
  */
 export default function SuperuserProfilePanel({ currentUser, onProfileUpdated }) {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -22,6 +22,7 @@ export default function SuperuserProfilePanel({ currentUser, onProfileUpdated })
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   const authHeaders = () => {
     const token = localStorage.getItem("cas_jwt");
@@ -97,25 +98,18 @@ export default function SuperuserProfilePanel({ currentUser, onProfileUpdated })
     setIsEditing(false);
   };
 
-  const changePassword = async () => {
-    setStatusMessage("");
-    setError("");
-    try {
-      const res = await fetch(`${apiBaseUrl}/auth/forgot-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: currentUser?.email }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to start password reset.");
-      setStatusMessage(data.message || "Check your email for password reset instructions.");
-    } catch (err) {
-      setError(err.message);
-    }
+  const handleChangePassword = () => {
+    setShowChangePasswordModal(true);
   };
 
   return (
     <div className={styles.card}>
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        userId={currentUser?.id}
+      />
+
       <div className={styles.header}>
         <h2 className={styles.title}>Superuser Profile</h2>
         {!isEditing && (
@@ -189,7 +183,7 @@ export default function SuperuserProfilePanel({ currentUser, onProfileUpdated })
             </button>
           </>
         ) : (
-          <button type="button" onClick={changePassword} className={styles.changePasswordButton}>
+          <button type="button" onClick={handleChangePassword} className={styles.changePasswordButton}>
             Change Password
           </button>
         )}

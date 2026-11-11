@@ -694,4 +694,139 @@ router.patch("/profile", authenticateToken, async (req, res) => {
   }
 });
 
+// Request OTP for password change (user provides current password)
+router.post("/request-password-change", authenticateToken, otpLimiter, async (req, res) => {
+  const userId = req.user.userId;
+  const currentPassword = String(req.body.currentPassword || "");
+
+  if (!currentPassword) {
+    return res.status(400).json({ error: "Current password is required." });
+  }
+
+  try {
+    const userRes = await db.query(
+      "SELECT id, email, password_hash FROM users WHERE id = $1",
+      [userId],
+    );
+
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const user = userRes.rows[0];
+    
+    // Verify current password
+    const passwordMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: "Current password is incorrect." });
+    }
+
+    // Generate and send OTP for password change
+    const otpCode = generateOtpCode();
+    await createOtp({ userId: user.id, purpose: "PASSWORD_RESET", code: otpCode });
+    const deliveryResult = await deliverOtpCode({ user, code: otpCode, deliveryMethod: "email" });
+
+    res.json({
+      success: true,
+      message: "Verification code sent to your email.",
+      delivery: deliveryResult,
+    });
+  } catch (err) {
+    console.error("Error requesting password change:", err);
+    res.status(500).json({ error: "Failed to process password change request." });
+  }
+});
+
+// Complete password change with OTP verification
+router.post("/complete-password-change", authenticateToken, otpLimiter, async (req, res) => {
+  const userId = req.user.userId;
+  const newPassword = String(req.body.newPassword || "");
+  const otpCode = String(req.body.otpCode || "");
+
+  if (!newPassword) {
+    return res.status(400).json({ error: "New password is required." });
+  }
+
+  if (!otpCode) {
+    return res.status(400).json({ error: "Verification code is required." });
+  }
+
+  if (!isStrongPassword(newPassword)) {
+    return res.status(400).json({ error: "Password does not meet minimum strength requirements." });
+  }
+
+  try {
+    // Verify OTP
+    const otpRes = await db.query(
+      `
+      SELECT id, code, failed_attempts, expires_at, is_used
+      FROM otp_codes
+      WHERE user_id = $1 AND purpose = 'PASSWORD_RESET'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `,
+      [userId],
+    );
+
+    if (otpRes.rows.length === 0) {
+      return res.status(400).json({ error: "No verification code found. Request a new one." });
+    }
+
+    const otp = otpRes.rows[0];
+    
+    if (otp.is_used) {
+      return res.status(400).json({ error: "This verification code has already been used." });
+    }
+
+    if (otp.failed_attempts >= 3) {
+      return res.status(400).json({ error: "Too many failed attempts. Request a new verification code." });
+    }
+
+    if (new Date(otp.expires_at) < new Date()) {
+      return res.status(400).json({ error: "Verification code expired. Request a new one." });
+    }
+
+    if (otp.code !== otpCode) {
+      await db.query(
+        "UPDATE otp_codes SET failed_attempts = failed_attempts + 1 WHERE id = $1",
+        [otp.id],
+      );
+      return res.status(400).json({ error: "Invalid verification code." });
+    }
+
+    // Mark OTP as used
+    await db.query("UPDATE otp_codes SET is_used = TRUE WHERE id = $1", [otp.id]);
+
+    // Update password
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const result = await db.query(
+      `
+      UPDATE users
+      SET password_hash = $1, password_updated_at = NOW()
+      WHERE id = $2
+      RETURNING id, email, first_name, last_name, phone, role_id
+    `,
+      [passwordHash, userId],
+    );
+
+    const user = result.rows[0];
+
+    res.json({
+      success: true,
+      message: "Password changed successfully.",
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        phone: user.phone,
+        roleId: user.role_id,
+      },
+    });
+  } catch (err) {
+    console.error("Error completing password change:", err);
+    res.status(500).json({ error: "Failed to change password." });
+  }
+});
+
 module.exports = router;
