@@ -334,11 +334,68 @@ router.post('/test-receipt', async (req, res) => {
 });
 
 // Test endpoint for consultation scheduling email
-router.post('/test-consultation', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Test consultation endpoint works'
-  });
+router.post('/test-consultation', async (req, res) => {
+  try {
+    console.log('✓ test-consultation endpoint called');
+    console.log('Request body:', req.body);
+
+    const { 
+      email, 
+      clientName, 
+      trainerName, 
+      consultationDate, 
+      consultationTime, 
+      duration, 
+      location, 
+      contactEmail,
+      instructions 
+    } = req.body;
+
+    if (!email || !clientName || !trainerName || !consultationDate || !consultationTime) {
+      console.warn('✗ Missing required fields');
+      return res.status(400).json({ 
+        error: 'Missing required fields: email, clientName, trainerName, consultationDate, consultationTime' 
+      });
+    }
+
+    console.log(`✓ Sending test consultation email to ${email}`);
+
+    // Simple approach - just use provided email for superuser if not in config
+    const superuserEmail = contactEmail || email;
+
+    console.log('Calling sendConsultationSchedulingEmail with:', {
+      email,
+      clientName,
+      trainerName,
+      consultationDate,
+      consultationTime,
+      superuserEmail
+    });
+
+    await sendConsultationSchedulingEmail(
+      email,
+      clientName,
+      trainerName,
+      consultationDate,
+      consultationTime,
+      duration || '60 minutes',
+      location || 'CAS Fitness Studio',
+      contactEmail || superuserEmail,
+      instructions || 'Please arrive 10 minutes early. Bring your ID and wear comfortable workout attire.',
+      superuserEmail
+    );
+
+    console.log('✓ Email sent successfully');
+
+    res.json({
+      success: true,
+      message: `Test consultation scheduling email sent to ${email}`
+    });
+  } catch (err) {
+    console.error('✗ Error in test-consultation endpoint:', err.message);
+    console.error('Stack:', err.stack);
+    res.status(500).json({ error: 'Failed to send test consultation email', details: err.message });
+  }
 });
 
 module.exports = router;

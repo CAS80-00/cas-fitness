@@ -332,14 +332,16 @@ CAS Fitness Team
                       }),
                     });
                     
-                    if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
                       setSuccess('Test receipt email sent! Check your email.');
                       setTimeout(() => setSuccess(''), 3000);
                     } else {
-                      setError('Failed to send test receipt email');
+                      setError(data.error || 'Failed to send test receipt email');
                     }
                   } catch (err) {
-                    setError(err.message);
+                    setError('Error sending test email: ' + err.message);
                   }
                 }}
                 className={styles.testButton}
@@ -380,14 +382,16 @@ CAS Fitness Team
                         }),
                       });
                       
-                      if (response.ok) {
+                      const data = await response.json();
+                      
+                      if (response.ok && data.success) {
                         setSuccess('Test consultation email sent! Check your email.');
                         setTimeout(() => setSuccess(''), 3000);
                       } else {
-                        setError('Failed to send test consultation email');
+                        setError(data.error || 'Failed to send test consultation email');
                       }
                     } catch (err) {
-                      setError(err.message);
+                      setError('Error sending test email: ' + err.message);
                     }
                   }}
                   className={styles.testButton}
