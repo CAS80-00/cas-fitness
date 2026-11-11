@@ -20,6 +20,7 @@ CAS Fitness is a multi-user fitness management platform designed for gyms and pe
 ### Core Features
 
 **User Management & Authentication:**
+
 - Role-based access control (Superuser, Employee, Student)
 - JWT token-based authentication with refresh mechanism
 - Secure password change with OTP verification
@@ -27,6 +28,7 @@ CAS Fitness is a multi-user fitness management platform designed for gyms and pe
 - Account status management (ACTIVE, INACTIVE, SUSPENDED, CANCELLED)
 
 **Membership & Subscriptions:**
+
 - Tiered subscription plans with auto-renewal
 - Subscription management dashboard
 - Payment history and receipts
@@ -34,6 +36,7 @@ CAS Fitness is a multi-user fitness management platform designed for gyms and pe
 - Test/development card support
 
 **Calendar & Session Management:**
+
 - Consultation scheduling system
 - Trainer session booking and tracking
 - Calendar slot creation and management
@@ -41,11 +44,13 @@ CAS Fitness is a multi-user fitness management platform designed for gyms and pe
 - Personal and consolidated calendar views
 
 **Access Control:**
+
 - QR code generation and scanning for member door access
 - 30-day scan history tracking
 - Access verification dashboard
 
 **Email & Notifications:**
+
 - Template-based email system
 - Consultation scheduling confirmations
 - Plan purchase receipts
@@ -53,12 +58,14 @@ CAS Fitness is a multi-user fitness management platform designed for gyms and pe
 - Configurable email templates with test functionality
 
 **Payment Processing:**
+
 - Stripe integration for secure payments
 - Credit card management
 - Payment history tracking
 - Invoice generation
 
 **Admin Dashboard:**
+
 - User management (create, edit, delete)
 - Plan management
 - Email template configuration
@@ -70,17 +77,20 @@ CAS Fitness is a multi-user fitness management platform designed for gyms and pe
 ### Core Tables
 
 **Authentication & Users**
+
 - `users` — User accounts with roles, status, password hashes, phone, and authentication fields
 - `sessions` — Active session tracking with JWT tokens and expiration
 - `otp_codes` — One-time passwords for 2FA and password reset with expiration and attempt tracking
 
 **Subscriptions & Payments**
+
 - `plans` — Fitness subscription plans (tier, price, session count, duration)
 - `subscriptions` — User subscription instances with renewal dates and auto-renewal status
 - `payments` — Payment transactions with Stripe integration and receipt links
 - `promo_codes` — Discount codes with usage tracking and expiration
 
 **Calendar & Sessions**
+
 - `calendars` — Calendar instances per trainer/gym
 - `calendar_slots` — Time slots available for booking
 - `trainer_sessions` — Booked sessions between trainer and member
@@ -89,17 +99,20 @@ CAS Fitness is a multi-user fitness management platform designed for gyms and pe
 - `consultation_availability` — Trainer availability windows
 
 **Access Control**
+
 - `access_passes` — Member QR pass/credential generation
 - `access_scans` — Historical scan records for access verification
 - `user_roles` — Role definitions and capabilities
 
 **CMS & Configuration**
+
 - `plans_content` — SEO-optimized plan descriptions
 - `email_templates` — Customizable email templates with variables
 - `legal_content` — Terms, privacy policy, and legal docs with version tracking
 - `seo_content` — Auto-complete content for search optimization
 
 ### Key Database Features
+
 - JWT token revocation tracking
 - Failed login attempt tracking with automatic account locking (24-hour lockout after 3 failures)
 - Automatic timestamp tracking (created_at, updated_at)
@@ -210,4 +223,3 @@ All visual styling lives in [frontend/src/styles/](/C:/Users/dilan/OneDrive/Docu
 - Components import their module and reference classes via `styles.xxx` — no inline Tailwind utility strings remain in JSX.
 - [frontend/src/layout/AppLayout.jsx](/C:/Users/dilan/OneDrive/Documents/Fullstack/CARLOS/cas-fitness/frontend/src/layout/AppLayout.jsx) is the single app-wide wrapper (dark canvas, cookie banner, inactivity modal) shared by every route.
 - Responsive rules (desktop / mobile landscape / mobile portrait) are expressed as `@media` blocks inside each module, keeping breakpoint logic co-located with the component it affects.
-
