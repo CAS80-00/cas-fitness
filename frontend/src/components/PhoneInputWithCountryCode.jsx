@@ -25,14 +25,16 @@ export default function PhoneInputWithCountryCode({
       for (const country of COUNTRY_CODES) {
         if (cleanValue.startsWith(country.code)) {
           setSelectedCountry(country);
-          const extractedPhone = cleanValue.substring(country.code.length).trim();
-          setPhoneNumber(extractedPhone);
-          onChange?.(country.code, extractedPhone);
+          setPhoneNumber(cleanValue.substring(country.code.length).trim());
           return;
         }
       }
+      // If no country code matched, just set the value as is
+      setPhoneNumber(cleanValue);
+    } else {
+      setPhoneNumber("");
     }
-  }, [value, onChange]);
+  }, [value]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
