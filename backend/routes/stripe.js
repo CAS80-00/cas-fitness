@@ -3,7 +3,7 @@ const router = express.Router();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const db = require('../db/client');
 const { authenticateToken } = require('../middleware/authMiddleware');
-const { sendUserConfirmationEmail, sendSuperuserNotificationEmail, sendPaymentReceipt, sendLoginInstructionsEmail, sendConsultationSchedulingEmail } = require('../services/emailService');
+const { sendUserConfirmationEmail, sendSuperuserNotificationEmail, sendPaymentReceipt, sendLoginInstructionsEmail, sendConsultationSchedulingEmail, sendPlanPurchaseEmail } = require('../services/emailService');
 
 // Test endpoint
 router.get('/health', (req, res) => {
@@ -395,6 +395,71 @@ router.post('/test-consultation', async (req, res) => {
     console.error('✗ Error in test-consultation endpoint:', err.message);
     console.error('Stack:', err.stack);
     res.status(500).json({ error: 'Failed to send test consultation email', details: err.message });
+  }
+});
+
+// Test endpoint for plan purchase email
+router.post('/test-plan-purchase', async (req, res) => {
+  try {
+    const { 
+      email, 
+      customerName, 
+      planName, 
+      planDuration, 
+      planPrice, 
+      purchaseDate, 
+      planId, 
+      transactionId, 
+      planDescription, 
+      nextSteps,
+      contactEmail,
+      contactPhone
+    } = req.body;
+
+    if (!email || !customerName || !planName || !planPrice) {
+      console.warn('✗ Missing required fields for plan purchase email');
+      return res.status(400).json({ 
+        error: 'Missing required fields: email, customerName, planName, planPrice' 
+      });
+    }
+
+    console.log(`✓ Sending test plan purchase email to ${email}`);
+
+    const superuserEmail = contactEmail || email;
+
+    console.log('Calling sendPlanPurchaseEmail with:', {
+      email,
+      customerName,
+      planName,
+      planPrice,
+      superuserEmail
+    });
+
+    await sendPlanPurchaseEmail(
+      email,
+      customerName,
+      planName,
+      planDuration || '1 Month',
+      planPrice,
+      purchaseDate || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      planId || 'PLAN_001',
+      transactionId || `TEST_${Date.now()}`,
+      planDescription || 'Your CAS Fitness plan includes gym access and training services.',
+      nextSteps || 'Your account is active immediately. Log in to get started.',
+      superuserEmail,
+      contactPhone || ''
+    );
+
+    console.log('✓ Email sent successfully');
+
+    res.json({
+      success: true,
+      message: `Test plan purchase email sent to ${email}`
+    });
+  } catch (err) {
+    console.error('✗ Error in test-plan-purchase endpoint:', err.message);
+    console.error('Stack:', err.stack);
+    res.status(500).json({ error: 'Failed to send test plan purchase email', details: err.message });
   }
 });
 

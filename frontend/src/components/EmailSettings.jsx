@@ -26,6 +26,11 @@ export default function EmailSettings({ currentUser }) {
   const [consultationTemplateContent, setConsultationTemplateContent] = useState('');
   const [consultationSaveMessage, setConsultationSaveMessage] = useState('');
 
+  // Plan purchase template management
+  const [showPlanPurchaseTemplateModal, setShowPlanPurchaseTemplateModal] = useState(false);
+  const [planPurchaseTemplateContent, setPlanPurchaseTemplateContent] = useState('');
+  const [planPurchaseSaveMessage, setPlanPurchaseSaveMessage] = useState('');
+
   useEffect(() => {
     if (isExpanded) {
       fetchEmailConfig();
@@ -196,6 +201,74 @@ CAS Fitness Team
     localStorage.setItem('cas_consultationSchedulingTemplate', consultationTemplateContent);
     setConsultationSaveMessage('Consultation template saved successfully!');
     setTimeout(() => setConsultationSaveMessage(''), 2000);
+  };
+
+  const openPlanPurchaseTemplateModal = () => {
+    const savedTemplate = localStorage.getItem('cas_planPurchaseTemplate');
+    const defaultTemplate = `Subject: CAS Fitness - Plan Purchase Confirmation #[PLAN_ID]
+
+Dear [CUSTOMER_NAME],
+
+Thank you for purchasing a plan with CAS Fitness! We're excited to have you join our community.
+
+────────────────────────────────────────
+PLAN DETAILS
+────────────────────────────────────────
+Plan Name: [PLAN_NAME]
+Plan Duration: [PLAN_DURATION]
+Price: $[PLAN_PRICE]
+Purchase Date: [PURCHASE_DATE]
+Transaction ID: [TRANSACTION_ID]
+
+────────────────────────────────────────
+WHAT'S INCLUDED
+────────────────────────────────────────
+[PLAN_DESCRIPTION]
+
+────────────────────────────────────────
+GETTING STARTED
+────────────────────────────────────────
+Your plan is now active! Here's what you need to do:
+
+1. Log in to your CAS Fitness account with your credentials
+2. Visit your profile to manage your subscription
+3. Schedule your first consultation with one of our trainers
+4. Explore our training programs and facilities
+
+────────────────────────────────────────
+NEXT STEPS
+────────────────────────────────────────
+[NEXT_STEPS]
+
+────────────────────────────────────────
+SUPPORT & QUESTIONS
+────────────────────────────────────────
+If you have any questions about your plan or need assistance, please don't hesitate to reach out:
+
+Email: [SUPERUSER_EMAIL]
+Phone: [CONTACT_PHONE]
+
+We're here to help you achieve your fitness goals!
+
+────────────────────────────────────────
+
+Thank you for choosing CAS Fitness!
+
+Best regards,
+CAS Fitness Team
+[SUPERUSER_EMAIL]
+
+© 2026 CAS Fitness. All rights reserved.`;
+
+    setPlanPurchaseTemplateContent(savedTemplate || defaultTemplate);
+    setPlanPurchaseSaveMessage('');
+    setShowPlanPurchaseTemplateModal(true);
+  };
+
+  const savePlanPurchaseTemplate = () => {
+    localStorage.setItem('cas_planPurchaseTemplate', planPurchaseTemplateContent);
+    setPlanPurchaseSaveMessage('Plan purchase template saved successfully!');
+    setTimeout(() => setPlanPurchaseSaveMessage(''), 2000);
   };
 
   return (
@@ -400,6 +473,58 @@ CAS Fitness Team
                 </button>
               </div>
             </div>
+
+            <div className={styles.templateDivider}></div>
+
+            <div className={styles.templateSubsection}>
+              <h4>Plan Purchase Template</h4>
+              <div className={styles.templateButtonGroup}>
+                <button
+                  type="button"
+                  onClick={openPlanPurchaseTemplateModal}
+                  className={styles.manageTemplateButton}
+                >
+                  Manage Plan Purchase Template
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`${apiBaseUrl}/stripe/test-plan-purchase`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          email: formData.superuserEmail || 'test@example.com',
+                          customerName: 'Test Customer',
+                          planName: 'Premium Membership',
+                          planDuration: '12 Months',
+                          planPrice: '199.99',
+                          purchaseDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+                          planId: 'TEST_PLAN_001',
+                          transactionId: `TEST_${Date.now()}`,
+                          planDescription: 'Unlimited gym access, group fitness classes, and personal training sessions.',
+                          nextSteps: 'Your account is active immediately. Visit your profile to schedule your first consultation.'
+                        }),
+                      });
+                      
+                      const data = await response.json();
+                      
+                      if (response.ok && data.success) {
+                        setSuccess('Test plan purchase email sent! Check your email.');
+                        setTimeout(() => setSuccess(''), 3000);
+                      } else {
+                        setError(data.error || 'Failed to send test plan purchase email');
+                      }
+                    } catch (err) {
+                      setError('Error sending test email: ' + err.message);
+                    }
+                  }}
+                  className={styles.testButton}
+                >
+                  Send Test Plan Purchase Email
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -500,6 +625,59 @@ CAS Fitness Team
               <button
                 type="button"
                 onClick={saveConsultationTemplate}
+                className={styles.saveButton}
+              >
+                <Save size={16} />
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPlanPurchaseTemplateModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <h2>Edit Plan Purchase Template</h2>
+              <button
+                type="button"
+                onClick={() => setShowPlanPurchaseTemplateModal(false)}
+                className={styles.closeButton}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={styles.modalContent}>
+              <p className={styles.templateHint}>
+                Available placeholders: [CUSTOMER_NAME], [PLAN_NAME], [PLAN_DURATION], [PLAN_PRICE], [PURCHASE_DATE], [PLAN_ID], [TRANSACTION_ID], [PLAN_DESCRIPTION], [NEXT_STEPS], [SUPERUSER_EMAIL], [CONTACT_PHONE]
+              </p>
+              <textarea
+                value={planPurchaseTemplateContent}
+                onChange={(e) => setPlanPurchaseTemplateContent(e.target.value)}
+                className={styles.templateTextarea}
+                rows={15}
+              />
+
+              {planPurchaseSaveMessage && (
+                <div className={styles.successMessage}>
+                  ✓ {planPurchaseSaveMessage}
+                </div>
+              )}
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button
+                type="button"
+                onClick={() => setShowPlanPurchaseTemplateModal(false)}
+                className={styles.cancelButton}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={savePlanPurchaseTemplate}
                 className={styles.saveButton}
               >
                 <Save size={16} />

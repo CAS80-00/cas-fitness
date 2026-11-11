@@ -567,10 +567,122 @@ const sendConsultationSchedulingEmail = async (userEmail, clientName, trainerNam
   }
 };
 
+// Send plan purchase confirmation email
+const sendPlanPurchaseEmail = async (userEmail, customerName, planName, planDuration, planPrice, purchaseDate, planId, transactionId, planDescription, nextSteps, superuserEmail, contactPhone = '') => {
+  const config = await getEmailConfig();
+  if (!config) {
+    console.warn('Email configuration not available, skipping plan purchase email');
+    return;
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: config.user,
+      pass: config.pass,
+    },
+  });
+
+  const mailOptions = {
+    from: config.user,
+    to: userEmail,
+    subject: `CAS Fitness - Plan Purchase Confirmation #${planId}`,
+    html: `
+      <html>
+        <body style="font-family: Arial, sans-serif; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto;">
+            <div style="text-align: center; padding: 30px; background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white; border-radius: 4px 4px 0 0;">
+              <h1 style="margin: 0; font-size: 24px;">Purchase Confirmed ✓</h1>
+              <p style="margin: 10px 0 0 0; font-size: 14px;">Welcome to CAS Fitness!</p>
+            </div>
+            
+            <div style="padding: 40px 30px; background-color: #f8f9fa;">
+              <p>Dear <strong>${customerName}</strong>,</p>
+              
+              <p>Thank you for purchasing a plan with CAS Fitness! We're excited to have you join our community. Your plan is now active and ready to use.</p>
+              
+              <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Plan Details</h3>
+              
+              <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <tr>
+                  <td style="padding: 12px; background-color: #ecf0f1; font-weight: bold; width: 40%;">Plan Name:</td>
+                  <td style="padding: 12px;">${planName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; background-color: white; font-weight: bold;">Duration:</td>
+                  <td style="padding: 12px;">${planDuration}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; background-color: #ecf0f1; font-weight: bold;">Price:</td>
+                  <td style="padding: 12px;"><strong>$${planPrice}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; background-color: white; font-weight: bold;">Purchase Date:</td>
+                  <td style="padding: 12px;">${purchaseDate}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; background-color: #ecf0f1; font-weight: bold;">Transaction ID:</td>
+                  <td style="padding: 12px; font-family: monospace; color: #7f8c8d;">${transactionId}</td>
+                </tr>
+              </table>
+              
+              <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">What's Included</h3>
+              
+              <div style="background-color: white; padding: 20px; border-radius: 4px; border-left: 4px solid #3498db; margin-bottom: 20px;">
+                <p style="margin: 0; line-height: 1.6; color: #555;">${planDescription}</p>
+              </div>
+              
+              <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Getting Started</h3>
+              
+              <ol style="line-height: 1.8; margin: 15px 0; padding-left: 20px;">
+                <li>Log in to your CAS Fitness account with your credentials</li>
+                <li>Visit your profile to manage your subscription</li>
+                <li>Schedule your first consultation with one of our trainers</li>
+                <li>Explore our training programs and facilities</li>
+              </ol>
+              
+              <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Next Steps</h3>
+              
+              <div style="background-color: white; padding: 20px; border-radius: 4px; border-left: 4px solid #27ae60; margin-bottom: 20px;">
+                <p style="margin: 0; line-height: 1.6; color: #555;">${nextSteps}</p>
+              </div>
+              
+              <div style="margin-top: 30px; padding: 20px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
+                <p style="margin: 0; color: #2c3e50;"><strong>❓ Need Help?</strong></p>
+                <p style="margin: 10px 0 0 0; color: #555; font-size: 14px;">
+                  If you have any questions about your plan or need assistance, please don't hesitate to contact us:<br>
+                  <strong>Email:</strong> ${superuserEmail}${contactPhone ? `<br><strong>Phone:</strong> ${contactPhone}` : ''}
+                </p>
+              </div>
+              
+              <p style="margin-top: 30px; color: #7f8c8d; font-size: 12px;">
+                This email was sent to ${userEmail}. Please keep this email for your records.
+              </p>
+            </div>
+            
+            <div style="padding: 20px; background-color: #2c3e50; color: white; text-align: center; border-radius: 0 0 4px 4px; font-size: 12px;">
+              <p style="margin: 0;">© 2026 CAS Fitness. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Plan purchase email sent to ${userEmail} for plan ${planName}`);
+  } catch (error) {
+    console.error(`Error sending plan purchase email to ${userEmail}:`, error.message);
+    // Don't throw - let this fail gracefully so it doesn't break the purchase process
+  }
+};
+
 module.exports = {
   sendUserConfirmationEmail,
   sendSuperuserNotificationEmail,
   sendPaymentReceipt,
   sendLoginInstructionsEmail,
   sendConsultationSchedulingEmail,
+  sendPlanPurchaseEmail,
 };
