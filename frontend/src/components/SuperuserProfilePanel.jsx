@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import styles from "../styles/SuperuserProfilePanel.module.css";
 import PhoneInputWithCountryCode from "./PhoneInputWithCountryCode";
 import { COUNTRY_CODES } from "../utils/countryCodes";
@@ -13,38 +13,19 @@ import { COUNTRY_CODES } from "../utils/countryCodes";
  */
 export default function SuperuserProfilePanel({ currentUser, onProfileUpdated }) {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
-  const initializedPhoneRef = useRef(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [firstName, setFirstName] = useState(currentUser?.firstName || "");
-  const [lastName, setLastName] = useState(currentUser?.lastName || "");
-  const [email, setEmail] = useState(currentUser?.email || "");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+1");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
 
-  // Sync internal state when currentUser prop changes (e.g., after profile update)
-  useEffect(() => {
-    if (!isEditing) {
-      setFirstName(currentUser?.firstName || "");
-      setLastName(currentUser?.lastName || "");
-      setEmail(currentUser?.email || "");
-      setPhone("");
-      setCountryCode("+1");
-      initializedPhoneRef.current = false;
-    }
-  }, [currentUser, isEditing]);
-
   const authHeaders = () => {
     const token = localStorage.getItem("cas_jwt");
     return { Authorization: "Bearer " + token };
-  };
-
-  // When PhoneInputWithCountryCode parses the phone, sync the parent state
-  const handlePhoneChange = (code, phoneNum) => {
-    setCountryCode(code);
-    setPhone(phoneNum);
   };
 
   const parsePhoneNumber = (fullPhone) => {
@@ -61,12 +42,22 @@ export default function SuperuserProfilePanel({ currentUser, onProfileUpdated })
   };
 
   const handleEditMode = () => {
-    // Initialize phone state with parsed values when entering edit mode
+    // Parse phone when entering edit mode
     const { code, number } = parsePhoneNumber(currentUser?.phone);
+    setFirstName(currentUser?.firstName || "");
+    setLastName(currentUser?.lastName || "");
+    setEmail(currentUser?.email || "");
     setCountryCode(code);
     setPhone(number);
-    initializedPhoneRef.current = false;  // Reset so PhoneInputWithCountryCode can initialize properly
+    setError("");
+    setStatusMessage("");
     setIsEditing(true);
+  };
+
+  // When PhoneInputWithCountryCode parses the phone, sync the parent state
+  const handlePhoneChange = (code, phoneNum) => {
+    setCountryCode(code);
+    setPhone(phoneNum);
   };
 
   const saveProfile = async () => {
@@ -74,16 +65,26 @@ export default function SuperuserProfilePanel({ currentUser, onProfileUpdated })
     setError("");
     try {
       const fullPhone = `${countryCode}${phone}`;
+      console.log("📤 Sending profile update with:", { firstName, lastName, email, phone: fullPhone });
+      
       const res = await fetch(`${apiBaseUrl}/auth/profile`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ firstName, lastName, email, phone: fullPhone }),
       });
       const data = await res.json();
+      console.log("📥 Received response:", data);
+      
       if (!res.ok) throw new Error(data.error || "Failed to update profile.");
+      
+      console.log("✅ Profile updated successfully, calling onProfileUpdated with:", data.user);
       onProfileUpdated?.(data.user);
+      
+      setStatusMessage("Profile updated successfully!");
+      setTimeout(() => setStatusMessage(""), 3000);
       setIsEditing(false);
     } catch (err) {
+      console.error("❌ Error saving profile:", err);
       setError(err.message);
     } finally {
       setIsSaving(false);
@@ -91,12 +92,8 @@ export default function SuperuserProfilePanel({ currentUser, onProfileUpdated })
   };
 
   const cancelEdit = () => {
-    setFirstName(currentUser?.firstName || "");
-    setLastName(currentUser?.lastName || "");
-    setEmail(currentUser?.email || "");
-    setPhone(currentUser?.phone || "");
-    setCountryCode("+1");
     setError("");
+    setStatusMessage("");
     setIsEditing(false);
   };
 
