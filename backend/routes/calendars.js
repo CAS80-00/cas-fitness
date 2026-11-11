@@ -1090,6 +1090,24 @@ router.post("/slots/create", authenticateToken, async (req, res) => {
   }
 
   try {
+    // Verify user is active before allowing slot creation
+    const userRes = await db.query(
+      'SELECT status FROM users WHERE id = $1',
+      [userId]
+    );
+    
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const user = userRes.rows[0];
+    if (user.status !== 'ACTIVE') {
+      return res.status(403).json({ 
+        error: "Only employees with ACTIVE status can create calendar slots.",
+        currentStatus: user.status
+      });
+    }
+
     // Format start time as HH:MM
     const startTime = `${String(startHour).padStart(2, "0")}:${String(startMinute).padStart(2, "0")}`;
     
