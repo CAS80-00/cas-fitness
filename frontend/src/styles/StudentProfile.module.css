@@ -161,10 +161,12 @@
 
 .historyButton {
   @apply mt-3 w-full rounded py-2 text-sm transition;
-  background-color: var(--color-dark-slate);
+  background-color: #dc2626;
+  border: 1px solid #b91c1c;
 }
+
 .historyButton:hover {
-  background-color: #404040;
+  background-color: #b91c1c;
 }
 
 .calendarColumn {

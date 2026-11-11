@@ -104,8 +104,10 @@
 
 .changePasswordButton {
   @apply rounded px-4 py-2 text-sm font-semibold transition;
-  background-color: #262626;
+  background-color: #dc2626;
+  border: 1px solid #b91c1c;
 }
+
 .changePasswordButton:hover {
-  background-color: #404040;
+  background-color: #b91c1c;
 }
