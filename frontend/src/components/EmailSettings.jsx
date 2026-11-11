@@ -205,58 +205,29 @@ CAS Fitness Team
 
   const openPlanPurchaseTemplateModal = () => {
     const savedTemplate = localStorage.getItem('cas_planPurchaseTemplate');
-    const defaultTemplate = `Subject: CAS Fitness - Plan Purchase Confirmation #[PLAN_ID]
+    const defaultTemplate = `Subject: CAS Fitness - Purchase Confirmation
 
-Dear [CUSTOMER_NAME],
+Purchase Confirmation
 
-Thank you for purchasing a plan with CAS Fitness! We're excited to have you join our community.
+Dear Guest,
 
-────────────────────────────────────────
-PLAN DETAILS
-────────────────────────────────────────
-Plan Name: [PLAN_NAME]
-Plan Duration: [PLAN_DURATION]
-Price: $[PLAN_PRICE]
-Purchase Date: [PURCHASE_DATE]
-Transaction ID: [TRANSACTION_ID]
+Thank you for your purchase! Your order has been received and is being processed.
 
-────────────────────────────────────────
-WHAT'S INCLUDED
-────────────────────────────────────────
-[PLAN_DESCRIPTION]
+Order Details:
 
-────────────────────────────────────────
-GETTING STARTED
-────────────────────────────────────────
-Your plan is now active! Here's what you need to do:
+Plan | Amount
+[ORDER_ITEMS]
+TOTAL | $[TOTAL_AMOUNT]
 
-1. Log in to your CAS Fitness account with your credentials
-2. Visit your profile to manage your subscription
-3. Schedule your first consultation with one of our trainers
-4. Explore our training programs and facilities
+***
 
-────────────────────────────────────────
-NEXT STEPS
-────────────────────────────────────────
-[NEXT_STEPS]
+🚀 Next Steps:
+A member of our team will contact you within 24 hours with instructions to activate your account. Please keep an eye on your email and phone for our contact.
 
-────────────────────────────────────────
-SUPPORT & QUESTIONS
-────────────────────────────────────────
-If you have any questions about your plan or need assistance, please don't hesitate to reach out:
-
-Email: [SUPERUSER_EMAIL]
-Phone: [CONTACT_PHONE]
-
-We're here to help you achieve your fitness goals!
-
-────────────────────────────────────────
-
-Thank you for choosing CAS Fitness!
+If you have any questions, please don't hesitate to reach out.
 
 Best regards,
 CAS Fitness Team
-[SUPERUSER_EMAIL]
 
 © 2026 CAS Fitness. All rights reserved.`;
 
@@ -651,7 +622,7 @@ CAS Fitness Team
 
             <div className={styles.modalContent}>
               <p className={styles.templateHint}>
-                Available placeholders: [CUSTOMER_NAME], [PLAN_NAME], [PLAN_DURATION], [PLAN_PRICE], [PURCHASE_DATE], [PLAN_ID], [TRANSACTION_ID], [PLAN_DESCRIPTION], [NEXT_STEPS], [SUPERUSER_EMAIL], [CONTACT_PHONE]
+                Available placeholders: [ORDER_ITEMS], [TOTAL_AMOUNT]
               </p>
               <textarea
                 value={planPurchaseTemplateContent}

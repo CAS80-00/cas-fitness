@@ -568,7 +568,7 @@ const sendConsultationSchedulingEmail = async (userEmail, clientName, trainerNam
 };
 
 // Send plan purchase confirmation email
-const sendPlanPurchaseEmail = async (userEmail, customerName, planName, planDuration, planPrice, purchaseDate, planId, transactionId, planDescription, nextSteps, superuserEmail, contactPhone = '') => {
+const sendPlanPurchaseEmail = async (userEmail, customerName, planName, planDuration, planPrice, purchaseDate, planId, transactionId, planDescription, nextSteps, superuserEmail, contactPhone = '', orderItems = null, orderTotal = null) => {
   const config = await getEmailConfig();
   if (!config) {
     console.warn('Email configuration not available, skipping plan purchase email');
@@ -583,84 +583,86 @@ const sendPlanPurchaseEmail = async (userEmail, customerName, planName, planDura
     },
   });
 
+  // Build order details table if orderItems provided, otherwise use single plan
+  let orderDetailsHTML = '';
+  if (orderItems && orderItems.length > 0) {
+    orderDetailsHTML = `
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <thead>
+          <tr style="background-color: #3d4e5f; color: white;">
+            <th style="padding: 12px; text-align: left; font-weight: bold;">Plan</th>
+            <th style="padding: 12px; text-align: right; font-weight: bold;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${orderItems.map((item, index) => `
+            <tr style="background-color: ${index % 2 === 0 ? '#f5f5f5' : 'white'}; border-bottom: 1px solid #ddd;">
+              <td style="padding: 12px; text-align: left;">${item.name || item}</td>
+              <td style="padding: 12px; text-align: right;">$${typeof item === 'object' && item.price ? item.price.toFixed(2) : item.toFixed(2)}</td>
+            </tr>
+          `).join('')}
+          <tr style="background-color: #3d4e5f; color: white;">
+            <td style="padding: 12px; font-weight: bold; text-align: left;">TOTAL</td>
+            <td style="padding: 12px; font-weight: bold; text-align: right;">$${(orderTotal || planPrice).toFixed(2)}</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+  } else {
+    orderDetailsHTML = `
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <thead>
+          <tr style="background-color: #3d4e5f; color: white;">
+            <th style="padding: 12px; text-align: left; font-weight: bold;">Plan</th>
+            <th style="padding: 12px; text-align: right; font-weight: bold;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background-color: #f5f5f5; border-bottom: 1px solid #ddd;">
+            <td style="padding: 12px; text-align: left;">${planName}</td>
+            <td style="padding: 12px; text-align: right;">$${parseFloat(planPrice).toFixed(2)}</td>
+          </tr>
+          <tr style="background-color: #3d4e5f; color: white;">
+            <td style="padding: 12px; font-weight: bold; text-align: left;">TOTAL</td>
+            <td style="padding: 12px; font-weight: bold; text-align: right;">$${parseFloat(planPrice).toFixed(2)}</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+  }
+
   const mailOptions = {
     from: config.user,
     to: userEmail,
-    subject: `CAS Fitness - Plan Purchase Confirmation #${planId}`,
+    subject: `CAS Fitness - Purchase Confirmation`,
     html: `
       <html>
-        <body style="font-family: Arial, sans-serif; color: #333;">
-          <div style="max-width: 600px; margin: 0 auto;">
-            <div style="text-align: center; padding: 30px; background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white; border-radius: 4px 4px 0 0;">
-              <h1 style="margin: 0; font-size: 24px;">Purchase Confirmed ✓</h1>
-              <p style="margin: 10px 0 0 0; font-size: 14px;">Welcome to CAS Fitness!</p>
+        <body style="font-family: Arial, sans-serif; color: #333; margin: 0; padding: 0;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #fff;">
+            <div style="padding: 30px 30px 20px 30px;">
+              <h1 style="margin: 0 0 20px 0; font-size: 24px; color: #333; font-weight: 600;">Purchase Confirmation</h1>
+              
+              <p style="margin: 0 0 20px 0; line-height: 1.6; color: #555;">Dear Guest,</p>
+              
+              <p style="margin: 0 0 25px 0; line-height: 1.6; color: #555;">Thank you for your purchase! Your order has been received and is being processed.</p>
+              
+              <h3 style="margin: 25px 0 15px 0; font-size: 16px; color: #333; font-weight: 600;">Order Details:</h3>
+              
+              ${orderDetailsHTML}
+              
+              <p style="margin: 25px 0; text-align: center; font-size: 20px; color: #999;">***</p>
+              
+              <div style="margin: 20px 0; padding: 20px; background-color: #e3f2fd; border-left: 4px solid #1976d2; border-radius: 4px;">
+                <p style="margin: 0 0 10px 0; font-size: 15px; color: #1976d2; font-weight: 600;">🚀 Next Steps:</p>
+                <p style="margin: 0; line-height: 1.6; color: #555; font-size: 14px;">A member of our team will contact you within 24 hours with instructions to activate your account. Please keep an eye on your email and phone for our contact.</p>
+              </div>
+              
+              <p style="margin: 25px 0; line-height: 1.6; color: #555; font-size: 14px;">If you have any questions, please don't hesitate to reach out.</p>
+              
+              <p style="margin: 20px 0 5px 0; color: #555;">Best regards,<br><strong>CAS Fitness Team</strong></p>
             </div>
             
-            <div style="padding: 40px 30px; background-color: #f8f9fa;">
-              <p>Dear <strong>${customerName}</strong>,</p>
-              
-              <p>Thank you for purchasing a plan with CAS Fitness! We're excited to have you join our community. Your plan is now active and ready to use.</p>
-              
-              <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Plan Details</h3>
-              
-              <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-                <tr>
-                  <td style="padding: 12px; background-color: #ecf0f1; font-weight: bold; width: 40%;">Plan Name:</td>
-                  <td style="padding: 12px;">${planName}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px; background-color: white; font-weight: bold;">Duration:</td>
-                  <td style="padding: 12px;">${planDuration}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px; background-color: #ecf0f1; font-weight: bold;">Price:</td>
-                  <td style="padding: 12px;"><strong>$${planPrice}</strong></td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px; background-color: white; font-weight: bold;">Purchase Date:</td>
-                  <td style="padding: 12px;">${purchaseDate}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px; background-color: #ecf0f1; font-weight: bold;">Transaction ID:</td>
-                  <td style="padding: 12px; font-family: monospace; color: #7f8c8d;">${transactionId}</td>
-                </tr>
-              </table>
-              
-              <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">What's Included</h3>
-              
-              <div style="background-color: white; padding: 20px; border-radius: 4px; border-left: 4px solid #3498db; margin-bottom: 20px;">
-                <p style="margin: 0; line-height: 1.6; color: #555;">${planDescription}</p>
-              </div>
-              
-              <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Getting Started</h3>
-              
-              <ol style="line-height: 1.8; margin: 15px 0; padding-left: 20px;">
-                <li>Log in to your CAS Fitness account with your credentials</li>
-                <li>Visit your profile to manage your subscription</li>
-                <li>Schedule your first consultation with one of our trainers</li>
-                <li>Explore our training programs and facilities</li>
-              </ol>
-              
-              <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Next Steps</h3>
-              
-              <div style="background-color: white; padding: 20px; border-radius: 4px; border-left: 4px solid #27ae60; margin-bottom: 20px;">
-                <p style="margin: 0; line-height: 1.6; color: #555;">${nextSteps}</p>
-              </div>
-              
-              <div style="margin-top: 30px; padding: 20px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
-                <p style="margin: 0; color: #2c3e50;"><strong>❓ Need Help?</strong></p>
-                <p style="margin: 10px 0 0 0; color: #555; font-size: 14px;">
-                  If you have any questions about your plan or need assistance, please don't hesitate to contact us:<br>
-                  <strong>Email:</strong> ${superuserEmail}${contactPhone ? `<br><strong>Phone:</strong> ${contactPhone}` : ''}
-                </p>
-              </div>
-              
-              <p style="margin-top: 30px; color: #7f8c8d; font-size: 12px;">
-                This email was sent to ${userEmail}. Please keep this email for your records.
-              </p>
-            </div>
-            
-            <div style="padding: 20px; background-color: #2c3e50; color: white; text-align: center; border-radius: 0 0 4px 4px; font-size: 12px;">
+            <div style="padding: 20px 30px; background-color: #f5f5f5; border-top: 1px solid #ddd; font-size: 12px; color: #999; text-align: center;">
               <p style="margin: 0;">© 2026 CAS Fitness. All rights reserved.</p>
             </div>
           </div>
