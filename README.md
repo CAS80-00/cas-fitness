@@ -71,6 +71,7 @@ CAS Fitness is a multi-user fitness management platform designed for gyms and pe
 - Email template configuration
 - Promo code management
 - Role and permissions management
+- The Admin/Superuser can edit most of the UI: texts, pictures, add promotion codes, create banners and modify Email communications.
 
 ## Database Architecture (PostgreSQL/Neon)
 
