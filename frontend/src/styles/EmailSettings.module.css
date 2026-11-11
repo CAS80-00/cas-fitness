@@ -175,6 +175,19 @@
   @apply mt-4 flex flex-wrap gap-3;
 }
 
+.templateDivider {
+  @apply my-6 border-t;
+  border-color: #404040;
+}
+
+.templateSubsection {
+  @apply pt-4;
+}
+
+.templateSubsection h4 {
+  @apply mb-3 text-base font-semibold text-white;
+}
+
 .manageTemplateButton {
   @apply rounded-lg px-6 py-2 text-base font-semibold text-white transition-all duration-200;
   background-color: var(--color-electric-blue);

@@ -3,7 +3,7 @@ const router = express.Router();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const db = require('../db/client');
 const { authenticateToken } = require('../middleware/authMiddleware');
-const { sendUserConfirmationEmail, sendSuperuserNotificationEmail, sendPaymentReceipt, sendLoginInstructionsEmail } = require('../services/emailService');
+const { sendUserConfirmationEmail, sendSuperuserNotificationEmail, sendPaymentReceipt, sendLoginInstructionsEmail, sendConsultationSchedulingEmail } = require('../services/emailService');
 
 // Test endpoint
 router.get('/health', (req, res) => {
@@ -330,6 +330,58 @@ router.post('/test-receipt', async (req, res) => {
   } catch (err) {
     console.error('Error sending test payment receipt:', err.message);
     res.status(500).json({ error: 'Failed to send test payment receipt', details: err.message });
+  }
+});
+
+// Test endpoint for consultation scheduling email
+router.post('/test-consultation', async (req, res) => {
+  try {
+    const { 
+      email, 
+      clientName, 
+      trainerName, 
+      consultationDate, 
+      consultationTime, 
+      duration, 
+      location, 
+      contactEmail,
+      instructions 
+    } = req.body;
+
+    if (!email || !clientName || !trainerName || !consultationDate || !consultationTime) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: email, clientName, trainerName, consultationDate, consultationTime' 
+      });
+    }
+
+    console.log(`Sending test consultation scheduling email to ${email}`);
+
+    // Get superuser email from config
+    const configResult = await db.query(
+      `SELECT superuser_email FROM email_config WHERE is_active = TRUE LIMIT 1`
+    );
+    const superuserEmail = configResult.rows[0]?.superuser_email || contactEmail || email;
+
+    await sendConsultationSchedulingEmail(
+      email,
+      clientName,
+      trainerName,
+      consultationDate,
+      consultationTime,
+      duration || '60 minutes',
+      location || 'CAS Fitness Studio',
+      contactEmail || superuserEmail,
+      instructions || 'Please arrive 10 minutes early. Bring your ID and wear comfortable workout attire.',
+      superuserEmail
+    );
+
+    res.json({
+      success: true,
+      message: `Test consultation scheduling email sent to ${email}`
+    });
+  } catch (err) {
+    console.error('Error sending test consultation email:', err.message);
+    res.status(500).json({ error: 'Failed to send test consultation email', details: err.message });
   }
 });
 

@@ -21,6 +21,11 @@ export default function EmailSettings({ currentUser }) {
   const [receiptTemplateContent, setReceiptTemplateContent] = useState('');
   const [templateSaveMessage, setTemplateSaveMessage] = useState('');
 
+  // Consultation scheduling template management
+  const [showConsultationTemplateModal, setShowConsultationTemplateModal] = useState(false);
+  const [consultationTemplateContent, setConsultationTemplateContent] = useState('');
+  const [consultationSaveMessage, setConsultationSaveMessage] = useState('');
+
   useEffect(() => {
     if (isExpanded) {
       fetchEmailConfig();
@@ -138,6 +143,59 @@ For support, contact: [SUPERUSER_EMAIL]
     localStorage.setItem('cas_paymentReceiptTemplate', receiptTemplateContent);
     setTemplateSaveMessage('Receipt template saved successfully!');
     setTimeout(() => setTemplateSaveMessage(''), 2000);
+  };
+
+  const openConsultationTemplateModal = () => {
+    const savedTemplate = localStorage.getItem('cas_consultationSchedulingTemplate');
+    const defaultTemplate = `Subject: CAS Fitness - Consultation Scheduled on [CONSULTATION_DATE]
+
+Dear [CLIENT_NAME],
+
+Your consultation with [TRAINER_NAME] has been scheduled!
+
+────────────────────────────────────────
+CONSULTATION DETAILS
+────────────────────────────────────────
+Date: [CONSULTATION_DATE]
+Time: [CONSULTATION_TIME]
+Duration: [DURATION]
+Location: [LOCATION]
+
+Trainer: [TRAINER_NAME]
+Contact: [CONTACT_EMAIL]
+
+────────────────────────────────────────
+WHAT TO BRING
+────────────────────────────────────────
+• Valid photo ID
+• Comfortable workout clothes
+• Water bottle
+• Any medical documents if relevant
+
+────────────────────────────────────────
+INSTRUCTIONS & GUIDELINES
+────────────────────────────────────────
+[INSTRUCTIONS]
+
+If you need to reschedule or cancel, please contact us at least 24 hours in advance at [CONTACT_EMAIL] or [SUPERUSER_EMAIL].
+
+We look forward to working with you!
+
+Best regards,
+CAS Fitness Team
+[SUPERUSER_EMAIL]
+
+© 2026 CAS Fitness. All rights reserved.`;
+
+    setConsultationTemplateContent(savedTemplate || defaultTemplate);
+    setConsultationSaveMessage('');
+    setShowConsultationTemplateModal(true);
+  };
+
+  const saveConsultationTemplate = () => {
+    localStorage.setItem('cas_consultationSchedulingTemplate', consultationTemplateContent);
+    setConsultationSaveMessage('Consultation template saved successfully!');
+    setTimeout(() => setConsultationSaveMessage(''), 2000);
   };
 
   return (
@@ -289,6 +347,55 @@ For support, contact: [SUPERUSER_EMAIL]
                 Send Test Receipt
               </button>
             </div>
+
+            <div className={styles.templateDivider}></div>
+
+            <div className={styles.templateSubsection}>
+              <h4>Consultation Scheduling Template</h4>
+              <div className={styles.templateButtonGroup}>
+                <button
+                  type="button"
+                  onClick={openConsultationTemplateModal}
+                  className={styles.manageTemplateButton}
+                >
+                  Manage Consultation Template
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`${apiBaseUrl}/stripe/test-consultation`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          email: formData.superuserEmail || 'test@example.com',
+                          clientName: 'Test Client',
+                          trainerName: 'Test Trainer',
+                          consultationDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+                          consultationTime: '2:00 PM',
+                          duration: '60 minutes',
+                          location: 'CAS Fitness Studio',
+                          contactEmail: formData.superuserEmail || 'test@example.com',
+                          instructions: 'Please arrive 10 minutes early. Bring your ID and wear comfortable workout attire.'
+                        }),
+                      });
+                      
+                      if (response.ok) {
+                        setSuccess('Test consultation email sent! Check your email.');
+                        setTimeout(() => setSuccess(''), 3000);
+                      } else {
+                        setError('Failed to send test consultation email');
+                      }
+                    } catch (err) {
+                      setError(err.message);
+                    }
+                  }}
+                  className={styles.testButton}
+                >
+                  Send Test Consultation Email
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -336,6 +443,59 @@ For support, contact: [SUPERUSER_EMAIL]
               <button
                 type="button"
                 onClick={saveReceiptTemplate}
+                className={styles.saveButton}
+              >
+                <Save size={16} />
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConsultationTemplateModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <h2>Edit Consultation Scheduling Template</h2>
+              <button
+                type="button"
+                onClick={() => setShowConsultationTemplateModal(false)}
+                className={styles.closeButton}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={styles.modalContent}>
+              <p className={styles.templateHint}>
+                Available placeholders: [CLIENT_NAME], [TRAINER_NAME], [CONSULTATION_DATE], [CONSULTATION_TIME], [DURATION], [LOCATION], [CONTACT_EMAIL], [INSTRUCTIONS], [SUPERUSER_EMAIL]
+              </p>
+              <textarea
+                value={consultationTemplateContent}
+                onChange={(e) => setConsultationTemplateContent(e.target.value)}
+                className={styles.templateTextarea}
+                rows={15}
+              />
+
+              {consultationSaveMessage && (
+                <div className={styles.successMessage}>
+                  ✓ {consultationSaveMessage}
+                </div>
+              )}
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button
+                type="button"
+                onClick={() => setShowConsultationTemplateModal(false)}
+                className={styles.cancelButton}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveConsultationTemplate}
                 className={styles.saveButton}
               >
                 <Save size={16} />

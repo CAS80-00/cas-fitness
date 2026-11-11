@@ -460,9 +460,117 @@ const sendLoginInstructionsEmail = async (userEmail, firstName, temporaryPasswor
   }
 };
 
+// Send consultation scheduling confirmation email
+const sendConsultationSchedulingEmail = async (userEmail, clientName, trainerName, consultationDate, consultationTime, duration, location, contactEmail, instructions, superuserEmail) => {
+  const config = await getEmailConfig();
+  if (!config) {
+    console.warn('Email configuration not available, skipping consultation scheduling email');
+    return;
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: config.user,
+      pass: config.pass,
+    },
+  });
+
+  const mailOptions = {
+    from: config.user,
+    to: userEmail,
+    subject: `CAS Fitness - Consultation Scheduled on ${consultationDate}`,
+    html: `
+      <html>
+        <body style="font-family: Arial, sans-serif; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto;">
+            <div style="text-align: center; padding: 30px; background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white; border-radius: 4px 4px 0 0;">
+              <h1 style="margin: 0; font-size: 24px;">Consultation Scheduled ✓</h1>
+              <p style="margin: 10px 0 0 0; font-size: 14px;">We look forward to seeing you!</p>
+            </div>
+            
+            <div style="padding: 40px 30px; background-color: #f8f9fa;">
+              <p>Dear <strong>${clientName}</strong>,</p>
+              
+              <p>Your consultation with <strong>${trainerName}</strong> has been scheduled! We're excited to work with you.</p>
+              
+              <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Consultation Details</h3>
+              
+              <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <tr>
+                  <td style="padding: 12px; background-color: #ecf0f1; font-weight: bold; width: 40%;">Date:</td>
+                  <td style="padding: 12px;">${consultationDate}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; background-color: white; font-weight: bold;">Time:</td>
+                  <td style="padding: 12px;">${consultationTime}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; background-color: #ecf0f1; font-weight: bold;">Duration:</td>
+                  <td style="padding: 12px;">${duration}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; background-color: white; font-weight: bold;">Location:</td>
+                  <td style="padding: 12px;">${location}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px; background-color: #ecf0f1; font-weight: bold;">Trainer:</td>
+                  <td style="padding: 12px;">${trainerName}</td>
+                </tr>
+              </table>
+              
+              <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">What to Bring</h3>
+              
+              <ul style="line-height: 1.8; margin: 15px 0; padding-left: 20px;">
+                <li>Valid photo ID</li>
+                <li>Comfortable workout clothes</li>
+                <li>Water bottle</li>
+                <li>Any relevant medical documents</li>
+              </ul>
+              
+              <h3 style="color: #2c3e50; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Important Information</h3>
+              
+              <div style="background-color: white; padding: 20px; border-radius: 4px; border-left: 4px solid #3498db; margin-bottom: 20px;">
+                <p style="margin: 0; line-height: 1.6; color: #555;">${instructions}</p>
+              </div>
+              
+              <div style="margin-top: 30px; padding: 20px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                <p style="margin: 0; color: #856404;"><strong>⚠️ Important:</strong></p>
+                <p style="margin: 10px 0 0 0; color: #856404; font-size: 14px;">If you need to reschedule or cancel your consultation, please contact us at least 24 hours in advance at <strong>${contactEmail}</strong> or <strong>${superuserEmail}</strong>.</p>
+              </div>
+              
+              <div style="margin-top: 30px; padding: 20px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">
+                <p style="margin: 0; color: #2c3e50;"><strong>❓ Need to Make Changes?</strong></p>
+                <p style="margin: 10px 0 0 0; color: #555; font-size: 14px;">Contact us at:<br><strong>Email:</strong> ${contactEmail}<br><strong>Support:</strong> ${superuserEmail}</p>
+              </div>
+              
+              <p style="margin-top: 30px; color: #7f8c8d; font-size: 12px;">
+                This email was sent to ${userEmail}. Please keep this email for your records.
+              </p>
+            </div>
+            
+            <div style="padding: 20px; background-color: #2c3e50; color: white; text-align: center; border-radius: 0 0 4px 4px; font-size: 12px;">
+              <p style="margin: 0;">© 2026 CAS Fitness. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Consultation scheduling email sent to ${userEmail} for ${trainerName}`);
+  } catch (error) {
+    console.error(`Error sending consultation scheduling email to ${userEmail}:`, error.message);
+    // Don't throw - let this fail gracefully so it doesn't break consultation scheduling
+  }
+};
+
 module.exports = {
   sendUserConfirmationEmail,
   sendSuperuserNotificationEmail,
   sendPaymentReceipt,
   sendLoginInstructionsEmail,
+  sendConsultationSchedulingEmail,
 };
