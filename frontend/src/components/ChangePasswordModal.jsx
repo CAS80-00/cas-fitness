@@ -30,6 +30,8 @@ export default function ChangePasswordModal({ isOpen, onClose, userId }) {
   const [statusMessage, setStatusMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
+  const [devCode, setDevCode] = useState("");
+  const [devNote, setDevNote] = useState("");
 
   const authHeaders = () => {
     const token = localStorage.getItem("cas_jwt");
@@ -57,6 +59,8 @@ export default function ChangePasswordModal({ isOpen, onClose, userId }) {
   const handleRequestOTP = async () => {
     setError("");
     setIsLoading(true);
+    setDevCode("");
+    setDevNote("");
 
     if (!currentPassword) {
       setError("Current password is required.");
@@ -75,6 +79,12 @@ export default function ChangePasswordModal({ isOpen, onClose, userId }) {
 
       if (!res.ok) {
         throw new Error(data.error || "Failed to verify password.");
+      }
+
+      // Capture devCode if provided (development mode when SMTP not configured)
+      if (data.delivery?.devCode) {
+        setDevCode(data.delivery.devCode);
+        setDevNote(data.delivery.devNote);
       }
 
       setStatusMessage("Verification code sent to your email.");
@@ -154,7 +164,15 @@ export default function ChangePasswordModal({ isOpen, onClose, userId }) {
         body: JSON.stringify({ currentPassword }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) throw new Error("Failed to resend code.");
+
+      // Capture devCode if provided
+      if (data.delivery?.devCode) {
+        setDevCode(data.delivery.devCode);
+        setDevNote(data.delivery.devNote);
+      }
 
       setOtpCode("");
       setError("");
@@ -176,6 +194,8 @@ export default function ChangePasswordModal({ isOpen, onClose, userId }) {
     setError("");
     setStatusMessage("");
     setResendSeconds(0);
+    setDevCode("");
+    setDevNote("");
     onClose();
   };
 
@@ -273,6 +293,15 @@ export default function ChangePasswordModal({ isOpen, onClose, userId }) {
               <p className={styles.instruction}>
                 A 6-digit verification code has been sent to your email.
               </p>
+              
+              {devCode && (
+                <div className={styles.devCodeBox}>
+                  <p className={styles.devNote}>🔧 Development Mode</p>
+                  <p className={styles.devCodeText}>Code: <strong>{devCode}</strong></p>
+                  {devNote && <p className={styles.devNoteDetail}>{devNote}</p>}
+                </div>
+              )}
+              
               <label className={styles.label}>
                 Verification Code
                 <input
