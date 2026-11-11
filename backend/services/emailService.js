@@ -455,8 +455,8 @@ const sendLoginInstructionsEmail = async (userEmail, firstName, temporaryPasswor
     await transporter.sendMail(mailOptions);
     console.log(`Login instructions email sent to ${userEmail}`);
   } catch (error) {
-    console.error('Error sending login instructions email:', error);
-    throw error;
+    console.error(`Error sending login instructions email to ${userEmail}:`, error.message);
+    // Don't throw - let this fail gracefully so it doesn't break user creation
   }
 };
 

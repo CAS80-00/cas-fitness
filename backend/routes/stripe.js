@@ -3,7 +3,7 @@ const router = express.Router();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const db = require('../db/client');
 const { authenticateToken } = require('../middleware/authMiddleware');
-const { sendUserConfirmationEmail, sendSuperuserNotificationEmail, sendPaymentReceipt } = require('../services/emailService');
+const { sendUserConfirmationEmail, sendSuperuserNotificationEmail, sendPaymentReceipt, sendLoginInstructionsEmail } = require('../services/emailService');
 
 // Test endpoint
 router.get('/health', (req, res) => {
@@ -276,6 +276,31 @@ router.post('/test-receipt', async (req, res) => {
   } catch (err) {
     console.error('Error sending test receipt:', err.message);
     res.status(500).json({ error: 'Failed to send test receipt', details: err.message });
+  }
+});
+
+// Test endpoint for login instructions email
+router.post('/test-login-instructions', async (req, res) => {
+  try {
+    const { email, firstName, temporaryPassword } = req.body;
+
+    if (!email || !firstName || !temporaryPassword) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: email, firstName, temporaryPassword' 
+      });
+    }
+
+    console.log(`Sending test login instructions email to ${email}`);
+
+    await sendLoginInstructionsEmail(email, firstName, temporaryPassword);
+
+    res.json({
+      success: true,
+      message: `Test login instructions email sent to ${email}`
+    });
+  } catch (err) {
+    console.error('Error sending test login instructions:', err.message);
+    res.status(500).json({ error: 'Failed to send test login instructions', details: err.message });
   }
 });
 
