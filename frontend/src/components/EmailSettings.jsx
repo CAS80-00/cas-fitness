@@ -16,6 +16,11 @@ export default function EmailSettings({ currentUser }) {
     superuserEmail: '',
   });
 
+  // Receipt template management
+  const [showReceiptTemplateModal, setShowReceiptTemplateModal] = useState(false);
+  const [receiptTemplateContent, setReceiptTemplateContent] = useState('');
+  const [templateSaveMessage, setTemplateSaveMessage] = useState('');
+
   useEffect(() => {
     if (isExpanded) {
       fetchEmailConfig();
@@ -93,6 +98,46 @@ export default function EmailSettings({ currentUser }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const openReceiptTemplateModal = () => {
+    const savedTemplate = localStorage.getItem('cas_paymentReceiptTemplate');
+    const defaultTemplate = `Subject: CAS Fitness - Payment Receipt #[TRANSACTION_ID]
+
+Hello [STUDENT_NAME],
+
+Your payment has been received and processed successfully.
+
+Receipt Details:
+────────────────────
+Receipt Date: [RECEIPT_DATE]
+Payment Type: [PAYMENT_TYPE]
+Transaction ID: [TRANSACTION_ID]
+────────────────────
+
+Payment Summary:
+────────────────────
+Plan: [PLAN_TITLE]
+Amount: $[AMOUNT]
+────────────────────
+
+TOTAL: $[AMOUNT]
+
+This is an automated receipt for your payment. For any questions or disputes regarding this transaction, please contact our support team.
+
+For support, contact: [SUPERUSER_EMAIL]
+
+© 2026 CAS Fitness. All rights reserved.`;
+
+    setReceiptTemplateContent(savedTemplate || defaultTemplate);
+    setTemplateSaveMessage('');
+    setShowReceiptTemplateModal(true);
+  };
+
+  const saveReceiptTemplate = () => {
+    localStorage.setItem('cas_paymentReceiptTemplate', receiptTemplateContent);
+    setTemplateSaveMessage('Receipt template saved successfully!');
+    setTimeout(() => setTemplateSaveMessage(''), 2000);
   };
 
   return (
@@ -199,6 +244,105 @@ export default function EmailSettings({ currentUser }) {
               {saving ? 'Saving...' : 'Save Configuration'}
             </button>
           </form>
+
+          <div className={styles.templateManagementSection}>
+            <h3>Email Templates</h3>
+            <p className={styles.description}>
+              Customize email templates sent to customers
+            </p>
+            <div className={styles.templateButtonGroup}>
+              <button
+                type="button"
+                onClick={openReceiptTemplateModal}
+                className={styles.manageTemplateButton}
+              >
+                Manage Receipt Template
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`${apiBaseUrl}/stripe/test-receipt`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        email: formData.superuserEmail || 'test@example.com',
+                        studentName: 'Test Student',
+                        planTitle: 'Premium Plan',
+                        amount: '99.99',
+                        paymentType: 'purchase'
+                      }),
+                    });
+                    
+                    if (response.ok) {
+                      setSuccess('Test receipt email sent! Check your email.');
+                      setTimeout(() => setSuccess(''), 3000);
+                    } else {
+                      setError('Failed to send test receipt email');
+                    }
+                  } catch (err) {
+                    setError(err.message);
+                  }
+                }}
+                className={styles.testButton}
+              >
+                Send Test Receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReceiptTemplateModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <h2>Edit Payment Receipt Template</h2>
+              <button
+                type="button"
+                onClick={() => setShowReceiptTemplateModal(false)}
+                className={styles.closeButton}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={styles.modalContent}>
+              <p className={styles.templateHint}>
+                Available placeholders: [STUDENT_NAME], [RECEIPT_DATE], [PAYMENT_TYPE], [TRANSACTION_ID], [PLAN_TITLE], [AMOUNT], [SUPERUSER_EMAIL]
+              </p>
+              <textarea
+                value={receiptTemplateContent}
+                onChange={(e) => setReceiptTemplateContent(e.target.value)}
+                className={styles.templateTextarea}
+                rows={15}
+              />
+
+              {templateSaveMessage && (
+                <div className={styles.successMessage}>
+                  ✓ {templateSaveMessage}
+                </div>
+              )}
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button
+                type="button"
+                onClick={() => setShowReceiptTemplateModal(false)}
+                className={styles.cancelButton}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveReceiptTemplate}
+                className={styles.saveButton}
+              >
+                <Save size={16} />
+                Save Changes
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

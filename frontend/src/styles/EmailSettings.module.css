@@ -161,6 +161,149 @@
   @apply cursor-not-allowed opacity-50;
 }
 
+/* Template Management Section */
+.templateManagementSection {
+  @apply mt-8 border-t pt-6;
+  border-color: #262626;
+}
+
+.templateManagementSection h3 {
+  @apply mb-2 text-lg font-semibold text-white;
+}
+
+.templateButtonGroup {
+  @apply mt-4 flex flex-wrap gap-3;
+}
+
+.manageTemplateButton {
+  @apply rounded-lg px-6 py-2 text-base font-semibold text-white transition-all duration-200;
+  background-color: var(--color-electric-blue);
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+}
+
+.manageTemplateButton:hover {
+  background-color: var(--color-electric-blue-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(30, 64, 175, 0.4);
+}
+
+.manageTemplateButton:active {
+  transform: translateY(0);
+}
+
+.testButton {
+  @apply rounded-lg px-6 py-2 text-base font-semibold text-white transition-all duration-200;
+  background-color: rgba(34, 197, 94, 0.8);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.testButton:hover {
+  background-color: rgba(34, 197, 94, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
+}
+
+.testButton:active {
+  transform: translateY(0);
+}
+
+/* Modal Styles */
+.modalOverlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modal {
+  @apply rounded-xl border max-h-[90vh] w-full max-w-2xl overflow-hidden bg-gray-900 shadow-2xl;
+  border-color: #262626;
+}
+
+.modalHeader {
+  @apply flex items-center justify-between border-b px-6 py-4;
+  border-color: #262626;
+  background-color: rgba(30, 64, 175, 0.1);
+}
+
+.modalHeader h2 {
+  @apply m-0 text-xl font-bold text-white;
+}
+
+.closeButton {
+  @apply flex h-8 w-8 items-center justify-center rounded-lg transition;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.closeButton:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.modalContent {
+  @apply overflow-y-auto px-6 py-4;
+  max-height: calc(90vh - 140px);
+}
+
+.templateHint {
+  @apply mb-4 text-xs text-neutral-400;
+}
+
+.templateTextarea {
+  @apply w-full rounded-lg border p-4 font-mono text-sm text-white placeholder-neutral-600;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-color: #404040;
+  resize: vertical;
+  min-height: 300px;
+}
+
+.templateTextarea:focus {
+  outline: none;
+  border-color: var(--color-electric-blue);
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+}
+
+.successMessage {
+  @apply mt-4 rounded-lg px-4 py-2 text-sm text-green-400;
+  background-color: rgba(34, 197, 94, 0.1);
+}
+
+.modalFooter {
+  @apply flex justify-end gap-3 border-t px-6 py-4;
+  border-color: #262626;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.cancelButton {
+  @apply rounded-lg px-6 py-2 text-base font-semibold text-white transition;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: none;
+  cursor: pointer;
+}
+
+.cancelButton:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.saveButton {
+  @apply flex items-center gap-2 rounded-lg px-6 py-2 text-base font-semibold text-white transition-all;
+  background-color: var(--color-electric-blue);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+}
+
+.saveButton:hover {
+  background-color: var(--color-electric-blue-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(30, 64, 175, 0.4);
+}
+
+.saveButton:active {
+  transform: translateY(0);
+}
+
 @media (max-width: 768px) {
   .headerButton {
     @apply p-4;
@@ -176,5 +319,9 @@
 
   .collapsibleContent {
     @apply px-4 py-4;
+  }
+
+  .modal {
+    @apply max-w-full mx-4;
   }
 }
