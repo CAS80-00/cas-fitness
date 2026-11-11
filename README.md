@@ -1,10 +1,111 @@
 # CAS Fitness Web Application
 
-Full-stack CAS Fitness implementation with:
+⚠️ **STATUS:** Under Construction (Mostly Built)
 
-- **Frontend:** React + Vite + Tailwind
-- **Backend:** Node.js + Express
-- **Database:** PostgreSQL (Neon-compatible)
+This is a comprehensive full-stack fitness management platform currently in active development. Core functionality is operational, including authentication, user management, subscription handling, payment processing, and calendar management. Final refinements and additional features are in progress.
+
+## Technology Stack
+
+- **Frontend:** React + Vite + Tailwind CSS with CSS Modules
+- **Backend:** Node.js + Express + PostgreSQL (Neon)
+- **Authentication:** JWT-based with role-based access control
+- **Payment Processing:** Stripe integration
+- **Email/SMS:** SMTP and Twilio integration
+- **Hosting:** Deployment-ready (Docker-compatible)
+
+## Application Overview
+
+CAS Fitness is a multi-user fitness management platform designed for gyms and personal training studios. It supports three primary user roles (Superuser/Admin, Employees/Trainers, Students/Members) with specialized workflows for each.
+
+### Core Features
+
+**User Management & Authentication:**
+- Role-based access control (Superuser, Employee, Student)
+- JWT token-based authentication with refresh mechanism
+- Secure password change with OTP verification
+- Two-factor authentication (OTP via email/SMS)
+- Account status management (ACTIVE, INACTIVE, SUSPENDED, CANCELLED)
+
+**Membership & Subscriptions:**
+- Tiered subscription plans with auto-renewal
+- Subscription management dashboard
+- Payment history and receipts
+- Promo code system
+- Test/development card support
+
+**Calendar & Session Management:**
+- Consultation scheduling system
+- Trainer session booking and tracking
+- Calendar slot creation and management
+- Status-based access control (only active employees can create slots)
+- Personal and consolidated calendar views
+
+**Access Control:**
+- QR code generation and scanning for member door access
+- 30-day scan history tracking
+- Access verification dashboard
+
+**Email & Notifications:**
+- Template-based email system
+- Consultation scheduling confirmations
+- Plan purchase receipts
+- Password reset notifications
+- Configurable email templates with test functionality
+
+**Payment Processing:**
+- Stripe integration for secure payments
+- Credit card management
+- Payment history tracking
+- Invoice generation
+
+**Admin Dashboard:**
+- User management (create, edit, delete)
+- Plan management
+- Email template configuration
+- Promo code management
+- Role and permissions management
+
+## Database Architecture (PostgreSQL/Neon)
+
+### Core Tables
+
+**Authentication & Users**
+- `users` — User accounts with roles, status, password hashes, phone, and authentication fields
+- `sessions` — Active session tracking with JWT tokens and expiration
+- `otp_codes` — One-time passwords for 2FA and password reset with expiration and attempt tracking
+
+**Subscriptions & Payments**
+- `plans` — Fitness subscription plans (tier, price, session count, duration)
+- `subscriptions` — User subscription instances with renewal dates and auto-renewal status
+- `payments` — Payment transactions with Stripe integration and receipt links
+- `promo_codes` — Discount codes with usage tracking and expiration
+
+**Calendar & Sessions**
+- `calendars` — Calendar instances per trainer/gym
+- `calendar_slots` — Time slots available for booking
+- `trainer_sessions` — Booked sessions between trainer and member
+- `session_logs` — Session history and completion tracking
+- `consultation_schedules` — Consultation appointments
+- `consultation_availability` — Trainer availability windows
+
+**Access Control**
+- `access_passes` — Member QR pass/credential generation
+- `access_scans` — Historical scan records for access verification
+- `user_roles` — Role definitions and capabilities
+
+**CMS & Configuration**
+- `plans_content` — SEO-optimized plan descriptions
+- `email_templates` — Customizable email templates with variables
+- `legal_content` — Terms, privacy policy, and legal docs with version tracking
+- `seo_content` — Auto-complete content for search optimization
+
+### Key Database Features
+- JWT token revocation tracking
+- Failed login attempt tracking with automatic account locking (24-hour lockout after 3 failures)
+- Automatic timestamp tracking (created_at, updated_at)
+- Cascading deletes for referential integrity
+- Full-text search indexing on content tables
+- Status-based filtering for active/inactive records
 
 ## 1) Folder Structure
 
