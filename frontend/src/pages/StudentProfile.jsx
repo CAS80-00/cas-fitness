@@ -6,6 +6,7 @@ import SessionHistory from "../components/SessionHistory";
 import CreditCardManager from "../components/CreditCardManager";
 import CreditCardModal from "../components/CreditCardModal";
 import SubscriptionManagement from "../components/SubscriptionManagement";
+import ChangePasswordModal from "../components/ChangePasswordModal";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import BannerDisplay from "../components/BannerDisplay";
@@ -18,6 +19,7 @@ import styles from "../styles/StudentProfile.module.css";
  */
 export default function StudentProfile({ currentUser, onLogout, onNavigate, onAuthenticated, cartItems = [] }) {
   const [showHistory, setShowHistory] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [scanHistory, setScanHistory] = useState([]);
   const [subscription, setSubscription] = useState(null);
   const [autoRenew, setAutoRenew] = useState(true);
@@ -186,6 +188,9 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
               <AccessQRCode userId={currentUser?.id} activeSubscription={subscription} />
               <button type="button" onClick={() => setShowHistory(true)} className={styles.historyButton}>
                 History
+              </button>
+              <button type="button" onClick={() => setShowChangePasswordModal(true)} className={styles.historyButton}>
+                Change Password
               </button>
             </div>
 
@@ -448,6 +453,12 @@ export default function StudentProfile({ currentUser, onLogout, onNavigate, onAu
         isOpen={showCardModal}
         onClose={() => setShowCardModal(false)}
         onCardSaved={() => window.location.reload()}
+      />
+
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        userId={currentUser?.id}
       />
 
       <SiteFooter isSuperuser={currentUser?.roleId === 1} />

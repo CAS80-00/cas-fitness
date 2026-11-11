@@ -1,6 +1,7 @@
 import { useState } from "react";
 import CalendarSlotManagement from "../components/CalendarSlotManagement";
 import TrainerConsolidatedCalendar from "../components/TrainerConsolidatedCalendar";
+import ChangePasswordModal from "../components/ChangePasswordModal";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import BannerDisplay from "../components/BannerDisplay";
@@ -13,6 +14,7 @@ import styles from "../styles/EmployeeProfile.module.css";
  */
 export default function EmployeeProfile({ currentUser, onLogout, onNavigate, onAuthenticated, cartItems = [] }) {
   const [calendarRefreshTrigger, setCalendarRefreshTrigger] = useState(0);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   if (!currentUser || currentUser.status === "SUSPENDED" || currentUser.status === "CANCELLED") {
     return (
@@ -65,12 +67,21 @@ export default function EmployeeProfile({ currentUser, onLogout, onNavigate, onA
           <p>Email: {currentUser.email}</p>
           <p>Status: ACTIVE</p>
           <p>Role: Employee</p>
+          <button type="button" onClick={() => setShowChangePasswordModal(true)} className={styles.changePasswordButton}>
+            Change Password
+          </button>
         </div>
 
         <CalendarSlotManagement employeeId={currentUser.id} isEmployee={true} onSlotChanged={handleSlotChanged} />
 
         <TrainerConsolidatedCalendar employeeId={currentUser.id} refreshTrigger={calendarRefreshTrigger} />
       </div>
+
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        userId={currentUser?.id}
+      />
 
       <SiteFooter isSuperuser={currentUser?.roleId === 1} />
     </div>

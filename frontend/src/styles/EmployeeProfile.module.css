@@ -49,3 +49,7 @@
   background-color: var(--color-dark-slate);
   border-color: #262626;
 }
+
+.changePasswordButton {
+  @apply col-span-1 rounded border border-blue-500 bg-blue-600 px-4 py-2 font-semibold text-white transition-all hover:bg-blue-700 md:col-span-2;
+}
