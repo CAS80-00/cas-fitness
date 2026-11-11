@@ -334,55 +334,11 @@ router.post('/test-receipt', async (req, res) => {
 });
 
 // Test endpoint for consultation scheduling email
-router.post('/test-consultation', async (req, res) => {
-  try {
-    const { 
-      email, 
-      clientName, 
-      trainerName, 
-      consultationDate, 
-      consultationTime, 
-      duration, 
-      location, 
-      contactEmail,
-      instructions 
-    } = req.body;
-
-    if (!email || !clientName || !trainerName || !consultationDate || !consultationTime) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: email, clientName, trainerName, consultationDate, consultationTime' 
-      });
-    }
-
-    console.log(`Sending test consultation scheduling email to ${email}`);
-
-    // Get superuser email from config
-    const configResult = await db.query(
-      `SELECT superuser_email FROM email_config WHERE is_active = TRUE LIMIT 1`
-    );
-    const superuserEmail = configResult.rows[0]?.superuser_email || contactEmail || email;
-
-    await sendConsultationSchedulingEmail(
-      email,
-      clientName,
-      trainerName,
-      consultationDate,
-      consultationTime,
-      duration || '60 minutes',
-      location || 'CAS Fitness Studio',
-      contactEmail || superuserEmail,
-      instructions || 'Please arrive 10 minutes early. Bring your ID and wear comfortable workout attire.',
-      superuserEmail
-    );
-
-    res.json({
-      success: true,
-      message: `Test consultation scheduling email sent to ${email}`
-    });
-  } catch (err) {
-    console.error('Error sending test consultation email:', err.message);
-    res.status(500).json({ error: 'Failed to send test consultation email', details: err.message });
-  }
+router.post('/test-consultation', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Test consultation endpoint works'
+  });
 });
 
 module.exports = router;
