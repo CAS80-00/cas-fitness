@@ -160,7 +160,7 @@
 }
 
 .historyButton {
-  @apply mt-3 w-full rounded py-2 text-sm transition;
+  @apply mt-3 w-auto rounded py-2 px-4 text-sm transition;
   background-color: #dc2626;
   border: 1px solid #b91c1c;
 }
