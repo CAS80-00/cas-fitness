@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styles from "../styles/SuperuserProfilePanel.module.css";
 import PhoneInputWithCountryCode from "./PhoneInputWithCountryCode";
 
@@ -21,6 +21,17 @@ export default function SuperuserProfilePanel({ currentUser, onProfileUpdated })
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+
+  // Sync internal state when currentUser prop changes (e.g., after profile update)
+  useEffect(() => {
+    if (!isEditing) {
+      setFirstName(currentUser?.firstName || "");
+      setLastName(currentUser?.lastName || "");
+      setEmail(currentUser?.email || "");
+      setPhone(currentUser?.phone || "");
+      setCountryCode("+1");
+    }
+  }, [currentUser, isEditing]);
 
   const authHeaders = () => {
     const token = localStorage.getItem("cas_jwt");
